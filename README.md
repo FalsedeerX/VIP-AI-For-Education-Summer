@@ -1,23 +1,48 @@
-# AI_TA
+# VIP-AI-For-Education-Summer
 Codebase for our AI Teaching Assistant - VIP Team AI for Education
 
+This file contains the latest REST API documentation for the endpoints.
+Including the accepted methods and the expected returning data.
+
 ---
-User Authentication
-- POST /auth/login
-    > Authenticate the user password with the hash stored in the database.
-    >
-    > If verification success, update user status in database table login, give out cookie as session ID.
-- POST /auth/logout
-    > Logout the current user, and update user status in database table login.
-- POST /auth/passwdreset
-    > Reset a specific user's password in email.
+
+## Backend Internal Endpoints
+
+### User Authentication
+
+- `POST` `/api/login`
+    > Performs user login, login information is embeded as `JSON` format.
+    > Sample Request Content:
+    ```json
+    {
+        "user_id": "chen5292",
+        "password": "fakepasword123"
+    }
+    ```
+    > If the credential is accepted, then it will retrun in status code `200` with content:
+    ```json
+    {
+        "status": "Login Success"
+    }
+    ```
+- `POST` `/api/logout`
+- `POST` `/api/register`
+
+### Chat Folders Mangement
+
+- `GET` `api/folders`
+- `POST` `api/organize`
+
+### Chat Management
+
+- `GET` `api/chat`
+- `POST` `api/chat`
+- `DELETE` `api/chat`
+- `POST` `api/new_chat`
+
+
 ---
-Document Management
-- GET /documents/info
-    > Fetch the metadata for the target document specified by hash value in request parameter ID
-- POST /documents/upload
-    > Upload an local file to the server, but how to store the file is TBD.
----
+
 AI Model Processing
 - GET /chat
     > Post an query to the AI model, the model output will be included in the content of the response.
@@ -27,4 +52,4 @@ AI Model Processing
     > Retrieve the list of chat folders. (Probably in XML or JSON)
 - POST /chat/classify
     > Update the folder classification to a specific folder.
----
+
