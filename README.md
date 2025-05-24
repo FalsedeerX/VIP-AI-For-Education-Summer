@@ -1,4 +1,5 @@
 # VIP-AI-For-Education-Summer
+
 Codebase for our AI Teaching Assistant - VIP Team AI for Education
 
 This file contains the latest REST API documentation for the endpoints.  
