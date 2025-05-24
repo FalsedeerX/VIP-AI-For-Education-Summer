@@ -79,8 +79,8 @@ Including the accepted methods and the expected returning data.
 - `POST` `api/organize`
 
     > Organize a chat-id to a specified folder, 
-    > source and destination information are embeded as `JSON` format.
-    > Sample request content
+    > source and destination information are embeded as `JSON` format.  
+    > Sample request content  
     ```json
     {
         "chat_id": "0c3cc39a-18cf-4d94-a1c7-690a58596a0e",
@@ -169,7 +169,7 @@ Including the accepted methods and the expected returning data.
 
 - `POST` `api/new_chat`
 
-    > Create a new chat and return the chat-id in `JSON` format,
+    > Create a new chat and return the chat-id in `JSON` format,  
     > no parameter is required for this request, return status code `200` upon success.  
     > Sample response content:  
     ```json
