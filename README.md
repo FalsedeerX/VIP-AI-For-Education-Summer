@@ -11,22 +11,45 @@ Including the accepted methods and the expected returning data.
 ### User Authentication
 
 - `POST` `/api/login`
-    > Performs user login, login information is embeded as `JSON` format.
-    > Sample Request Content:
+    > Performs user login, login information is embeded as `JSON` format.  
+    > Sample Request Content:  
     ```json
     {
         "user_id": "chen5292",
         "password": "fakepasword123"
     }
     ```
-    > If the credential is accepted, then it will retrun in status code `200` with content:
+    > Returns following content with status code `200` upon success.  
     ```json
     {
         "status": "Login Success"
     }
     ```
 - `POST` `/api/logout`
+    > Logout the current user and terminate session,   
+    > no parameter is required for this operation.  
+    > Returns following content with status code `200` upon success.  
+    ```json
+    {
+        "status": "Logout Success"
+    }
+    ```
 - `POST` `/api/register`
+    > Register new user, user information is embeded as `JSON` format.
+    ```json
+    {
+        "user_id": "Falsedeer",
+        "password": "qwert123",
+        "email:" "chen5292@purdue.edu"
+    }
+    ```
+    > Will accept the request only if the `user_id` doesn't exist in the current database.  
+    > Returns following content with status code `200` upon success.
+    ```json
+    {
+        "status": "Register Success"
+    }
+    ```
 
 ### Chat Folders Mangement
 
