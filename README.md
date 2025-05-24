@@ -21,7 +21,7 @@ Including the accepted methods and the expected returning data.
         "password": "fakepasword123"
     }
     ```
-    > Returns following content with status code `200` upon success.
+    > Returns following content with status code `200` upon success.  
     > Sample response content:
     ```json
     {
