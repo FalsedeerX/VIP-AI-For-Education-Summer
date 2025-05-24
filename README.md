@@ -1,7 +1,7 @@
 # VIP-AI-For-Education-Summer
 Codebase for our AI Teaching Assistant - VIP Team AI for Education
 
-This file contains the latest REST API documentation for the endpoints.
+This file contains the latest REST API documentation for the endpoints.  
 Including the accepted methods and the expected returning data.
 
 ---
@@ -24,7 +24,7 @@ Including the accepted methods and the expected returning data.
     > Sample response content:
     ```json
     {
-        "status": "Login Success"
+        "status": "Login Success."
     }
     ```
 
@@ -36,7 +36,7 @@ Including the accepted methods and the expected returning data.
     > Sample request content:  
     ```json
     {
-        "status": "Logout Success"
+        "status": "Logout Success."
     }
     ```
 
@@ -56,7 +56,7 @@ Including the accepted methods and the expected returning data.
     > Sample response content:
     ```json
     {
-        "status": "Register Success"
+        "status": "Register Success."
     }
     ```
 
@@ -90,7 +90,7 @@ Including the accepted methods and the expected returning data.
     > Sample response content:  
     ```json
     {
-        "status": "Organize Success"
+        "status": "Organize Success."
     }
     ```
 
@@ -131,8 +131,51 @@ Including the accepted methods and the expected returning data.
     ```
 
 - `POST` `api/chat`
+
+    > Log a single chat entry to the database, message details are embeded as `JSON` format.  
+    > Sample request content:
+    ```json
+    {
+        "chat_id": "b91b2e63-0e30-4cf1-8b75-6ec34fef63cf",
+        "sender": "Purdue-GPT",
+        "message": "Can you read me ?"
+    }
+    ``` 
+    > Returns following content with status code `200` upon success.  
+    > Sample response content:  
+    ```json
+    {
+        "status": "Log Success."
+    }
+    ```
+
+
 - `DELETE` `api/chat`
+
+    > Delete a specified chat by its `UUID`, target information is embeded as `JSON` format.
+    > Sample request content:
+    ```json
+    {
+        "chat_id": "bd7806a3-d61e-42ab-bc84-8fa5a1e1f169"
+    }
+    ```
+    > Returns following content with status code `200` upon success.  
+    ```json
+    {
+        "status": "Deletion Success."
+    }
+    ```
+
 - `POST` `api/new_chat`
+
+    > Create a new chat and return the chat-id in `JSON` format,
+    > no parameter is required for this request, return status code `200` upon success.  
+    > Sample response content:  
+    ```json
+    {
+        "chat_id": "4abf51c1-9849-4f0f-9e9a-e460edcb7e02"
+    }
+    ```
 
 ---
 
