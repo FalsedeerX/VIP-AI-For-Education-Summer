@@ -11,6 +11,7 @@ Including the accepted methods and the expected returning data.
 ### User Authentication
 
 - `POST` `/api/login`
+
     > Performs user login, login information is embeded as `JSON` format.  
     > Sample Request Content:  
     ```json
@@ -25,7 +26,9 @@ Including the accepted methods and the expected returning data.
         "status": "Login Success"
     }
     ```
+
 - `POST` `/api/logout`
+
     > Logout the current user and terminate session,   
     > no parameter is required for this operation.  
     > Returns following content with status code `200` upon success.  
@@ -34,7 +37,9 @@ Including the accepted methods and the expected returning data.
         "status": "Logout Success"
     }
     ```
+
 - `POST` `/api/register`
+    
     > Register new user, user information is embeded as `JSON` format.
     ```json
     {
