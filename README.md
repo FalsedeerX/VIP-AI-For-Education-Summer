@@ -78,9 +78,9 @@ Including the accepted methods and the expected returning data.
 
 - `POST` `api/organize`
 
-    > Organize a chat-id to a specified folder, 
+    > Organize a chat-id to a specified folder,  
     > source and destination information are embeded as `JSON` format.  
-    > Sample request content  
+    > Sample request content:  
     ```json
     {
         "chat_id": "0c3cc39a-18cf-4d94-a1c7-690a58596a0e",
@@ -153,8 +153,8 @@ Including the accepted methods and the expected returning data.
 
 - `DELETE` `api/chat`
 
-    > Delete a specified chat by its `UUID`, target information is embeded as `JSON` format.
-    > Sample request content:
+    > Delete a specified chat by its `UUID`, target information is embeded as `JSON` format.  
+    > Sample request content:  
     ```json
     {
         "chat_id": "bd7806a3-d61e-42ab-bc84-8fa5a1e1f169"
