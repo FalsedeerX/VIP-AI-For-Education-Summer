@@ -2,7 +2,7 @@
 
 ---
 
-## Table - `user`
+## Table - `users`
  
 From now on, all user will be refernced by their unique `SERIAL` `id` instead of the original `TEXT` `username`,  
 in order to reduce the risk of performing an injection attack by using special username.  
@@ -36,7 +36,7 @@ CREATE TABLE folders (
 
 ---
 
-## Table - `chat_folder_map`
+## Table - `chat_folder_link`
 
 This table link the two entry from `chats` and `folder` table.
 
@@ -53,5 +53,6 @@ CREATE TABLE chat_folder_link (
 ## Table - `chats`
 
 ```sql
+
 ```
 
