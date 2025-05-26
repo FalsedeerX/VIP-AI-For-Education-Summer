@@ -1,6 +1,18 @@
-This server is meant to be `stateful` to make it easier to deploy,  
-User authentication will be done by unique hash, and setting it in `token` field of cookie.    
-  
-Session Token => `Type 4 UUID`
+# Database Schema Design
 
-Expire TimeStamp Format => `Unix Epoch 1970`  
+## Table - `user`
+
+Password will be hashed in `Argon2` before storage,  
+user authentication system will be comparing hashes rather than plaintext password.  
+
+```sql
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    email TEXT NOT NULL,
+    password TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+
