@@ -21,10 +21,10 @@ CREATE TABLE users (
 
 ---
 
+## Table - `folders`
+
 This will be holding data for every single folder,  
 keeping track of the owner and the custom label for it.  
-
-## Table - `folders`
 
 ```sql
 CREATE TABLE folders (
