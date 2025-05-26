@@ -2,8 +2,11 @@
 
 ## Table - `user`
 
-Password will be hashed in `Argon2` before storage,  
-user authentication system will be comparing hashes rather than plaintext password.  
+A new change in the schema:  
+all user will be refernced by their unique `SERIAL` `id` instead of the original `TEXT` `username`,  
+in order to reduce the risk of performing an injection attack by using special username.  
+User password will be hashed with **Argon2** before storage,  
+authentication system will verify user by comparing hashes rather than plaintext.  
 
 ```sql
 CREATE TABLE users (
