@@ -43,7 +43,7 @@ This table link the two entry from `chats` and `folder` table.
 ```sql
 CREATE TABLE chat_folder_link (
     folder_id INT NOT NULL REFERENCE folders(id),
-    chat_id  UUID NOT NULL REFERENCE chats(uid),
+    chat_id  UUID NOT NULL REFERENCE chats(id),
     PRIMARY KEY (folder_id, chat_id)
 );
 ```
@@ -53,6 +53,29 @@ CREATE TABLE chat_folder_link (
 ## Table - `chats`
 
 ```sql
-
+CREATE TABLE chats (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id INT NOT NULL REFERENCE users(id),
+    title TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
+---
+
+## Table - `chat_messages`
+
+All users message and chatbot response will be stored in this table,  
+message rotation logic should be implemented in the backend to prevent unbounded database growth.
+
+```sql
+CREATE TABLE chat_messages (
+    id BIGSERIAL PRIMARY KEY,
+    user_id INT NOT NULL REFERENCE users(id),
+    chat_id UUID NOT NULL REFERENCE chats(id),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
