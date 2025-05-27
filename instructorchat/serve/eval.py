@@ -47,7 +47,7 @@ def get_responses(
 
         question = test_case["Q"]
 
-        print(f"Question {idx}/{len(test_cases)}: {question}")
+        print(f"Question {idx + 1}/{len(test_cases)}: {question}")
 
         conv.append_message(conv.roles[0], question)
 
@@ -95,12 +95,12 @@ def run_evaluations(
             name="Correctness",
             evaluation_steps=[
                 "If 'actual output' sufficiently answer the 'query' then it's a good output. 'Actual output' doesn't need to strictly repeat the information from 'expected output'"
-                "Only use 'expected ouput' to check if the facts in 'actual output' contradicts any facts in 'expected output'",
+                "Only use 'expected output' to check if the facts in 'actual output' contradicts any facts in 'expected output'",
                 "If there is information in 'expected output' that isn't mentioned in the 'actual output', check it's relevant to the query to evaluate that information",
                 "do not penalize the omission of insignificant words and relevant information",
-                "actual output's having differnt writing style and grammar from the expected output's is OK"
+                "actual output's having different writing style and grammar from the expected output's is OK"
             ],
-            #criteria="Determine if the 'actual output' is factually correct based on the 'expected output'. Do not penalize for different format, structure, wording or unncessary information as long as the fact provided is correct"
+            #criteria="Determine if the 'actual output' is factually correct based on the 'expected output'. Do not penalize for different format, structure, wording or unnecessary information as long as the fact provided is correct"
             model="gpt-4o-mini",
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
             threshold=0.7
