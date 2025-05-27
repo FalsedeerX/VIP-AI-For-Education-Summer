@@ -29,7 +29,7 @@ keeping track of the owner and the custom label for it.
 ```sql
 CREATE TABLE folders (
     id SERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCE users(id),
+    user_id INT NOT NULL REFERENCES users(id),
     label TEXT NOT NULL
 );
 ```
@@ -42,8 +42,8 @@ This table link the two entry from `chats` and `folder` table.
 
 ```sql
 CREATE TABLE chat_folder_link (
-    folder_id INT NOT NULL REFERENCE folders(id),
-    chat_id  UUID NOT NULL REFERENCE chats(id),
+    folder_id INT NOT NULL REFERENCES folders(id),
+    chat_id  UUID NOT NULL REFERENCES chats(id),
     PRIMARY KEY (folder_id, chat_id)
 );
 ```
@@ -55,7 +55,7 @@ CREATE TABLE chat_folder_link (
 ```sql
 CREATE TABLE chats (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id INT NOT NULL REFERENCE users(id),
+    user_id INT NOT NULL REFERENCES users(id),
     title TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -71,8 +71,8 @@ message rotation logic should be implemented in the backend to prevent unbounded
 ```sql
 CREATE TABLE chat_messages (
     id BIGSERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCE users(id),
-    chat_id UUID NOT NULL REFERENCE chats(id),
+    user_id INT NOT NULL REFERENCES users(id),
+    chat_id UUID NOT NULL REFERENCES chats(id),
     message TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
