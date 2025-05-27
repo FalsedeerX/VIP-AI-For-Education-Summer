@@ -1,7 +1,7 @@
 """Inference for GPT-4-mini model."""
 import abc
 import openai
-from typing import Dict, Iterator
+from typing import Dict, Iterator, Optional
 
 class ChatIO(abc.ABC):
     @abc.abstractmethod
@@ -50,7 +50,7 @@ def chat_loop(
     model_path: str,
     temperature: float,
     chatio: ChatIO, #chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
-    api_key: str = None,
+    api_key: Optional[str] = None,
 ):
     """Main chat loop."""
     # Set API key

@@ -1,5 +1,6 @@
 from enum import IntEnum, auto
 from typing import List, Tuple, Union
+import json
 
 class SeparatorStyle(IntEnum):
     """Separator styles."""
@@ -47,6 +48,10 @@ class Conversation:
     
     def get_message(self):
         return self.messages
+    
+    def save_conversation(self, file_path: str):
+        with open(file_path, "w") as f:
+            json.dump(self.messages, f, indent=4)
 
 def get_conv_template(name: str) -> Conversation:
     """Get a new conversation template."""

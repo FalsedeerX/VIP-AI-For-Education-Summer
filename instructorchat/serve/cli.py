@@ -8,6 +8,7 @@ import argparse
 import os
 
 from instructorchat.serve.inference import ChatIO, chat_loop
+from instructorchat.serve.eval import get_responses, run_evaluations
 
 class SimpleChatIO(ChatIO):
     def prompt_for_input(self, role) -> str:
@@ -48,6 +49,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--eval", type=str, default=argparse.SUPPRESS) # Get responses and evaluate
+    parser.add_argument("--eval-responses", type=str, default=argparse.SUPPRESS) # Evaluate existing responses file
     args = parser.parse_args()
 
     # Use API key from environment variable if not provided
@@ -57,12 +60,28 @@ def main():
 
     chatio = SimpleChatIO()
     try:
-        chat_loop(
-            model_path="gpt-4o-mini",
-            temperature=args.temperature,
-            chatio=chatio,
-            api_key=api_key,
-        )
+        if "eval" in args:
+            if "eval-responses" in args:
+                raise ValueError("Only one of 'eval' and 'eval-responses' should be provided")
+
+            responses_file = get_responses(
+                model_path="gpt-4o-mini",
+                temperature=args.temperature,
+                chatio=chatio,
+                api_key=api_key,
+                input_file=args.eval if args.eval is not None else "tests.json"
+            )
+
+            run_evaluations(responses_file)
+        elif "eval-responses" in args:
+            run_evaluations(args.eval_responses if args.eval_responses is not None else "responses.json")
+        else:
+            chat_loop(
+                model_path="gpt-4o-mini",
+                temperature=args.temperature,
+                chatio=chatio,
+                api_key=api_key,
+            )
     except KeyboardInterrupt:
         print("exit...")
 
