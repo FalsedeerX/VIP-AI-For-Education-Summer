@@ -30,6 +30,7 @@ keeping track of the owner and the custom label for it.
 CREATE TABLE folders (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id),
+    course_id INT NOT NULL REFERENCES course(id),
     label TEXT NOT NULL
 );
 ```
@@ -45,6 +46,19 @@ CREATE TABLE chat_folder_link (
     folder_id INT NOT NULL REFERENCES folders(id),
     chat_id  UUID NOT NULL REFERENCES chats(id),
     PRIMARY KEY (folder_id, chat_id)
+);
+```
+
+---
+
+## Table - `courses`
+
+Using collection of chat folders to create a group of course.  
+
+```sql
+CREATE TABLE course (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL
 );
 ```
 
