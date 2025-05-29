@@ -1,18 +1,13 @@
 import os
 import psycopg
 from typing import Any
+from dotenv import load_dotenv
 from argon2 import PasswordHasher
-
-DB_PORT = 5432
-DB_NAME = "purduegptdb"
-DB_HOST = "localhost"
-DB_USER = "aesir"
-DB_PASSWD = "xxxxx"
 
 
 class DatabaseAgent:
-	def __init__(self):
-		self.conn = psycopg.connect(f"postgresql://{DB_USER}:{DB_PASSWD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+	def __init__(self, db_host: str, db_port: int, db_name: str, db_user: str, db_passwd: str):
+		self.conn = psycopg.connect(f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}")
 		self.conn.execute("SET search_path TO chatbot;")
 		self.hasher = PasswordHasher()
 
@@ -81,5 +76,19 @@ class DatabaseAgent:
 
 
 if __name__ == "__main__":
-	agent = DatabaseAgent()
+	load_dotenv()
+	db_host = os.getenv("DB_HOST")
+	db_port = int(os.getenv("DB_PORT"))
+	db_name = os.getenv("DB_NAME")
+	db_user = os.getenv("DB_USER")
+	db_passwd = os.getenv("DB_PASSWD")
+	print(db_host)
+	print(db_port)
+	print(db_name)
+	print(db_user)
+	print(db_passwd)
+
+	# connect to the database broker
+	agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
+	agent.register_user("falsedeer", "ani10242048@gmail.com", "password123")
 	agent.register_user("chen5292", "admin@aurvandill.net", "apple123")
