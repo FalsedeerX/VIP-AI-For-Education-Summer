@@ -1,18 +1,41 @@
-import uuid
+import psycopg
 from typing import Any
-from tinydb import TinyDB, Query
-from tinydb.operations import set
-from datetime import datetime, timedelta, UTC
+from argon2 import PasswordHasher
+
+DB_PORT = 5432
+DB_NAME = "purduegptdb"
+DB_HOST = "localhost"
+DB_USER = "aesir"
+DB_PASSWD = "Dance with devil"
 
 
 class DatabaseAgent:
-	def __init__(self, database):
-		pass
+	def __init__(self):
+		self.conn = psycopg.connect(f"postgresql://{DB_USER}:{DB_PASSWD}@{DB_HOST}:{DB_PORT}/{DB_NAME}")
+		self.conn.execute("SET search_path TO chatbot;")
+		self.hasher = PasswordHasher()
 
 
 	def register_user(self, username: str, email: str, password: str) -> bool:
 		""" Create a new entry of user in the database """
-		pass
+		with self.conn.cursor() as cursor:
+			cursor.execute("""
+				SELECT EXISTS (
+					SELECT 1 FROM users WHERE username = %s OR email = %s
+				);
+				""", (username, email))
+
+			# username or email already exists
+			if cursor.fetchone()[0]: return False
+
+			# insert new user
+			cursor.execute("""
+				INSERT INTO users (username, email, password)
+				VALUES (%s, %s, %s)
+				""", (username, email, self.hasher.hash(password)))
+
+		self.conn.commit()
+		return True
 
 
 	def delete_user(self, username: str) -> bool:
@@ -22,26 +45,6 @@ class DatabaseAgent:
 
 	def verify_user(self, username: str, password: str) -> bool:
 		""" Verify the password for a user """
-		pass
-
-
-	def create_session(self, owner_id: str) -> tuple[str, datetime]|None:
-		""" Create an UUID-V4 token for the session, return tuple[token, expiration datetime] """
-		pass
-
-
-	def terminate_session(self, owner_id: str, token: str) -> bool:
-		""" Termiante an UUID-V4 session token of user """
-		pass
-
-
-	def terminate_all_sessions(self, user_id: str) -> bool:
-		""" Remove all session tokens for the given user_id """
-		pass
-
-
-	def verify_session(self, owner_id: str, token: str) -> bool:
-		""" Verify a session token of the user """
 		pass
 
 
@@ -77,4 +80,5 @@ class DatabaseAgent:
 
 
 if __name__ == "__main__":
-	pass
+	agent = DatabaseAgent()
+	agent.register_user("chen5292", "admin@aurvandill.net", "apple123")

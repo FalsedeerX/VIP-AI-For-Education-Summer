@@ -27,7 +27,6 @@ CREATE TABLE users (
 CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
