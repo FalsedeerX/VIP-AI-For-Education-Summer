@@ -1,0 +1,9 @@
+argon2-cffi==23.1.0
+argon2-cffi-bindings==21.2.0
+cffi==1.17.1
+dotenv-python==0.0.1
+psycopg==3.2.9
+psycopg-binary==3.2.9
+psycopg-pool==3.2.6
+pycparser==2.22
+typing_extensions==4.13.2
