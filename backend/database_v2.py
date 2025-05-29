@@ -36,7 +36,17 @@ class DatabaseAgent:
 
 	def delete_user(self, username: str) -> bool:
 		""" remove a user entry from the database """
-		pass
+		with self.conn.cursor() as cursor:
+			cursor.execute("""
+				DELETE FROM users WHERE username = %s
+				RETURNING id
+				""", (username,))
+
+			# check whether any row is affected
+			if cursor.fetchone() is None: return False
+		
+		self.conn.commit()	
+		return True
 
 
 	def verify_user(self, username: str, password: str) -> bool:
@@ -82,13 +92,9 @@ if __name__ == "__main__":
 	db_name = os.getenv("DB_NAME")
 	db_user = os.getenv("DB_USER")
 	db_passwd = os.getenv("DB_PASSWD")
-	print(db_host)
-	print(db_port)
-	print(db_name)
-	print(db_user)
-	print(db_passwd)
 
 	# connect to the database broker
 	agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
 	agent.register_user("falsedeer", "ani10242048@gmail.com", "password123")
 	agent.register_user("chen5292", "admin@aurvandill.net", "apple123")
+	agent.delete_user("falsedeer")
