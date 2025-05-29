@@ -3,6 +3,7 @@ import psycopg
 from typing import Any
 from dotenv import load_dotenv
 from argon2 import PasswordHasher
+from argon2.exceptions import VerifyMismatchError
 
 
 class DatabaseAgent:
@@ -51,7 +52,23 @@ class DatabaseAgent:
 
 	def verify_user(self, username: str, password: str) -> bool:
 		""" Verify the password for a user """
-		pass
+		with self.conn.cursor() as cursor:
+			cursor.execute("""
+				SELECT password FROM users WHERE username = %s;
+				""", (username,))
+
+			# extract the password and check whether user exist
+			row = cursor.fetchone()
+			if row is None: return False
+			hashed_password = row[0]
+
+			# verify the argon2 hashed password
+			try:
+				self.hasher.verify(hashed_password, password)
+				return True
+
+			except VerifyMismatchError:
+				return False
 
 
 	def get_folders(self, owner_id: str) -> dict[str, list[str]]|None:
@@ -84,7 +101,6 @@ class DatabaseAgent:
 		pass
 
 
-
 if __name__ == "__main__":
 	load_dotenv()
 	db_host = os.getenv("DB_HOST")
@@ -97,4 +113,9 @@ if __name__ == "__main__":
 	agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
 	agent.register_user("falsedeer", "ani10242048@gmail.com", "password123")
 	agent.register_user("chen5292", "admin@aurvandill.net", "apple123")
-	agent.delete_user("falsedeer")
+	
+	# attempt to verify the user with password
+	status1 = agent.verify_user("falsedeer", "fakepassword")
+	print("Verification Attempt on Falsedeer:", status1)
+	status2 = agent.verify_user("falsedeer", "password123")
+	print("Verification Attempt on Falsedeer:", status2)
