@@ -21,6 +21,19 @@ CREATE TABLE users (
 
 ---
 
+## Table - `courses`
+
+```sql
+CREATE TABLE courses (
+    id SERIAL PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
 ## Table - `folders`
 
 This will be holding data for every single folder,  
@@ -29,6 +42,7 @@ keeping track of the owner and the custom label for it.
 ```sql
 CREATE TABLE folders (
     id SERIAL PRIMARY KEY,
+    course_id INT NOT NULL REFERENCES courses(id),
     user_id INT NOT NULL REFERENCES users(id),
     label TEXT NOT NULL
 );
