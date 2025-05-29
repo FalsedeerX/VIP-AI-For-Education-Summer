@@ -2,6 +2,7 @@ import os
 import psycopg
 from typing import Any
 from dotenv import load_dotenv
+from psycopg2.extras import RealDictCursor
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -73,7 +74,33 @@ class DatabaseAgent:
 
 	def get_folders(self, owner_id: str) -> dict[str, list[str]]|None:
 		""" Return a list folders name and the chat_ids inside it """
-		pass
+		# Ensure owner_id is an integer
+		try:
+			user_id = int(owner_id)
+		except ValueError:
+			return None
+
+		with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+			# Fetch folders for user
+			cur.execute(
+				"SELECT id, label FROM folders WHERE user_id = %s",
+				(user_id,)
+			)
+			folders = cur.fetchall()
+			if not folders:
+				return None
+
+			result: dict[str, list[str]] = {}
+			for folder in folders:
+				cur.execute(
+					"SELECT chat_id FROM chat_folder_link WHERE folder_id = %s",
+					(folder["id"],)
+				)
+				links = cur.fetchall()
+				chat_ids = [str(link["chat_id"]) for link in links]
+				result[folder["label"]] = chat_ids
+
+		return result
 
 
 	def organize_chat(self, chat_id: str, folder_name: str) -> bool:
@@ -81,14 +108,34 @@ class DatabaseAgent:
 		pass
 
 
-	def get_chat_history(self, chat_id: str) -> list[dict[str, Any]]|None:
-		""" Return a list of dictionary for the specified chat log """
-		pass
+	def get_chat_history(self, chat_id: str) -> list[dict[str, any]] | None:
+		"""Fetch all messages in a chat ordered by timestamp."""
+		# Validate chat_id as a UUID string
+		try:
+			uuid_obj = uuid.UUID(chat_id)
+		except ValueError:
+			return None
 
+		with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+			cur.execute(
+				"SELECT user_id, message, created_at FROM chat_messages WHERE chat_id = %s ORDER BY created_at",
+				(uuid_obj,)
+			)
+			rows = cur.fetchall()
+			if not rows:
+				return None
+			return rows
 
-	def create_chat(self, owner_id: str) -> str:
-		""" Create an UUID-V4 chat_id and setup empty entry in `chat_log` table """
-		pass
+	def create_chat(self, user_id: int, title: str) -> str:
+		"""Creates a new chat record and returns its UUID."""
+		chat_id = uuid.uuid4()
+		with self.conn:
+			with self.conn.cursor() as cur:
+				cur.execute(
+					"INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s)",
+					(chat_id, user_id, title)
+				)
+		return str(chat_id)
 
 
 	def log_chat(self, chat_id: str, sender: str, message: str) -> bool:
