@@ -1,3 +1,4 @@
+import os
 import psycopg
 from typing import Any
 from argon2 import PasswordHasher
@@ -6,7 +7,7 @@ DB_PORT = 5432
 DB_NAME = "purduegptdb"
 DB_HOST = "localhost"
 DB_USER = "aesir"
-DB_PASSWD = "Dance with devil"
+DB_PASSWD = "xxxxx"
 
 
 class DatabaseAgent:
