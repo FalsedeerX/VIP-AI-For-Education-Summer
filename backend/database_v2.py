@@ -1,4 +1,5 @@
 import os
+import uuid
 import psycopg
 from typing import Any
 from dotenv import load_dotenv
@@ -140,12 +141,52 @@ class DatabaseAgent:
 
 	def log_chat(self, chat_id: str, sender: str, message: str) -> bool:
 		""" Add a new message from sender into the specified chat_id """
-		pass
+		# Validate chat_id as a UUID string
+		try:
+			uuid_obj = uuid.UUID(chat_id)
+		except ValueError:
+			return None
+		
+		# Validate sender as an integer user_id
+		try:
+			user_id = int(sender)
+		except ValueError:
+			return None
+		
+		with self.conn:
+			with self.conn.cursor() as cur:
+				cur.execute(
+					"INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s)",
+					(user_id, uuid_obj, message)
+				)
+		
+		return True
 
 
 	def delete_chat(self, chat_id: str) -> bool:
-		""" Delete a chat log based on the chat_id """
-		pass
+		# Validate chat_id as a UUID string
+		try:
+			uuid_obj = uuid.UUID(chat_id)
+		except ValueError:
+			return None
+		
+		with self.conn:
+			with self.conn.cursor() as cur:
+				# Delete messages associated with the chat
+				cur.execute(
+					"DELETE FROM chat_messages WHERE chat_id = %s",
+					(uuid_obj,)
+				)
+
+				# Delete the chat itself
+				cur.execute(
+					"DELETE FROM chats WHERE id = %s RETURNING id",
+					(uuid_obj,)
+				)
+				deleted = cur.fetchone()
+
+				return deleted is not None
+			
 
 
 if __name__ == "__main__":
