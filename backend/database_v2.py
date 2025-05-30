@@ -186,6 +186,28 @@ class DatabaseAgent:
 				deleted = cur.fetchone()
 
 				return deleted is not None
+		
+	
+	def create_folder(self, owner_id: int, label: str) -> int:
+		"""Create a new folder for a user; return the new folder's id."""
+		with self.conn:
+			with self.conn.cursor() as cur:
+				cur.execute(
+					"INSERT INTO folders (user_id, label) VALUES (%s, %s) RETURNING id",
+					(owner_id, label)
+				)
+				return cur.fetchone()[0]
+
+	def delete_folder(self, owner_id: int, folder_id: int) -> bool:
+		"""Delete a folder belonging to the user; return True if deleted."""
+		with self.conn:
+			with self.conn.cursor() as cur:
+				cur.execute(
+					"DELETE FROM folders WHERE id = %s AND user_id = %s RETURNING id",
+					(folder_id, owner_id)
+				)
+				deleted = cur.fetchone()
+				return bool(deleted)
 			
 
 
