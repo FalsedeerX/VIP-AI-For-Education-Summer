@@ -61,7 +61,7 @@ def main():
     chatio = SimpleChatIO()
     try:
         if "eval" in args:
-            if "eval-responses" in args:
+            if "eval_responses" in args:
                 raise ValueError("Only one of 'eval' and 'eval-responses' should be provided")
 
             responses_file = get_responses(
@@ -73,7 +73,7 @@ def main():
             )
 
             run_evaluations(responses_file)
-        elif "eval-responses" in args:
+        elif "eval_responses" in args:
             run_evaluations(args.eval_responses if args.eval_responses is not None else "responses.json")
         else:
             chat_loop(

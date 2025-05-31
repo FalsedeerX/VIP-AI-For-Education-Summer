@@ -9,6 +9,8 @@ from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from instructorchat.serve.inference import ChatIO, chat_loop
 
+import pandas as pd
+
 def get_responses(
     model_path: str,
     temperature: float,
@@ -108,5 +110,32 @@ def run_evaluations(
     ]
 
     # Run evaluations
-    evaluate(test_cases, metrics=metrics)
+    test_result = evaluate(test_cases, metrics=metrics).test_results
+
+    data = []
+    for result in test_result:
+        if result.metrics_data is None:
+            print("Metric data is 'None' which is not expected.")
+            continue
+
+        for metric_data in result.metrics_data:
+            data.append({
+                "test_case": result.input,
+                "actual_output": result.actual_output,
+                "expected_output": result.expected_output,
+                "metric_name": metric_data.name,
+                "score": metric_data.score,
+                "reason": metric_data.reason,
+            })
+
+    df = pd.DataFrame(data)
+
+    # Calculate and print average score per metric
+    average_scores = df.groupby("metric_name")["score"].mean()
+    print("\nAverage Scores per Metric:")
+    print(average_scores)
+
+    output_csv_file = "evaluation_results.csv"
+    df.to_csv(output_csv_file, index=False)
+    print(f"Results saved to {output_csv_file}")
     print("\nEvaluation Complete!")
