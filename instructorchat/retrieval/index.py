@@ -10,7 +10,7 @@ from haystack.components.writers.document_writer import DocumentWriter
 from haystack.components.joiners.document_joiner import DocumentJoiner
 from haystack_integrations.document_stores.chroma import ChromaDocumentStore
 
-def index(docs_dir: str = "documents"):
+def index(docs_dir: str = "documents") -> ChromaDocumentStore:
     file_paths = [docs_dir / Path(name) for name in os.listdir(docs_dir)]
 
     document_store = ChromaDocumentStore()
