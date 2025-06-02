@@ -47,7 +47,7 @@ def get_responses(
     for idx, test_case in enumerate(test_cases):
         conv = adapter.get_default_conv_template(model_path)
 
-        question = test_case["Q"]
+        question = test_case["input"]
 
         print(f"Question {idx + 1}/{len(test_cases)}: {question}")
 
@@ -65,7 +65,8 @@ def get_responses(
         responses.append({
             "input": question,
             "actual_output": answer,
-            "expected_output": test_case["A"],
+            "expected_output": test_case["expected_output"],
+            "context": test_case["context"] if "context" in test_case else None
         })
 
         if (save_responses_freq is not None) and ((idx + 1) % save_responses_freq == 0):
@@ -87,7 +88,8 @@ def run_evaluations(
         LLMTestCase(
             input=tc["input"],
             actual_output=tc["actual_output"],
-            expected_output=tc["expected_output"]
+            expected_output=tc["expected_output"],
+            context=tc["context"] if "context" in tc else None
         ) for tc in test_cases
     ]
 

@@ -8,7 +8,7 @@ import argparse
 import os
 
 from instructorchat.serve.inference import ChatIO, chat_loop
-from instructorchat.serve.eval import get_responses, run_evaluations
+from instructorchat.evaluation.evaluate import get_responses, run_evaluations
 
 class SimpleChatIO(ChatIO):
     def prompt_for_input(self, role) -> str:
