@@ -7,11 +7,11 @@ from deepeval import evaluate
 from deepeval.metrics import AnswerRelevancyMetric, GEval
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
-from instructorchat.serve.inference import ChatIO, chat_loop
+from instructorchat.serve.inference import ChatIO
 
 import pandas as pd
 
-def get_responses(
+async def get_responses(
     model_path: str,
     temperature: float,
     chatio: ChatIO, #chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
@@ -58,7 +58,7 @@ def get_responses(
             "temperature": temperature,
         }
 
-        chatio.prompt_for_output(conv.roles[1])
+        await chatio.prompt_for_output(conv.roles[1])
         output_stream = generate_stream(gen_params)
         answer = chatio.stream_output(output_stream) #currently, we are not using stream, but wait for the entire response generation
 

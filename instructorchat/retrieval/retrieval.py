@@ -3,8 +3,8 @@
 # companies offer a different service for this RAG system. 
 # also, i want to research and find other architecture for better designing our RAG system.
 
-from instructorchat.rag_system.documents import imported_docs, evals
-from instructorchat.rag_system.scoring import texas_hybrid_score
+from instructorchat.retrieval.documents import imported_docs, evals
+from instructorchat.retrieval.scoring import texas_hybrid_score
 
 from haystack import Pipeline, Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore

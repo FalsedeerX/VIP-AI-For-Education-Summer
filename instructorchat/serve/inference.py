@@ -3,23 +3,23 @@ import abc
 import openai
 from typing import Dict, Iterator, Optional
 
-from instructorchat.rag_system.retrieval import Retrieval
+from instructorchat.retrieval.retrieval import Retrieval
 
 class ChatIO(abc.ABC):
     @abc.abstractmethod
-    def prompt_for_input(self, role: str) -> str:
+    async def prompt_for_input(self, role: str) -> str:
         """Prompt for input from a role."""
 
     @abc.abstractmethod
-    def prompt_for_output(self, role: str):
+    async def prompt_for_output(self, role: str):
         """Prompt for output from a role."""
 
     @abc.abstractmethod
-    def stream_output(self, output_stream):
+    async def stream_output(self, output_stream):
         """Stream output."""
 
     @abc.abstractmethod
-    def print_output(self, text: str):
+    async def print_output(self, text: str):
         """Print output."""
 
 def generate_stream(params: Dict):
@@ -47,8 +47,8 @@ def generate_stream(params: Dict):
         print("hi,error roi nayy")
         return(f"Error: {str(e)}")
         #yield {"text": f"Error: {str(e)}"}
-
-def chat_loop(
+    
+async def chat_loop(
     model_path: str,
     temperature: float,
     chatio: ChatIO, #chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
@@ -69,9 +69,11 @@ def chat_loop(
     load_model(model_path, api_key)
     conv = adapter.get_default_conv_template(model_path)
 
-    retrieval = None
+    retrieval = Retrieval()
+    retrieval.populate_pipelines()
+    
     while True:
-        inp = chatio.prompt_for_input(conv.roles[0])
+        inp = await chatio.prompt_for_input(conv.roles[0])
     # list of commands
         if inp == "return conv":
             print(conv.get_message())
@@ -86,8 +88,6 @@ def chat_loop(
         conv.append_message(conv.roles[0], inp)
         #conv.append_message(conv.roles[1], None)
 
-        if not retrieval:
-            retrieval = Retrieval()
         contexts = retrieval.retrieve_documents(inp)
         messages = conv.to_openai_api_messages()
         content = retrieval.create_prompt_with_retrievals(inp, " ".join(contexts["contents"]))
@@ -98,8 +98,8 @@ def chat_loop(
             "temperature": temperature,
         }
 
-        chatio.prompt_for_output(conv.roles[1])
+        await chatio.prompt_for_output(conv.roles[1])
         output_stream = generate_stream(gen_params)
-        outputs = chatio.stream_output(output_stream)
+        outputs = await chatio.stream_output(output_stream)
         conv.update_last_message(outputs.strip()) 
         #print(conv.get_message)

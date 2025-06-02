@@ -6,12 +6,13 @@ python3 cli.py --api-key YOUR_API_KEY
 """
 import argparse
 import os
+import trio
 
 from instructorchat.serve.inference import ChatIO, chat_loop
 from instructorchat.evaluation.evaluate import get_responses, run_evaluations
 
 class SimpleChatIO(ChatIO):
-    def prompt_for_input(self, role) -> str:
+    async def prompt_for_input(self, role) -> str:
         prompt_data = []
         line = input(f"{role} : ")
         while True: # helps collect multi-line inputs.
@@ -22,10 +23,10 @@ class SimpleChatIO(ChatIO):
                 break
         return "\n".join(prompt_data)
 
-    def prompt_for_output(self, role: str):
+    async def prompt_for_output(self, role: str):
         print(f"{role}: ", end="", flush=True)
 
-    def stream_output(self, output_stream):
+    async def stream_output(self, output_stream):
         # pre = 0
         # for outputs in output_stream:
         #     output_text = outputs["text"]
@@ -42,10 +43,10 @@ class SimpleChatIO(ChatIO):
         print(output)
         return output
     
-    def print_output(self, text: str):
+    async def print_output(self, text: str):
         print(text)
 
-def main():
+async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
@@ -64,7 +65,7 @@ def main():
             if "eval_responses" in args:
                 raise ValueError("Only one of 'eval' and 'eval-responses' should be provided")
 
-            responses_file = get_responses(
+            responses_file = await get_responses(
                 model_path="gpt-4o-mini",
                 temperature=args.temperature,
                 chatio=chatio,
@@ -76,7 +77,7 @@ def main():
         elif "eval_responses" in args:
             run_evaluations(args.eval_responses if args.eval_responses is not None else "responses.json")
         else:
-            chat_loop(
+            await chat_loop(
                 model_path="gpt-4o-mini",
                 temperature=args.temperature,
                 chatio=chatio,
@@ -86,4 +87,4 @@ def main():
         print("exit...")
 
 if __name__ == "__main__":
-    main() 
+    trio.run(main)
