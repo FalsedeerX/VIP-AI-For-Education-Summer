@@ -3,6 +3,8 @@ import abc
 import openai
 from typing import Dict, Iterator, Optional
 
+from instructorchat.rag_system.retrieval import Retrieval
+
 class ChatIO(abc.ABC):
     @abc.abstractmethod
     def prompt_for_input(self, role: str) -> str:
@@ -20,7 +22,7 @@ class ChatIO(abc.ABC):
     def print_output(self, text: str):
         """Print output."""
 
-def generate_stream(params: Dict): #-> Iterator[Dict]:
+def generate_stream(params: Dict):
     """Generate response using OpenAI API."""
     try:
         client = openai.OpenAI(api_key=openai.api_key)
@@ -67,9 +69,10 @@ def chat_loop(
     load_model(model_path, api_key)
     conv = adapter.get_default_conv_template(model_path)
 
+    retrieval = None
     while True:
         inp = chatio.prompt_for_input(conv.roles[0])
-        
+    # list of commands
         if inp == "return conv":
             print(conv.get_message())
             continue
@@ -78,16 +81,25 @@ def chat_loop(
             print("exit...")
             break
 
+    # response generation
+
         conv.append_message(conv.roles[0], inp)
         #conv.append_message(conv.roles[1], None)
 
+        if not retrieval:
+            retrieval = Retrieval()
+        contexts = retrieval.retrieve_documents(inp)
+        messages = conv.to_openai_api_messages()
+        content = retrieval.create_prompt_with_retrievals(inp, " ".join(contexts["contents"]))
+        messages.append({"role": "user", "content": content})
+
         gen_params = {
-            "messages": conv.to_openai_api_messages(),
+            "messages": messages,
             "temperature": temperature,
         }
 
         chatio.prompt_for_output(conv.roles[1])
         output_stream = generate_stream(gen_params)
-        outputs = chatio.stream_output(output_stream) #currently, we are not using stream, but wait for the entire response generation
+        outputs = chatio.stream_output(output_stream)
         conv.update_last_message(outputs.strip()) 
         #print(conv.get_message)
