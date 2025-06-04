@@ -3,15 +3,14 @@ import uuid
 import psycopg
 from typing import Any
 from dotenv import load_dotenv
-from psycopg2.extras import RealDictCursor
+from psycopg.rows import dict_row
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
-
 
 class DatabaseAgent:
 	def __init__(self, db_host: str, db_port: int, db_name: str, db_user: str, db_passwd: str):
 		self.conn = psycopg.connect(f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}")
-		self.conn.execute("SET search_path TO chatbot;")
+		#self.conn.execute("SET search_path TO chatbot;")
 		self.hasher = PasswordHasher()
 
 
@@ -36,6 +35,16 @@ class DatabaseAgent:
 		self.conn.commit()
 		return True
 
+	def get_user_id(self, username: str) -> int|None:
+		""" Get the user id of a given username """
+		with self.conn.cursor() as cursor:
+			cursor.execute("""
+				SELECT id FROM users WHERE username = %s;
+				""", (username,))
+
+			row = cursor.fetchone()
+			if row is None: return None
+			return row[0]
 
 	def delete_user(self, username: str) -> bool:
 		""" remove a user entry from the database """
@@ -81,8 +90,7 @@ class DatabaseAgent:
 		except ValueError:
 			return None
 
-		with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
-			# Fetch folders for user
+		with self.conn.cursor(row_factory=dict_row) as cur:	
 			cur.execute(
 				"SELECT id, label FROM folders WHERE user_id = %s",
 				(user_id,)
@@ -106,7 +114,30 @@ class DatabaseAgent:
 
 	def organize_chat(self, chat_id: str, folder_name: str) -> bool:
 		""" Organize a chat into a speicied folder under the username """
-		pass
+		# Validate chat_id as a UUID string
+		try:
+			uuid_obj = uuid.UUID(chat_id)
+		except ValueError:
+			return False
+
+		with self.conn.cursor() as cur:
+			# Check if the folder exists for the user
+			cur.execute(
+				"SELECT id FROM folders WHERE label = %s",
+				(folder_name,)
+			)
+			folder = cur.fetchone()
+			if not folder:
+				return False
+
+			# Insert the chat into the folder
+			cur.execute(
+				"INSERT INTO chat_folder_link (chat_id, folder_id) VALUES (%s, %s)",
+				(uuid_obj, folder[0])
+			)
+
+		self.conn.commit()
+		return True
 
 
 	def get_chat_history(self, chat_id: str) -> list[dict[str, any]] | None:
@@ -117,7 +148,7 @@ class DatabaseAgent:
 		except ValueError:
 			return None
 
-		with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
+		with self.conn.cursor(row_factory=dict_row) as cur:
 			cur.execute(
 				"SELECT user_id, message, created_at FROM chat_messages WHERE chat_id = %s ORDER BY created_at",
 				(uuid_obj,)
@@ -131,11 +162,6 @@ class DatabaseAgent:
 	def create_chat(self, user_id: int, title: str) -> str:
 		"""Creates a new chat record and returns its UUID."""
 		chat_id = uuid.uuid4()
-		with self.conn.cursor() as cur:
-			cur.execute(
-				"INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s)",
-				(chat_id, user_id, title)
-			)
 		with self.conn.cursor() as cur:
 			cur.execute(
 				"INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s)",
@@ -163,11 +189,6 @@ class DatabaseAgent:
 				"INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s)",
 				(user_id, uuid_obj, message)
 			)
-		with self.conn.cursor() as cur:
-			cur.execute(
-				"INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s)",
-				(user_id, uuid_obj, message)
-			)
 		
 		return True
 
@@ -180,12 +201,12 @@ class DatabaseAgent:
 			return None
 		
 		with self.conn.cursor() as cur:
-			# Delete messages associated with the chat
+
 			cur.execute(
-				"DELETE FROM chat_messages WHERE chat_id = %s",
-				(uuid_obj,)
-			)
-		with self.conn.cursor() as cur:
+            	"DELETE FROM chat_folder_link WHERE chat_id = %s",
+            	(chat_id,)
+        	)
+						
 			# Delete messages associated with the chat
 			cur.execute(
 				"DELETE FROM chat_messages WHERE chat_id = %s",
@@ -198,25 +219,12 @@ class DatabaseAgent:
 				(uuid_obj,)
 			)
 			deleted = cur.fetchone()
-			# Delete the chat itself
-			cur.execute(
-				"DELETE FROM chats WHERE id = %s RETURNING id",
-				(uuid_obj,)
-			)
-			deleted = cur.fetchone()
 
-			return deleted is not None
 			return deleted is not None
 		
 	
 	def create_folder(self, owner_id: int, label: str) -> int:
 		"""Create a new folder for a user; return the new folder's id."""
-		with self.conn.cursor() as cur:
-			cur.execute(
-				"INSERT INTO folders (user_id, label) VALUES (%s, %s) RETURNING id",
-				(owner_id, label)
-			)
-			return cur.fetchone()[0]
 		with self.conn.cursor() as cur:
 			cur.execute(
 				"INSERT INTO folders (user_id, label) VALUES (%s, %s) RETURNING id",
@@ -229,12 +237,9 @@ class DatabaseAgent:
 		"""Delete a folder belonging to the user; return True if deleted."""
 		with self.conn.cursor() as cur:
 			cur.execute(
-				"DELETE FROM folders WHERE id = %s AND user_id = %s RETURNING id",
-				(folder_id, owner_id)
-			)
-			deleted = cur.fetchone()
-			return bool(deleted)
-		with self.conn.cursor() as cur:
+            "DELETE FROM chat_folder_link WHERE folder_id = %s",
+            (folder_id,)
+        	)
 			cur.execute(
 				"DELETE FROM folders WHERE id = %s AND user_id = %s RETURNING id",
 				(folder_id, owner_id)
@@ -246,14 +251,17 @@ class DatabaseAgent:
 
 if __name__ == "__main__":
 	load_dotenv()
+	
 	db_host = os.getenv("DB_HOST")
 	db_port = int(os.getenv("DB_PORT"))
 	db_name = os.getenv("DB_NAME")
 	db_user = os.getenv("DB_USER")
 	db_passwd = os.getenv("DB_PASSWD")
-
+	
 	# connect to the database broker
 	agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
+	# Example usage of the DatabaseAgent class
+	'''
 	agent.register_user("falsedeer", "ani10242048@gmail.com", "password123")
 	agent.register_user("chen5292", "admin@aurvandill.net", "apple123")
 	
@@ -262,3 +270,17 @@ if __name__ == "__main__":
 	print("Verification Attempt on Falsedeer:", status1)
 	status2 = agent.verify_user("falsedeer", "password123")
 	print("Verification Attempt on Falsedeer:", status2)
+	'''
+	print("User Registration Status:", agent.register_user("AWESOME", "me@gmail.com", "AWESOME1"))
+	print("User ID:", user_id := agent.get_user_id("AWESOME"))
+	print("Folder Creation", folder_id := agent.create_folder(user_id, "My Awesome Folder"))
+	print("Chat Creation:", chat_id := agent.create_chat(user_id, "My First Chat"))
+	print("Chat Logging Status:", agent.log_chat(chat_id, user_id, "Hello World!"))
+	print("Chat History:", agent.get_chat_history(chat_id))
+	print("Organizing Chat:", agent.organize_chat(chat_id, "My Awesome Folder"))
+	print("Folders for User:", agent.get_folders(user_id))
+	print("Deleting Folder Status:", agent.delete_folder(user_id, folder_id))
+	print("Deleting Chat Status:", agent.delete_chat(chat_id))														
+	#print("User Deletion Status:", agent.delete_user("AWESOME"))
+
+	
