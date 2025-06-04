@@ -6,7 +6,7 @@ import pytest
 from dotenv import load_dotenv
 
 # Import the class under test:
-from backend.database_v2 import DatabaseAgent
+from database_v2 import DatabaseAgent
 
 #
 #  ─── TEST FIXTURE TO PROVIDE A DatabaseAgent ─────────────────────────────────
@@ -18,7 +18,6 @@ def db_agent():
     We assume a clean database or at least one where these tests can create/destroy data.
     """
     # 1) Load environment variables
-    #    Change ".env" below to "mystify.env" if you named it differently.
     load_dotenv(".env")
 
     db_host   = os.getenv("DB_HOST")
