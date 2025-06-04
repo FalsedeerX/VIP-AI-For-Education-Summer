@@ -127,9 +127,15 @@ class DatabaseAgent:
 				return None
 			return rows
 
+
 	def create_chat(self, user_id: int, title: str) -> str:
 		"""Creates a new chat record and returns its UUID."""
 		chat_id = uuid.uuid4()
+		with self.conn.cursor() as cur:
+			cur.execute(
+				"INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s)",
+				(chat_id, user_id, title)
+			)
 		with self.conn.cursor() as cur:
 			cur.execute(
 				"INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s)",
@@ -157,6 +163,11 @@ class DatabaseAgent:
 				"INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s)",
 				(user_id, uuid_obj, message)
 			)
+		with self.conn.cursor() as cur:
+			cur.execute(
+				"INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s)",
+				(user_id, uuid_obj, message)
+			)
 		
 		return True
 
@@ -174,6 +185,12 @@ class DatabaseAgent:
 				"DELETE FROM chat_messages WHERE chat_id = %s",
 				(uuid_obj,)
 			)
+		with self.conn.cursor() as cur:
+			# Delete messages associated with the chat
+			cur.execute(
+				"DELETE FROM chat_messages WHERE chat_id = %s",
+				(uuid_obj,)
+			)
 
 			# Delete the chat itself
 			cur.execute(
@@ -181,7 +198,14 @@ class DatabaseAgent:
 				(uuid_obj,)
 			)
 			deleted = cur.fetchone()
+			# Delete the chat itself
+			cur.execute(
+				"DELETE FROM chats WHERE id = %s RETURNING id",
+				(uuid_obj,)
+			)
+			deleted = cur.fetchone()
 
+			return deleted is not None
 			return deleted is not None
 		
 	
@@ -193,9 +217,23 @@ class DatabaseAgent:
 				(owner_id, label)
 			)
 			return cur.fetchone()[0]
+		with self.conn.cursor() as cur:
+			cur.execute(
+				"INSERT INTO folders (user_id, label) VALUES (%s, %s) RETURNING id",
+				(owner_id, label)
+			)
+			return cur.fetchone()[0]
+
 
 	def delete_folder(self, owner_id: int, folder_id: int) -> bool:
 		"""Delete a folder belonging to the user; return True if deleted."""
+		with self.conn.cursor() as cur:
+			cur.execute(
+				"DELETE FROM folders WHERE id = %s AND user_id = %s RETURNING id",
+				(folder_id, owner_id)
+			)
+			deleted = cur.fetchone()
+			return bool(deleted)
 		with self.conn.cursor() as cur:
 			cur.execute(
 				"DELETE FROM folders WHERE id = %s AND user_id = %s RETURNING id",
