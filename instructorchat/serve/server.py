@@ -36,7 +36,7 @@ class NetworkChatIO(ChatIO):
         output = output_stream.choices[0].message.content
         await self.connection.send_message(output)
         return output
-    
+
     async def print_output(self, text: str):
         pass
 
@@ -54,8 +54,7 @@ async def connect(request: WebSocketRequest):
         pass
 
 async def main() -> None:
-    async with trio.open_nursery(strict_exception_groups=True) as nursery:
-        nursery.start_soon(await serve_websocket(connect, HOST, PORT, ssl_context=None)) # Set ssl context for encryption
+    await serve_websocket(connect, HOST, PORT, ssl_context=None) # Set ssl context for encryption
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
