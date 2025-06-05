@@ -6,6 +6,7 @@ such as:
 - Auto purging **IDLE** session.
 - Auto purging **expired** session.
 - Auto extending **active** session.
+- Prevent session token impersonate.
 
 These features are intended to enhance user experience and ensure the website operates in a modern, efficient, and user-friendly manner.  
 
@@ -20,6 +21,7 @@ These features are intended to enhance user experience and ensure the website op
 ```json
 {
 	"username": "chen5292",
+	"ip_address": "203.0.113.10",
 	"created_at": 1717523894.753216
 }
 ```
