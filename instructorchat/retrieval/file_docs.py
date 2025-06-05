@@ -1,7 +1,8 @@
 import os
 from pathlib import Path
-from typing import Optional
+from typing import List
 
+from haystack import Document
 from haystack.core.pipeline import Pipeline
 from haystack.components.routers.file_type_router import FileTypeRouter
 from haystack.components.converters.txt import TextFileToDocument
@@ -11,12 +12,10 @@ from haystack.components.writers.document_writer import DocumentWriter
 from haystack.components.joiners.document_joiner import DocumentJoiner
 from haystack.components.preprocessors.document_cleaner import DocumentCleaner
 from haystack.components.preprocessors.document_splitter import DocumentSplitter
-from haystack_integrations.document_stores.chroma import ChromaDocumentStore
+from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 
-def build_document_store(docs_dir: str = "documents", persistent_path: Optional[str] = None) -> ChromaDocumentStore:
+def add_docs_from_files(document_store, docs_dir: str = "documents") -> List[Document]:
     file_paths = [docs_dir / Path(name) for name in os.listdir(docs_dir)]
-
-    document_store = ChromaDocumentStore(persist_path=persistent_path, distance_function="cosine")
 
     indexing = Pipeline()
     indexing.add_component("router", FileTypeRouter(["text/plain", "application/pdf", "text/markdown"]))
@@ -25,7 +24,10 @@ def build_document_store(docs_dir: str = "documents", persistent_path: Optional[
     indexing.add_component("markdown_converter", MarkdownToDocument())
     indexing.add_component("document_joiner", DocumentJoiner())
     indexing.add_component("cleaner", DocumentCleaner())
-    indexing.add_component("splitter", DocumentSplitter(split_by="sentence", split_length=5))
+    indexing.add_component("splitter", DocumentSplitter(split_by="sentence", split_length=4))
+    indexing.add_component("embedder", SentenceTransformersDocumentEmbedder(
+        model="thenlper/gte-large", meta_fields_to_embed=['file_path']
+    ))
     indexing.add_component("writer", DocumentWriter(document_store))
 
     indexing.connect("router.text/plain", "text_converter.sources")
@@ -37,12 +39,7 @@ def build_document_store(docs_dir: str = "documents", persistent_path: Optional[
 
     indexing.connect("document_joiner", "cleaner")
     indexing.connect("cleaner", "splitter")
-    indexing.connect("splitter", "writer")
+    indexing.connect("splitter", "embedder")
+    indexing.connect("embedder", "writer")
 
-    indexing.run({"router": {"sources": file_paths}})
-
-    return document_store
-
-if __name__ == "__main__":
-    for document in build_document_store().search(["How do you make a histogram?"], 3)[0]:
-        print(document.content)
+    return indexing.run({"router": {"sources": file_paths}}, include_outputs_from={"embedder"})["embedder"]["documents"]

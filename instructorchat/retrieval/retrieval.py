@@ -1,10 +1,13 @@
 # for embedding queries and documents, then retrieve relevant docs using an LLM retriever.
 # at the moment, i'm thinking of adding these docs as 'context' to gpt-4o's input. But this seems to be costful in the future after scaling, so I'm not sure if openai or other
-# companies offer a different service for this RAG system. 
+# companies offer a different service for this RAG system.
 # also, i want to research and find other architecture for better designing our RAG system.
+
+from typing import List
 
 from instructorchat.retrieval.documents import imported_docs, evals
 from instructorchat.retrieval.scoring import texas_hybrid_score
+from instructorchat.retrieval.file_docs import add_docs_from_files
 
 from haystack import Pipeline, Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore
@@ -22,7 +25,7 @@ from haystack_integrations.components.generators.ollama import OllamaGenerator
 
 class Retrieval:
     def __init__(self):
-        self.docs = imported_docs
+        self.docs: List[Document] = imported_docs
         self.spare_pipeline = None
         self.dense_pipeline = None
         self.lmbda = 0.9
@@ -47,7 +50,9 @@ class Retrieval:
         indexing_pipeline.connect("splitter", "embedder")
         indexing_pipeline.connect("embedder", "writer")
 
-        indexing_pipeline.run({"cleaner": {"documents": self.docs}})
+        self.docs = indexing_pipeline.run({"cleaner": {"documents": self.docs}}, include_outputs_from={"embedder"})["embedder"]["documents"]
+
+        self.docs.extend(add_docs_from_files(document_store))
 
         self.dense_pipeline = Pipeline()
         self.dense_pipeline.add_component("text_embedder", SentenceTransformersTextEmbedder(model="thenlper/gte-large"))
@@ -68,7 +73,8 @@ class Retrieval:
         score_dict = texas_hybrid_score(dense_candidates, sparse_candidates, lmbda)
 
         top_document_store = InMemoryDocumentStore(embedding_similarity_function="cosine")
-        top_docs = [d for d in self.docs if d.meta['title'] in list(score_dict.keys())[:10]]
+
+        top_docs = [d for d in self.docs if d.id in list(score_dict.keys())[:10]]
 
         # clean top documents
         top_document_cleaner = DocumentCleaner()
@@ -94,7 +100,7 @@ class Retrieval:
         layer_dense_pipeline.add_component("text_embedder", SentenceTransformersTextEmbedder(model="thenlper/gte-large"))
         layer_dense_pipeline.add_component("retriever_with_embeddings",
             InMemoryEmbeddingRetriever(document_store=top_document_store, scale_score=True, top_k=3))
-        
+
         layer_dense_pipeline.connect("text_embedder", "retriever_with_embeddings")
 
         doc_results = layer_dense_pipeline.run({"text_embedder": {"text": query}})
@@ -104,9 +110,9 @@ class Retrieval:
         return {
             #"retrieval" : retrieved_documents,
             "contents" : [desc.content for desc in retrieved_documents],
-            "titles" : [desc.meta["title"] for desc in retrieved_documents],
-            "tags" : [desc.meta["tags"] for desc in retrieved_documents],
-            "folders" : [desc.meta["folders"] for desc in retrieved_documents]
+            "titles" : [(desc.meta["title"] if "title" in desc.meta else None) for desc in retrieved_documents],
+            "tags" : [(desc.meta["tags"] if "tags" in desc.meta else None) for desc in retrieved_documents],
+            "folders" : [(desc.meta["folders"] if "folders" in desc.meta else None) for desc in retrieved_documents]
         }
 
     def create_prompt_with_retrievals(self, query: str, contexts: str) -> str:
