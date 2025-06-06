@@ -16,7 +16,7 @@ These features are intended to enhance user experience and ensure the website op
 
 - **Purpose**: Track each individual session token, and timeout automatically.
 - **Auto Expire**: 10800 seconds
-- **Datatype**: `JSON`
+- **Datatype**: `Redis Hash`
 
 ```json
 {
