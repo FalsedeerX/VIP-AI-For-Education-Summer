@@ -102,6 +102,7 @@ class SessionManager:
 	def fetch_active_tokens(self, username: str) -> list[str]|None:
 		""" Fetch all active session tokens from a certain user """
 		entries = self.db.zrange(f"user_sessions:{username}", 0, -1)
+		if not entries: return None
 		if not isinstance(entries, Sequence): return None
 		if not isinstance(entries[0], str): return None
 		return list(entries)
@@ -109,7 +110,14 @@ class SessionManager:
 
 	def purge_all_tokens(self, username: str) -> int:
 		""" Remove all tokens which belong to a specific user. Return number of session terminated. """
-		return 0
+		purge_count = 0
+		active_tokens = self.fetch_active_tokens(username)
+		if active_tokens is None: return 0
+		for token in active_tokens:
+			if self.purge_token(UUID(token)):
+				purge_count += 1
+
+		return purge_count
 
 
 
@@ -171,6 +179,6 @@ if __name__ == "__main__":
 		# manager.assign_token("chen5292", "127.0.0.1")
 		pass
 
-	# dump the active sessions
-	active_sessions = manager.fetch_active_tokens("chen5292")
-	print(active_sessions)
+	# terminate all sessions
+	termianted_sessions = manager.purge_all_tokens("chen5292")
+	print("Total terminated:", termianted_sessions)
