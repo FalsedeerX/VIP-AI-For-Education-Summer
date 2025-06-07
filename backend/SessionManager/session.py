@@ -1,8 +1,8 @@
 import time
 import redis
 import threading
+import ipaddress
 from uuid import UUID, uuid4
-from ipaddress import _BaseAddress
 from dataclasses import dataclass, field
 
 
@@ -15,24 +15,59 @@ class ValkeyConfig:
 	db_pass: str|None = field(default=None)
 
 
+
 class SessionManager:
 	def __init__(self, config: ValkeyConfig):
 		self.db = redis.Redis(host=config.db_host, port=config.db_port, db=config.db_index, 
-							  username=config.db_user, password=config.db_pass)
+							  username=config.db_user, password=config.db_pass, decode_responses=True)
 		self.db.ping()
 
 
-	def assign_token(self, username: str, time_to_live: int) -> UUID:
+	def assign_token(self, username: str, ip_address: str, ttl_seconds: int = 10800) -> UUID|None:
 		""" Assigning authenciated user with an UUID as the session token. """
-		token = uuid4()
-		key_name = f"session:{token}"
+		# validate IP format
+		try:
+			parsed_ip = ipaddress.ip_address(ip_address)
+		except ValueError:
+			return None
 
+		# create a new hash entry
+		token = uuid4()
+		session_key = f"session:{token}"
+		session_data = {
+			"username": username,
+			"ip_address": str(parsed_ip),
+			"created_at": str(time.time())
+		}
+
+		# insert and set auto-expire
+		self.db.hset(session_key, mapping=session_data)
+		self.db.expire(session_key, ttl_seconds)
+		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return token
 
 
 	def verify_token(self, username: str, ip_address: str, token: UUID) -> bool:
 		""" Verify whether a certain token expired. """
-		return False
+		# validate IP format
+		try:
+			parsed_ip = ipaddress.ip_address(ip_address)
+		except ValueError:
+			return False
+
+		# verify whether the session token exist in DB
+		session_key = f"session:{token}"
+		if not self.db.exists(session_key): return False
+
+		# compare the metadata to ensure integrity
+		username_metadata = self.db.hget(session_key, "username")
+		ipaddress_metadata = self.db.hget(session_key, "ip_address")
+		if not username_metadata == username and not ipaddress_metadata == ip_address:
+			return False
+
+		# update the score in session tracking
+		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
+		return True
 
 
 	def extend_token(self, token: UUID, extend_seconds: float) -> float:
@@ -48,6 +83,7 @@ class SessionManager:
 	def purge_all_tokens(self, username: str) -> int:
 		""" Remove all tokens which belong to a specific user. Return number of session terminated. """
 		return 0
+
 
 
 class SessionWorker:
@@ -103,3 +139,13 @@ if __name__ == "__main__":
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
 
+	# register a token
+	# token = manager.assign_token("chen5292", "127.0.0.1")
+	
+	# terminate a token
+	# if token:
+	# 	 status = manager.verify_token("chen5292", "127.0.0.1", token)
+	#  	 print("Verify Status:", status)
+	token = UUID("d29f8308-7e0c-4f6d-a288-2eaf92f372e6")
+	status = manager.verify_token("chen5292", "127.0.0.1", token)
+	print("Verify Status:", status)

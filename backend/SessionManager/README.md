@@ -32,7 +32,7 @@ These features are intended to enhance user experience and ensure the website op
 
 - **Purpose**: Auto track the active session which belongs to a certain user.
 - **Auto Expire**: Never
-- **Datatype**: `ZSET`
+- **Datatype**: `Redis ZSET (Sorted Lists)`
 
 ```redis
 ZADD user_sessions:chen5292 3600 8342684d-82c5-4cdb-9835-3ee9ae7ebf37
