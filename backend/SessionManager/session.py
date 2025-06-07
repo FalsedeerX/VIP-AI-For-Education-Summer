@@ -2,7 +2,9 @@ import time
 import redis
 import threading
 import ipaddress
+from typing import Any
 from uuid import UUID, uuid4
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 
@@ -97,9 +99,12 @@ class SessionManager:
 		return True
 
 
-	def fetch_active_tokens(self, username: str) -> list[str]:
+	def fetch_active_tokens(self, username: str) -> list[str]|None:
 		""" Fetch all active session tokens from a certain user """
-		return []
+		entries = self.db.zrange(f"user_sessions:{username}", 0, -1)
+		if not isinstance(entries, Sequence): return None
+		if not isinstance(entries[0], str): return None
+		return list(entries)
 
 
 	def purge_all_tokens(self, username: str) -> int:
@@ -161,20 +166,11 @@ if __name__ == "__main__":
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
 
-	# register a token
-	# token = manager.assign_token("chen5292", "127.0.0.1")
-	
-	# terminate a token
-	# if token:
-	# 	 status = manager.verify_token("chen5292", "127.0.0.1", token)
-	#  	 print("Verify Status:", status)
-	
-	# verify an existed token
-	token = UUID("d29f8308-7e0c-4f6d-a288-2eaf92f372e6")
-	status = manager.verify_token("chen5292", "127.0.0.1", token)
-	print("Verify Status:", status)
+	# register 5 tokens in batch
+	for _ in range(0, 5):
+		# manager.assign_token("chen5292", "127.0.0.1")
+		pass
 
-	# attempt to extend the token for another an hour
-	ttl = manager.extend_token(token, -800)
-	print("Remaining TTL:", ttl)
-
+	# dump the active sessions
+	active_sessions = manager.fetch_active_tokens("chen5292")
+	print(active_sessions)
