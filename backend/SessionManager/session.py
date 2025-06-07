@@ -86,7 +86,20 @@ class SessionManager:
 
 	def purge_token(self, token: UUID) -> bool:
 		""" Remove a specific token from a user. """
-		return False
+		# check whether the key exist in database & username
+		session_key = f"session:{token}"
+		username = self.db.hget(session_key, "username")
+		if not username: return False
+
+		# remove key and untrack session
+		self.db.zrem(f"user_sessions:{username}", str(token))
+		self.db.delete(session_key)
+		return True
+
+
+	def fetch_active_tokens(self, username: str) -> list[str]:
+		""" Fetch all active session tokens from a certain user """
+		return []
 
 
 	def purge_all_tokens(self, username: str) -> int:
