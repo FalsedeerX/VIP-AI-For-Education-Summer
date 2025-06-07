@@ -70,9 +70,18 @@ class SessionManager:
 		return True
 
 
-	def extend_token(self, token: UUID, extend_seconds: float) -> float:
+	def extend_token(self, token: UUID, extend_seconds: int) -> int:
 		""" Extend the user session for a specific amount of time. Returns reamining TTL in seconds. """
-		return 0.0
+		session_key = f"session:{token}"
+		ttl = self.db.ttl(session_key)
+		if not isinstance(ttl, int): return 0
+
+		# check if the key expired already (-2) or not expirable (-1)
+		if ttl <= 0: return 0
+
+		# update the remaining time-to-live
+		self.db.expire(session_key, ttl + extend_seconds)
+		return ttl + extend_seconds
 
 
 	def purge_token(self, token: UUID) -> bool:
@@ -146,6 +155,13 @@ if __name__ == "__main__":
 	# if token:
 	# 	 status = manager.verify_token("chen5292", "127.0.0.1", token)
 	#  	 print("Verify Status:", status)
+	
+	# verify an existed token
 	token = UUID("d29f8308-7e0c-4f6d-a288-2eaf92f372e6")
 	status = manager.verify_token("chen5292", "127.0.0.1", token)
 	print("Verify Status:", status)
+
+	# attempt to extend the token for another an hour
+	ttl = manager.extend_token(token, -800)
+	print("Remaining TTL:", ttl)
+
