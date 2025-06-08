@@ -6,6 +6,7 @@ python3 cli.py --api-key YOUR_API_KEY
 """
 import argparse
 import os
+import traceback
 import trio
 
 from instructorchat.serve.inference import ChatIO, chat_loop
@@ -42,7 +43,7 @@ class SimpleChatIO(ChatIO):
         output = output_stream.choices[0].message.content
         print(output)
         return output
-    
+
     async def print_output(self, text: str):
         print(text)
 
@@ -73,9 +74,9 @@ async def main():
                 input_file=args.eval if args.eval is not None else "tests.json"
             )
 
-            run_evaluations(responses_file)
+            return responses_file
         elif "eval_responses" in args:
-            run_evaluations(args.eval_responses if args.eval_responses is not None else "responses.json")
+            return args.eval_responses if args.eval_responses is not None else "responses.json"
         else:
             await chat_loop(
                 model_path="gpt-4o-mini",
@@ -83,8 +84,16 @@ async def main():
                 chatio=chatio,
                 api_key=api_key,
             )
+
+            return None
     except KeyboardInterrupt:
         print("exit...")
 
 if __name__ == "__main__":
-    trio.run(main)
+    try:
+        eval_responses = trio.run(main)
+
+        if eval_responses is not None:
+            run_evaluations(eval_responses)
+    except ExceptionGroup as exc:
+        traceback.print_exception(exc)

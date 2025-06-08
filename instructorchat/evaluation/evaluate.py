@@ -8,6 +8,7 @@ from deepeval.metrics import AnswerRelevancyMetric, GEval
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from instructorchat.serve.inference import ChatIO
+from instructorchat.retrieval.retrieval import Retrieval
 
 import pandas as pd
 
@@ -24,7 +25,7 @@ async def get_responses(
         openai.api_key = api_key
     elif not openai.api_key:
         raise ValueError("OpenAI API key must be provided")
-    
+
     if not input_file.endswith(".json"):
         raise ValueError("'input_file' must be a JSON file.")
 
@@ -38,6 +39,10 @@ async def get_responses(
     # Load model
     adapter = get_model_adapter(model_path)
     load_model(model_path, api_key)
+    conv = adapter.get_default_conv_template(model_path)
+
+    retrieval = Retrieval()
+    retrieval.populate_pipelines()
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     responses_file = f"{responses_file_prefix}_{timestamp}.json"
@@ -45,28 +50,35 @@ async def get_responses(
     responses = []
 
     for idx, test_case in enumerate(test_cases):
-        conv = adapter.get_default_conv_template(model_path)
-
         question = test_case["input"]
 
         print(f"Question {idx + 1}/{len(test_cases)}: {question}")
 
         conv.append_message(conv.roles[0], question)
+        #conv.append_message(conv.roles[1], None)
+
+        contexts = retrieval.retrieve_documents(question)
+        messages = conv.to_openai_api_messages()
+        content = retrieval.create_prompt_with_retrievals(question, " ".join(contexts["contents"]))
+        messages.append({"role": "user", "content": content})
 
         gen_params = {
-            "messages": conv.to_openai_api_messages(),
+            "messages": messages,
             "temperature": temperature,
         }
 
         await chatio.prompt_for_output(conv.roles[1])
         output_stream = generate_stream(gen_params)
-        answer = chatio.stream_output(output_stream) #currently, we are not using stream, but wait for the entire response generation
+        answer = await chatio.stream_output(output_stream)
+        conv.update_last_message(answer.strip())
+        #print(conv.get_message)
 
         responses.append({
             "input": question,
             "actual_output": answer,
             "expected_output": test_case["expected_output"],
-            "context": test_case["context"] if "context" in test_case else None
+            "context": test_case["context"] if "context" in test_case else None,
+            "retrieval_context": " ".join(contexts["contents"])
         })
 
         if (save_responses_freq is not None) and ((idx + 1) % save_responses_freq == 0):
