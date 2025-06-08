@@ -4,7 +4,7 @@ import json
 import openai
 
 from deepeval import evaluate
-from deepeval.metrics import AnswerRelevancyMetric, GEval
+from deepeval.metrics import AnswerRelevancyMetric, GEval, ContextualPrecisionMetric, ContextualRecallMetric, ContextualRelevancyMetric
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from instructorchat.serve.inference import ChatIO
@@ -78,7 +78,7 @@ async def get_responses(
             "actual_output": answer,
             "expected_output": test_case["expected_output"],
             "context": test_case["context"] if "context" in test_case else None,
-            "retrieval_context": " ".join(contexts["contents"])
+            "retrieval_context": contexts["contents"]
         })
 
         if (save_responses_freq is not None) and ((idx + 1) % save_responses_freq == 0):
@@ -101,7 +101,8 @@ def run_evaluations(
             input=tc["input"],
             actual_output=tc["actual_output"],
             expected_output=tc["expected_output"],
-            context=tc["context"] if "context" in tc else None
+            context=tc["context"] if "context" in tc else None,
+            retrieval_context=tc["retrieval_context"]
         ) for tc in test_cases
     ]
 
@@ -120,7 +121,10 @@ def run_evaluations(
             model="gpt-4o-mini",
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
             threshold=0.7
-        )
+        ),
+        ContextualPrecisionMetric(threshold=0.7, model="gpt-4o-mini"),
+        ContextualRecallMetric(threshold=0.7, model="gpt-4o-mini"),
+        ContextualRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
     ]
 
     # Run evaluations
@@ -137,6 +141,7 @@ def run_evaluations(
                 "test_case": result.input,
                 "actual_output": result.actual_output,
                 "expected_output": result.expected_output,
+                "retrieval_context": result.retrieval_context,
                 "metric_name": metric_data.name,
                 "score": metric_data.score,
                 "reason": metric_data.reason,
