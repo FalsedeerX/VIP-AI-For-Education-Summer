@@ -4,6 +4,7 @@ import trio
 from trio_websocket import serve_websocket, ConnectionClosed, WebSocketConnection, WebSocketRequest
 from typing import Final
 import traceback
+import json
 
 from instructorchat.serve.inference import ChatIO, chat_loop
 
@@ -21,24 +22,16 @@ class NetworkChatIO(ChatIO):
         pass
 
     async def stream_output(self, output_stream):
-        # pre = 0
-        # for outputs in output_stream:
-        #     output_text = outputs["text"]
-        #     print(output_text[pre:], end="", flush=True)
-        #     pre = len(output_text)
-        # print()
-        # return output_text
+        output = ""
+        async for chunk in output_stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                output += delta
+                message = {"content": delta}
+                await self.connection.send_message(json.dumps(message))
 
-        # output_stream = ""
-        # for chunk in output_stream:
-        #     print(chunk["text"], end="", flush=True)
-        #     output_stream += chunk["text"]
-        output = output_stream.choices[0].message.content
-        await self.connection.send_message(output)
+        await self.connection.send_message(json.dumps({}))
         return output
-
-    async def print_output(self, text: str):
-        pass
 
 async def connect(request: WebSocketRequest):
     ws = await request.accept()

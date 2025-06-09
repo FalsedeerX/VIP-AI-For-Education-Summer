@@ -28,24 +28,16 @@ class SimpleChatIO(ChatIO):
         print(f"{role}: ", end="", flush=True)
 
     async def stream_output(self, output_stream):
-        # pre = 0
-        # for outputs in output_stream:
-        #     output_text = outputs["text"]
-        #     print(output_text[pre:], end="", flush=True)
-        #     pre = len(output_text)
-        # print()
-        # return output_text
+        output = ""
+        async for chunk in output_stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                output += delta
+                print(delta, end="", flush=True)
 
-        # output_stream = ""
-        # for chunk in output_stream:
-        #     print(chunk["text"], end="", flush=True)
-        #     output_stream += chunk["text"]
-        output = output_stream.choices[0].message.content
-        print(output)
+        print()
+
         return output
-
-    async def print_output(self, text: str):
-        print(text)
 
 async def main():
     parser = argparse.ArgumentParser()

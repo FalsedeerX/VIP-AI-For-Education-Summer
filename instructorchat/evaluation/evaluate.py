@@ -68,7 +68,7 @@ async def get_responses(
         }
 
         await chatio.prompt_for_output(conv.roles[1])
-        output_stream = generate_stream(gen_params)
+        output_stream = await generate_stream(gen_params)
         answer = await chatio.stream_output(output_stream)
         conv.update_last_message(answer.strip())
         #print(conv.get_message)

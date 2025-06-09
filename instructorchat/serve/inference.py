@@ -18,23 +18,19 @@ class ChatIO(abc.ABC):
     async def stream_output(self, output_stream):
         """Stream output."""
 
-    @abc.abstractmethod
-    async def print_output(self, text: str):
-        """Print output."""
-
-def generate_stream(params: Dict):
+async def generate_stream(params: Dict):
     """Generate response using OpenAI API."""
     try:
-        client = openai.OpenAI(api_key=openai.api_key)
+        client = openai.AsyncOpenAI(api_key=openai.api_key)
 
-        response = client.chat.completions.create(
+        response = await client.chat.completions.create(
             model="gpt-4o-mini",
             messages=params["messages"],
             temperature=0.7,
-            #stream=True,
+            stream=True,
         )
         return response
-        
+
         #This code defines a generator function that streams the response from OpenAI’s ChatCompletion API (using gpt-4o-mini) as it is being generated, rather than waiting for the full answer.
         # collected_messages = []
         # for chunk in response:
@@ -47,7 +43,7 @@ def generate_stream(params: Dict):
         print("hi,error roi nayy")
         return(f"Error: {str(e)}")
         #yield {"text": f"Error: {str(e)}"}
-    
+
 async def chat_loop(
     model_path: str,
     temperature: float,
@@ -71,7 +67,7 @@ async def chat_loop(
 
     retrieval = Retrieval()
     retrieval.populate_pipelines()
-    
+
     while True:
         inp = await chatio.prompt_for_input(conv.roles[0])
     # list of commands
@@ -99,7 +95,7 @@ async def chat_loop(
         }
 
         await chatio.prompt_for_output(conv.roles[1])
-        output_stream = generate_stream(gen_params)
+        output_stream = await generate_stream(gen_params)
         outputs = await chatio.stream_output(output_stream)
-        conv.update_last_message(outputs.strip()) 
+        conv.update_last_message(outputs.strip())
         #print(conv.get_message)

@@ -36,6 +36,11 @@ class ColPali():
 
         return self.processor.score_multi_vector(query_embeddings, image_embeddings)
 
+    def search(self, query: str, image_embeddings: torch.Tensor, top_k: int = 3) -> torch.return_types.topk:
+        scores = self.score([query], image_embeddings)
+
+        return torch.topk(scores, top_k)
+
     def embed_pdf(self, file_path: Path) -> torch.Tensor:
         images = convert_from_path(file_path)
 
