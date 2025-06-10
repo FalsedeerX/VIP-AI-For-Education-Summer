@@ -13,7 +13,6 @@ class DatabaseAgent:
 		#self.conn.execute("SET search_path TO chatbot;")
 		self.hasher = PasswordHasher()
 
-
 	def register_user(self, username: str, email: str, password: str) -> bool:
 		""" Create a new entry of user in the database """
 		with self.conn.cursor() as cursor:
@@ -80,7 +79,6 @@ class DatabaseAgent:
 
 			except VerifyMismatchError:
 				return False
-
 
 	def get_folders(self, owner_id: str) -> dict[str, list[str]]|None:
 		""" Return a list folders name and the chat_ids inside it """
@@ -158,7 +156,6 @@ class DatabaseAgent:
 				return None
 			return rows
 
-
 	def create_chat(self, user_id: int, title: str) -> str:
 		"""Creates a new chat record and returns its UUID."""
 		chat_id = uuid.uuid4()
@@ -223,7 +220,7 @@ class DatabaseAgent:
 			return deleted is not None
 		
 	
-	def create_folder(self, owner_id: int, label: str) -> int:
+	def create_folder(self, name: int, owner_id: str) -> int:
 		"""Create a new folder for a user; return the new folder's id."""
 		with self.conn.cursor() as cur:
 			cur.execute(
@@ -260,27 +257,6 @@ if __name__ == "__main__":
 	
 	# connect to the database broker
 	agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
-	# Example usage of the DatabaseAgent class
-	'''
-	agent.register_user("falsedeer", "ani10242048@gmail.com", "password123")
-	agent.register_user("chen5292", "admin@aurvandill.net", "apple123")
-	
-	# attempt to verify the user with password
-	status1 = agent.verify_user("falsedeer", "fakepassword")
-	print("Verification Attempt on Falsedeer:", status1)
-	status2 = agent.verify_user("falsedeer", "password123")
-	print("Verification Attempt on Falsedeer:", status2)
-	'''
-	print("User Registration Status:", agent.register_user("AWESOME", "me@gmail.com", "AWESOME1"))
-	print("User ID:", user_id := agent.get_user_id("AWESOME"))
-	print("Folder Creation", folder_id := agent.create_folder(user_id, "My Awesome Folder"))
-	print("Chat Creation:", chat_id := agent.create_chat(user_id, "My First Chat"))
-	print("Chat Logging Status:", agent.log_chat(chat_id, user_id, "Hello World!"))
-	print("Chat History:", agent.get_chat_history(chat_id))
-	print("Organizing Chat:", agent.organize_chat(chat_id, "My Awesome Folder"))
-	print("Folders for User:", agent.get_folders(user_id))
-	print("Deleting Folder Status:", agent.delete_folder(user_id, folder_id))
-	print("Deleting Chat Status:", agent.delete_chat(chat_id))														
-	#print("User Deletion Status:", agent.delete_user("AWESOME"))
+
 
 	
