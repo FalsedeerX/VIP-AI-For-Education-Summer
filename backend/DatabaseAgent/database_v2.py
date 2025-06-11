@@ -225,7 +225,7 @@ class DatabaseAgent:
 		with self.conn.cursor() as cur:
 			cur.execute(
 				"INSERT INTO folders (user_id, label) VALUES (%s, %s) RETURNING id",
-				(owner_id, label)
+				(owner_id, name)
 			)
 			return cur.fetchone()[0]
 

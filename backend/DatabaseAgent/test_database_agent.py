@@ -6,33 +6,16 @@ import pytest
 from dotenv import load_dotenv
 
 # Import the class under test:
-from database_v2 import DatabaseAgent
+from database_async import DatabaseAgent
 
 #
 #  ─── TEST FIXTURE TO PROVIDE A DatabaseAgent ─────────────────────────────────
 #
 @pytest.fixture(scope="module")
 def db_agent():
-    """
-    Load env vars from .env (or mystify.env) and return a single DatabaseAgent.
-    We assume a clean database or at least one where these tests can create/destroy data.
-    """
-    # 1) Load environment variables
-    load_dotenv(".env")
-
-    db_host   = os.getenv("DB_HOST")
-    db_port   = int(os.getenv("DB_PORT"))
-    db_name   = os.getenv("DB_NAME")
-    db_user   = os.getenv("DB_USER")
-    db_passwd = os.getenv("DB_PASSWD")
-
-    agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
+    agent = DatabaseAgent()
 
     yield agent
-
-    # TEARDOWN (module scope) – if any leftover data must be cleaned, do it here.
-    # We will not rely on teardown, because most tests cleanup after themselves.
-
 
 #
 #  ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -52,74 +35,77 @@ def random_credentials():
 #
 #  ─── TESTS FOR USER METHODS ────────────────────────────────────────────────────
 #
-def test_register_get_and_delete_user(db_agent):
+@pytest.mark.asyncio
+async def test_register_get_and_delete_user(db_agent):
     # 1) Create a new random user
     username, email, password = random_credentials()
 
     # register_user should return True the first time
-    assert db_agent.register_user(username, email, password)
+    assert await db_agent.register_user(username, email, password)
 
     # register_user a second time with same username/email should return False
-    assert not db_agent.register_user(username, email, password)
+    assert not await db_agent.register_user(username, email, password)
 
     # get_user_id should now return a valid int (the new user's ID)
-    user_id = db_agent.get_user_id(username)
+    user_id = await db_agent.get_user_id(username)
     assert isinstance(user_id, int)
 
     # verify_user with wrong password => False
-    assert not db_agent.verify_user(username, "WrongPassword!")
+    assert not await db_agent.verify_user(username, "WrongPassword!")
 
     # verify_user with correct password => True
-    assert db_agent.verify_user(username, password)
+    assert await db_agent.verify_user(username, password)
 
     # delete_user should return True for existing user
-    assert db_agent.delete_user(username)
+    assert await db_agent.delete_user(username)
 
     # delete_user a second time (user no longer exists) => False
-    assert not db_agent.delete_user(username)
+    assert not await db_agent.delete_user(username)
 
     # get_user_id for deleted user => None
-    assert db_agent.get_user_id(username) is None
+    assert await db_agent.get_user_id(username) is None
 
     # verify_user for deleted user => False
-    assert not db_agent.verify_user(username, password)
+    assert not await db_agent.verify_user(username, password)
 
 
 #
 #  ─── TESTS FOR FOLDER-RELATED METHODS ──────────────────────────────────────────
 #
-def test_create_get_and_delete_folder(db_agent):
+@pytest.mark.asyncio
+async def test_create_get_and_delete_folder(db_agent):
     # 1) Create a fresh user to own folders
     username, email, password = random_credentials()
-    assert db_agent.register_user(username, email, password)
-    user_id = db_agent.get_user_id(username)
+    assert await db_agent.register_user(username, email, password)
+    user_id = await db_agent.get_user_id(username)
     assert isinstance(user_id, int)
 
     # 2) No folders exist yet for this new user
-    assert db_agent.get_folders(user_id) is None
+    assert await db_agent.get_folders(user_id) is None
 
     # 3) create_folder returns the new folder ID
     folder_label = "MyTestFolder"
-    folder_id = db_agent.create_folder(user_id, folder_label)
+    folder_id = await db_agent.create_folder(folder_label, user_id)
     assert isinstance(folder_id, int)
 
     # 4) Now get_folders should return a dict {"MyTestFolder": []}
-    folders = db_agent.get_folders(str(user_id))  # notice get_folders takes owner_id as str
+    folders = await db_agent.get_folders(user_id)  # notice get_folders takes owner_id as str
     assert isinstance(folders, dict)
     assert folder_label in folders
     assert folders[folder_label] == []  # no chats linked yet
 
     # 5) Deleting a folder that has no child links should succeed
-    assert db_agent.delete_folder(user_id, folder_id)
+    assert await db_agent.delete_folder(user_id, folder_id)
 
     # 6) Deleting same folder again => False
-    assert not db_agent.delete_folder(user_id, folder_id)
+    assert not await db_agent.delete_folder(user_id, folder_id)
 
     # 7) Cleanup: delete the user
-    assert db_agent.delete_user(username)
+    assert await db_agent.delete_user(username)
 
 
-def test_delete_folder_with_links(db_agent):
+@pytest.mark.asyncio
+async def test_delete_folder_with_links(db_agent):
     """
     Test that delete_folder first removes chat_folder_link rows before deleting the folder.
     We will:
@@ -131,42 +117,43 @@ def test_delete_folder_with_links(db_agent):
     """
     # a) Set up a user
     username, email, password = random_credentials()
-    assert db_agent.register_user(username, email, password)
-    user_id = db_agent.get_user_id(username)
+    assert await db_agent.register_user(username, email, password)
+    user_id = await db_agent.get_user_id(username)
     assert isinstance(user_id, int)
 
     # b) Create a folder
     folder_label = "FolderWithLink"
-    folder_id = db_agent.create_folder(user_id, folder_label)
+    folder_id = await db_agent.create_folder(folder_label, user_id)
     assert isinstance(folder_id, int)
 
     # c) Create a chat
     chat_title = "ChatForLink_" + uuid.uuid4().hex[:4]
-    chat_id = db_agent.create_chat(user_id, chat_title)
+    chat_id = await db_agent.create_chat(user_id, chat_title)
 
     # d) organize_chat should return True (link chat → folder)
-    assert db_agent.organize_chat(chat_id, folder_label)
+    assert await db_agent.organize_chat(chat_id, folder_label)
 
     # e) Now get_folders should show that folder has 1 chat_id
-    folders_map = db_agent.get_folders(str(user_id))
+    folders_map = await db_agent.get_folders(user_id)
     assert folder_label in folders_map
     assert chat_id in folders_map[folder_label]
 
     # f) delete_folder should remove both the link row and the folder
-    assert db_agent.delete_folder(user_id, folder_id)
+    assert await db_agent.delete_folder(user_id, folder_id)
 
     # g) After deletion, get_folders should return None (no folders)
-    assert db_agent.get_folders(str(user_id)) is None
+    assert await db_agent.get_folders(user_id) is None
 
     # h) Cleanup: delete chat and user
-    assert db_agent.delete_chat(chat_id)
-    assert db_agent.delete_user(username)
+    assert await db_agent.delete_chat(chat_id)
+    assert await db_agent.delete_user(username)
 
 
 #
 #  ─── TESTS FOR CHAT-RELATED METHODS ────────────────────────────────────────────
 #
-def test_create_log_get_and_delete_chat(db_agent):
+@pytest.mark.asyncio
+async def test_create_log_get_and_delete_chat(db_agent):
     """
     1) Create a user
     2) Create a chat
@@ -176,21 +163,21 @@ def test_create_log_get_and_delete_chat(db_agent):
     """
     # 1) Create a user
     username, email, password = random_credentials()
-    assert db_agent.register_user(username, email, password)
-    user_id = db_agent.get_user_id(username)
+    assert await db_agent.register_user(username, email, password)
+    user_id = await db_agent.get_user_id(username)
     assert isinstance(user_id, int)
 
     # 2) Create a chat
     chat_title = "ChatHistoryTest_" + uuid.uuid4().hex[:4]
-    chat_id = db_agent.create_chat(user_id, chat_title)
+    chat_id = await db_agent.create_chat(user_id, chat_title)
     assert isinstance(chat_id, str)
 
     # 3) Log two messages under that chat
-    assert db_agent.log_chat(chat_id, str(user_id), "First message")
-    assert db_agent.log_chat(chat_id, str(user_id), "Second message")
+    assert await db_agent.log_chat(chat_id, str(user_id), "First message")
+    assert await db_agent.log_chat(chat_id, str(user_id), "Second message")
 
     # 4) get_chat_history must return a list of dicts in chronological order
-    history = db_agent.get_chat_history(chat_id)
+    history = await db_agent.get_chat_history(chat_id)
     assert isinstance(history, list)
     # Expect exactly 2 rows, each a dict with keys "user_id", "message", "created_at"
     assert len(history) == 2
@@ -201,55 +188,59 @@ def test_create_log_get_and_delete_chat(db_agent):
     assert history[1]["user_id"] == user_id
 
     # 5) Deleting the chat should succeed
-    assert db_agent.delete_chat(chat_id)
+    assert await db_agent.delete_chat(chat_id)
 
     # 6) Now get_chat_history(chat_id) should return None, since the chat no longer exists
-    assert db_agent.get_chat_history(chat_id) is None
+    assert await db_agent.get_chat_history(chat_id) is None
 
     # 7) Cleanup: delete user
-    assert db_agent.delete_user(username)
+    assert await db_agent.delete_user(username)
 
 
-def test_organize_chat_bad_inputs(db_agent):
+@pytest.mark.asyncio
+async def test_organize_chat_bad_inputs(db_agent):
     """
     Test that organize_chat returns False for invalid inputs:
       - invalid UUID
       - nonexistent folder name
     """
     # invalid UUID format
-    assert not db_agent.organize_chat("not-a-uuid", "SomeFolder")
+    assert not await db_agent.organize_chat("not-a-uuid", "SomeFolder")
 
     # nonexistent folder
     username, email, password = random_credentials()
-    assert db_agent.register_user(username, email, password)
-    user_id = db_agent.get_user_id(username)
+    assert await db_agent.register_user(username, email, password)
+    user_id = await db_agent.get_user_id(username)
     folder_label = "Folder_DoesNotExist"
     # Since no folder "Folder_DoesNotExist" exists, this must return False
-    assert not db_agent.organize_chat(str(uuid.uuid4()), folder_label)
+    assert not await db_agent.organize_chat(str(uuid.uuid4()), folder_label)
 
     # Cleanup: delete user
-    assert db_agent.delete_user(username)
+    assert await db_agent.delete_user(username)
 
 
 #
 #  ─── TEST FOR get_folders INVALID owner_id ─────────────────────────────────────
 #
-def test_get_folders_invalid_owner(db_agent):
+@pytest.mark.asyncio
+async def test_get_folders_invalid_owner(db_agent):
     # Passing a non-integer string should return None
-    assert db_agent.get_folders("not_an_integer") is None
+    assert await db_agent.get_folders(11111) is None
 
 
 #
 #  ─── TEST FOR verify_user_nonexistent ─────────────────────────────────────────
 #
-def test_verify_user_nonexistent(db_agent):
+@pytest.mark.asyncio
+async def test_verify_user_nonexistent(db_agent):
     # If username doesn’t exist at all, verify_user returns False
-    assert not db_agent.verify_user("definitely_not_a_real_user", "any_password")
+    assert not await db_agent.verify_user("definitely_not_a_real_user", "any_password")
 
 
 #
 #  ─── TEST FOR get_chat_history_invalid_uuid ────────────────────────────────────
 #
-def test_get_chat_history_invalid_uuid(db_agent):
+@pytest.mark.asyncio
+async def test_get_chat_history_invalid_uuid(db_agent):
     # Invalid UUID should return None
-    assert db_agent.get_chat_history("invalid-uuid-format") is None
+    assert await db_agent.get_chat_history("invalid-uuid-format") is None
