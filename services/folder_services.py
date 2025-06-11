@@ -1,14 +1,14 @@
 # main.py
 from fastapi import FastAPI, HTTPException
-from backend.DatabaseAgent.database_v2 import DatabaseAgent
-from schemas.folder import FolderCreate, FolderOut, FolderUpdate, FoldersWithChats
+from backend.DatabaseAgent.database_async import DatabaseAgent
+from schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
 
 app = FastAPI()
 agent = DatabaseAgent()
 
 @app.post(
     "/folders/",
-    response_model=FolderOut,
+    response_model=int,
     status_code=201,
 )
 async def api_create_folder(payload: FolderCreate) -> int:
@@ -24,7 +24,7 @@ async def api_get_folders(owner_id: int):
     folders = await agent.get_folders(owner_id)
     if folders is None:
         raise HTTPException(404, "No folders found for this user")
-    return {"folders": folders}
+    return folders
 
 @app.put("/folders/{folder_id}", status_code=204)
 async def api_update_folder(folder_id: int, payload: FolderUpdate):
