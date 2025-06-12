@@ -37,7 +37,7 @@ class SessionManager:
 		# insert session entry, reverse lookup and token tracking
 		token = uuid4()
 		self.db.setex(f"ip_address:{token}", ttl_seconds, ip_address)
-		self.db.setex(f"session_user:{token}", ttl_seconds, username)
+		self.db.setex(f"username:{token}", ttl_seconds, username)
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return token
 
@@ -52,7 +52,7 @@ class SessionManager:
 
 		# verify username and IP
 		address_key = f"ip_address:{token}"
-		username_key = f"session_user:{token}"
+		username_key = f"username:{token}"
 		if not self.db.exists(address_key) or not self.db.exists(username_key): return False
 		if self.db.get(address_key) != ip_address or self.db.get(username_key) != username: return False
 
@@ -61,18 +61,23 @@ class SessionManager:
 		return True
 
 
-	def extend_token(self, token: UUID, extend_seconds: int) -> int:
-		""" Extend the user session for a specific amount of time. Returns reamining TTL in seconds. """
-		session_key = f"session:{token}"
-		ttl = self.db.ttl(session_key)
-		if not isinstance(ttl, int): return 0
+	def extend_token(self, token: UUID, extend_seconds: int) -> bool:
+		""" Extend the user session for a specific amount of time. """
+		address_key = f"ip_address:{token}"
+		username_key = f"username:{token}"
 
 		# check if the key expired already (-2) or not expirable (-1)
-		if ttl <= 0: return 0
+		# and we will leave a 10 second internal delay to avoid race condition
+		address_ttl = self.db.ttl(address_key)
+		username_ttl = self.db.ttl(username_key)
+		if not isinstance(address_ttl, int) or not isinstance(username_ttl, int): return False
+		if address_ttl <= 10 or username_ttl <= 10: return False
 
 		# update the remaining time-to-live
-		self.db.expire(session_key, ttl + extend_seconds)
-		return ttl + extend_seconds
+		if address_ttl + extend_seconds < 0 or username_ttl + extend_seconds < 0: return False
+		self.db.expire(address_key, address_ttl + extend_seconds)
+		self.db.expire(username_key, username_ttl + extend_seconds)
+		return True
 
 
 	def purge_token(self, token: UUID) -> bool:
@@ -185,24 +190,8 @@ if __name__ == "__main__":
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
 
-	# register 5 session tokens for chen5292
-	token_list1 = []
-	for _ in range(0, 5):
-		token = manager.assign_token("chen5292", "127.0.0.1")
-		token_list1.append(token)
+	# register a session for chen5292
+	token = manager.assign_token("chen5292", "127.0.0.1")
 
-	# register 3 session tokens for falsedeer
-	token_list2 = []
-	for _ in range(0, 5):
-		token = manager.assign_token("falsedeer", "192.168.1.1")
-		token_list2.append(token)
-
-	# verify all the token owned by chen5292 registered at 127.0.0.1
-	for token in token_list1:
-		status = manager.verify_token("chen5292", "8.8.8.8", token)
-		print(f"Verification status for chen5292: {status}")
-
-	# verify all the token owned by falsedeer registered at 192.168.1.1
-	for token in token_list2:
-		status = manager.verify_token("falsedeer", "192.168.1.12", token)
-		print(f"Verification status for falsedeer: {status}")
+	# attempt to extend the session token
+	manager.extend_token(token, -11000)
