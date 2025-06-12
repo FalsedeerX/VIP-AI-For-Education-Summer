@@ -22,6 +22,7 @@ class SessionManager:
 	def __init__(self, config: ValkeyConfig):
 		self.db = redis.Redis(host=config.db_host, port=config.db_port, db=config.db_index, 
 							  username=config.db_user, password=config.db_pass, decode_responses=True)
+		self.config = config
 		self.db.ping()
 
 
@@ -128,9 +129,15 @@ class SessionWorker:
 		try:
 			idle_cleanup_thread = threading.Thread(target=self._idle_cleanup_worker, args=(self.scan_interval, self.idle_timeout), name="IdleCleanupWorker", daemon=True)
 			expire_cleanup_thread = threading.Thread(target=self._expire_cleanup_worker, name="ExpireCleanupWorker", daemon=True)
+			
+			# start the thread workers and track them
+			idle_cleanup_thread.start()
+			expire_cleanup_thread.start()
 			self._threads.extend([idle_cleanup_thread, expire_cleanup_thread])
+		
 		except Exception:
 			return False
+		
 		return True
 
 
@@ -164,7 +171,9 @@ class SessionWorker:
 		notification.psubscribe(f"__keyevent@{self.config.db_index}__:expired")
 
 		# filter on the key expire event `username:{token}`, ignore others
-		for message in notification.listen():
+		while not self.stop_event.is_set():
+			message = notification.get_message(timeout=1)
+			if not message: continue
 			if message.get('type') != "pmessage": continue
 			expired_session = message.get('data')
 			if not expired_session: continue
@@ -184,13 +193,14 @@ class SessionWorker:
 if __name__ == "__main__":
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
+	worker = SessionWorker(manager, 60, 30)
+	
+	print("Starting the thread worker.")
+	status = worker.start()
+	print("status:", status)
 
-	# register a session for chen5292
-	# for _ in range(5):
-	# 	manager.assign_token("chen5292", "127.0.0.1")
+	time.sleep(30)
 
-	# do a fetch on all active session
-	# for token in manager.fetch_active_tokens("chen5292"):
-	#	 print(f"Active Token: {token}")
-
-	manager.purge_all_tokens("chen5292")
+	print("Stopping the thread worker.")
+	status = worker.stop()
+	print("status:", status)
