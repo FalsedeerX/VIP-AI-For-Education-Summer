@@ -35,8 +35,8 @@ class SessionManager:
 
 		# insert session entry, reverse lookup and token tracking
 		token = uuid4()
+		self.db.set(f"username:{token}", username)
 		self.db.setex(f"ip_address:{token}", ttl_seconds, ip_address)
-		self.db.setex(f"username:{token}", ttl_seconds, username)
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return token
 
@@ -62,20 +62,16 @@ class SessionManager:
 
 	def extend_token(self, token: UUID, extend_seconds: int) -> bool:
 		""" Extend the user session for a specific amount of time. """
-		address_key = f"ip_address:{token}"
-		username_key = f"username:{token}"
-
 		# check if the key expired already (-2) or not expirable (-1)
 		# and we will leave a 10 second internal delay to avoid race condition
-		address_ttl = self.db.ttl(address_key)
-		username_ttl = self.db.ttl(username_key)
-		if not isinstance(address_ttl, int) or not isinstance(username_ttl, int): return False
-		if address_ttl <= 10 or username_ttl <= 10: return False
+		address_key = f"ip_address:{token}"
+		ttl = self.db.ttl(address_key)
+		if not isinstance(ttl, int): return False
+		if ttl <= 5: return False
 
 		# update the remaining time-to-live
-		if address_ttl + extend_seconds < 0 or username_ttl + extend_seconds < 0: return False
-		self.db.expire(address_key, address_ttl + extend_seconds)
-		self.db.expire(username_key, username_ttl + extend_seconds)
+		if ttl + extend_seconds < 0: return False
+		self.db.expire(address_key, ttl + extend_seconds)
 		return True
 
 
@@ -116,16 +112,14 @@ class SessionManager:
 
 
 class SessionWorker:
-	def __init__(self, config: ValkeyConfig, scan_interval_seconds: int = 60, idle_timeout_seconds: int = 3600):
-		self.db = redis.Redis(host=config.db_host, port=config.db_port, db=config.db_index, 
-							  username=config.db_user, password=config.db_pass)
+	def __init__(self, manager: SessionManager, scan_interval_seconds: int = 60, idle_timeout_seconds: int = 3600):
+		self.manger = manager
+		self.db = manager.db
+		self.config = manager.config
 		self.scan_interval = scan_interval_seconds
 		self.idle_timeout = idle_timeout_seconds
 		self.stop_event = threading.Event()
-		self.config = config
 		self._threads = []
-
-		# database connection test
 		self.db.ping()
 
 
@@ -155,15 +149,10 @@ class SessionWorker:
 			cutoff = time.time() - idle_timeout_seconds
 			
 			# walk through all the sessions owned by each user
-			for user_sessions in self.db.scan_iter(match="user_sessions:*", count=100):
-				idle_token = self.db.zrangebyscore(user_sessions, "-inf", cutoff)
+			for user in self.db.scan_iter(match="user_sessions:*", count=100):
+				idle_token = self.db.zrangebyscore(user, "-inf", cutoff)
 				for token in idle_token:
-					self.db.delete(f"session:{token}")
-					self.db.zrem(user_sessions, token)
-
-				# remove empty zlist if empty
-				if self.db.zcard(user_sessions) == 0:
-					self.db.delete(user_sessions)
+					self.manager.purge_token(token)
 
 			# wait for next scan or early exit
 			self.stop_event.wait(scan_interval_seconds)
@@ -174,15 +163,21 @@ class SessionWorker:
 		notification = self.db.pubsub()
 		notification.psubscribe(f"__keyevent@{self.config.db_index}__:expired")
 
-		# filter on the key expire event
+		# filter on the key expire event `username:{token}`, ignore others
 		for message in notification.listen():
 			if message.get('type') != "pmessage": continue
 			expired_session = message.get('data')
 			if not expired_session: continue
+			if not expired_session.startswith("ip_address:"): continue
 
-			# remove the key from tracking list
-			_, _, token = expired_session.partition('session:')
-			# if not self.db.zscore(f"user_sessions:{token}")
+			# parse and search the corresponding username
+			_, _, token = expired_session.partition("ip_address:")
+			username = self.db.get(f"username:{token}")
+			if not username: continue
+
+			# untrack the session from ZLIST
+			self.db.zrem(f"user_sessions:{username}", token)
+			self.db.delete(f"username:{token}")
 
 
 
