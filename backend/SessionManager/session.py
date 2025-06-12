@@ -34,18 +34,9 @@ class SessionManager:
 		except ValueError:
 			return None
 
-		# create a new hash entry
+		# insert session entry, reverse lookup and token tracking
 		token = uuid4()
-		session_key = f"session:{token}"
-		session_data = {
-			"username": username,
-			"ip_address": str(parsed_ip),
-			"created_at": str(time.time())
-		}
-
-		# insert and set auto-expire
-		self.db.hset(session_key, mapping=session_data)
-		self.db.expire(session_key, ttl_seconds)
+		self.db.setex(f"ip_address:{token}", ttl_seconds, ip_address)
 		self.db.setex(f"session_user:{token}", ttl_seconds, username)
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return token
@@ -59,14 +50,11 @@ class SessionManager:
 		except ValueError:
 			return False
 
-		# verify whether the session token exist in DB
-		session_key = f"session:{token}"
-		if not self.db.exists(session_key): return False
-
-		# compare the metadata to ensure integrity
-		username_metadata = self.db.hget(session_key, "username")
-		ipaddress_metadata = self.db.hget(session_key, "ip_address")
-		if not username_metadata == username and not ipaddress_metadata == ip_address:
+		# verify username and IP
+		address_key = f"ip_address:{token}"
+		username_key = f"session_user:{token}"
+		if not self.db.exists(address_key) or not self.db.exists(username_key): return False
+		if not self.db.get(address_key) == ip_address and not self.db.get(username_key) == username:
 			return False
 
 		# update the score in session tracking
@@ -199,11 +187,23 @@ if __name__ == "__main__":
 	manager = SessionManager(config)
 
 	# register 5 session tokens for chen5292
+	token_list1 = []
 	for _ in range(0, 5):
-		manager.assign_token("chen5292", "127.0.0.1")
-		pass
+		token = manager.assign_token("chen5292", "127.0.0.1")
+		token_list1.append(token)
 
 	# register 3 session tokens for falsedeer
+	token_list2 = []
 	for _ in range(0, 5):
-		manager.assign_token("falsedeer", "192.168.1.1")
-		pass
+		token = manager.assign_token("falsedeer", "192.168.1.1")
+		token_list2.append(token)
+
+	# verify all the token owned by chen5292 registered at 127.0.0.1
+	for token in token_list1:
+		status = manager.verify_token("chen5292", "127.0.0.1", token)
+		print(f"Verification status for chen5292: {status}")
+
+	# verify all the token owned by falsedeer registered at 192.168.1.1
+	for token in token_list2:
+		status = manager.verify_token("falsedeer", "192.168.1.1", token)
+		print(f"Verification status for falsedeer: {status}")
