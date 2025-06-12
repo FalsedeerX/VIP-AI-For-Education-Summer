@@ -46,6 +46,7 @@ class SessionManager:
 		# insert and set auto-expire
 		self.db.hset(session_key, mapping=session_data)
 		self.db.expire(session_key, ttl_seconds)
+		self.db.setex(f"session_user:{token}", ttl_seconds, username)
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return token
 
@@ -178,7 +179,18 @@ class SessionWorker:
 
 	def _expire_cleanup_worker(self) -> None:
 		""" Event callback triggered when a key expired in database. """
-		pass
+		notification = self.db.pubsub()
+		notification.psubscribe(f"__keyevent@{self.config.db_index}__:expired")
+
+		# filter on the key expire event
+		for message in notification.listen():
+			if message.get('type') != "pmessage": continue
+			expired_session = message.get('data')
+			if not expired_session: continue
+
+			# remove the key from tracking list
+			_, _, token = expired_session.partition('session:')
+			# if not self.db.zscore(f"user_sessions:{token}")
 
 
 
@@ -186,11 +198,12 @@ if __name__ == "__main__":
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
 
-	# register 5 tokens in batch
+	# register 5 session tokens for chen5292
 	for _ in range(0, 5):
-		# manager.assign_token("chen5292", "127.0.0.1")
+		manager.assign_token("chen5292", "127.0.0.1")
 		pass
 
-	# terminate all sessions
-	termianted_sessions = manager.purge_all_tokens("chen5292")
-	print("Total terminated:", termianted_sessions)
+	# register 3 session tokens for falsedeer
+	for _ in range(0, 5):
+		manager.assign_token("falsedeer", "192.168.1.1")
+		pass
