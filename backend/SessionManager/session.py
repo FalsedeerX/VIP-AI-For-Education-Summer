@@ -4,8 +4,8 @@ import threading
 import ipaddress
 from typing import Any
 from uuid import UUID, uuid4
-from collections.abc import Sequence
 from dataclasses import dataclass, field
+from collections.abc import Sequence, Iterable
 
 
 @dataclass
@@ -114,7 +114,7 @@ class SessionManager:
 
 class SessionWorker:
 	def __init__(self, manager: SessionManager, scan_interval_seconds: int = 60, idle_timeout_seconds: int = 3600):
-		self.manger = manager
+		self.manager = manager
 		self.db = manager.db
 		self.config = manager.config
 		self.scan_interval = scan_interval_seconds
@@ -158,6 +158,7 @@ class SessionWorker:
 			# walk through all the sessions owned by each user
 			for user in self.db.scan_iter(match="user_sessions:*", count=100):
 				idle_token = self.db.zrangebyscore(user, "-inf", cutoff)
+				if not isinstance(idle_token, Iterable): continue
 				for token in idle_token:
 					self.manager.purge_token(token)
 
@@ -191,15 +192,23 @@ class SessionWorker:
 
 
 if __name__ == "__main__":
+	# sample config, scan every 60 seonds and purging IDLE session which is unactive over 30 seconds
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
-	worker = SessionWorker(manager, 60, 30)
+	worker = SessionWorker(manager, 20, 30)
 	
 	print("Starting the thread worker.")
 	status = worker.start()
 	print("status:", status)
 
-	time.sleep(30)
+	# dummy insert of session and make it IDLE for 30+ seconds
+	token1 = manager.assign_token("chen5292", "127.0.0.1")
+	token2 = manager.assign_token("chen5292", "192.168.1.1")
+	time.sleep(25)
+
+	# dummy iteraction on token2 
+	manager.verify_token("chen5292", "192.168.1.1", token2)
+	time.sleep(20)
 
 	print("Stopping the thread worker.")
 	status = worker.stop()
