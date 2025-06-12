@@ -1,4 +1,5 @@
 import time
+from types import TracebackType
 import redis
 import threading
 import ipaddress
@@ -135,19 +136,15 @@ class SessionWorker:
 		self.db.ping()
 
 
-	def start(self) -> None:
+	def start(self) -> bool:
 		""" Start the IDLE cleanup worker & expire cleanup worker in the background. """
-		idle_cleanup_thread = threading.Thread(target=self._idle_cleanup_worker,
-											   args=(self.scan_interval, self.idle_timeout),
-											   name="IdleCleanupWorker",
-											   daemon=True)
-
-		expire_cleanup_thread = threading.Thread(target=self._expire_cleanup_worker,
-												 name="ExpireCleanupWorker",
-												 daemon=True)
-
-		# log the threads
-		self._threads.extend([idle_cleanup_thread, expire_cleanup_thread])
+		try:
+			idle_cleanup_thread = threading.Thread(target=self._idle_cleanup_worker, args=(self.scan_interval, self.idle_timeout), name="IdleCleanupWorker", daemon=True)
+			expire_cleanup_thread = threading.Thread(target=self._expire_cleanup_worker, name="ExpireCleanupWorker", daemon=True)
+			self._threads.extend([idle_cleanup_thread, expire_cleanup_thread])
+		except Exception:
+			return False
+		return True
 
 
 	def stop(self) -> bool:
@@ -161,7 +158,22 @@ class SessionWorker:
 
 	def _idle_cleanup_worker(self, scan_interval_seconds: int, idle_timeout_seconds: int) -> None:
 		""" Scan through the database a few minutes to terminate unactive session token. """
-		pass
+		while not self.stop_event.is_set():
+			cutoff = time.time() - idle_timeout_seconds
+			
+			# walk through all the sessions owned by each user
+			for user_sessions in self.db.scan_iter(match="user_sessions:*", count=100):
+				idle_token = self.db.zrangebyscore(user_sessions, "-inf", cutoff)
+				for token in idle_token:
+					self.db.delete(f"session:{token}")
+					self.db.zrem(user_sessions, token)
+
+				# remove empty zlist if empty
+				if self.db.zcard(user_sessions) == 0:
+					self.db.delete(user_sessions)
+
+			# wait for next scan or early exit
+			self.stop_event.wait(scan_interval_seconds)
 
 
 	def _expire_cleanup_worker(self) -> None:
