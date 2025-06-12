@@ -1,5 +1,4 @@
 import time
-from types import TracebackType
 import redis
 import threading
 import ipaddress
@@ -83,13 +82,14 @@ class SessionManager:
 	def purge_token(self, token: UUID) -> bool:
 		""" Remove a specific token from a user. """
 		# check whether the key exist in database & username
-		session_key = f"session:{token}"
-		username = self.db.hget(session_key, "username")
-		if not username: return False
+		username_key = f"username:{token}"
+		address_key = f"ip_address:{token}"
+		if not self.db.get(username_key) or not self.db.get(address_key): return False
 
 		# remove key and untrack session
-		self.db.zrem(f"user_sessions:{username}", str(token))
-		self.db.delete(session_key)
+		self.db.zrem(f"user_sessions:{self.db.get(username_key)}", str(token))
+		self.db.delete(username_key)
+		self.db.delete(address_key)
 		return True
 
 
@@ -191,7 +191,11 @@ if __name__ == "__main__":
 	manager = SessionManager(config)
 
 	# register a session for chen5292
-	token = manager.assign_token("chen5292", "127.0.0.1")
+	# for _ in range(5):
+	# 	manager.assign_token("chen5292", "127.0.0.1")
 
-	# attempt to extend the session token
-	manager.extend_token(token, -11000)
+	# do a fetch on all active session
+	# for token in manager.fetch_active_tokens("chen5292"):
+	#	 print(f"Active Token: {token}")
+
+	manager.purge_all_tokens("chen5292")
