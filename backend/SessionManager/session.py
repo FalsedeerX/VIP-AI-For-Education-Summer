@@ -54,8 +54,7 @@ class SessionManager:
 		address_key = f"ip_address:{token}"
 		username_key = f"session_user:{token}"
 		if not self.db.exists(address_key) or not self.db.exists(username_key): return False
-		if not self.db.get(address_key) == ip_address and not self.db.get(username_key) == username:
-			return False
+		if self.db.get(address_key) != ip_address or self.db.get(username_key) != username: return False
 
 		# update the score in session tracking
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
@@ -200,10 +199,10 @@ if __name__ == "__main__":
 
 	# verify all the token owned by chen5292 registered at 127.0.0.1
 	for token in token_list1:
-		status = manager.verify_token("chen5292", "127.0.0.1", token)
+		status = manager.verify_token("chen5292", "8.8.8.8", token)
 		print(f"Verification status for chen5292: {status}")
 
 	# verify all the token owned by falsedeer registered at 192.168.1.1
 	for token in token_list2:
-		status = manager.verify_token("falsedeer", "192.168.1.1", token)
+		status = manager.verify_token("falsedeer", "192.168.1.12", token)
 		print(f"Verification status for falsedeer: {status}")
