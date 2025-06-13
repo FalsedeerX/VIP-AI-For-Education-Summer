@@ -107,7 +107,7 @@ def run_evaluations(
     ]
 
     metrics = [
-        AnswerRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
+        AnswerRelevancyMetric(threshold=0.7, model="gpt-4.1-mini"),
         GEval(
             name="Correctness",
             evaluation_steps=[
@@ -118,13 +118,13 @@ def run_evaluations(
                 "actual output's having different writing style and grammar from the expected output's is OK"
             ],
             #criteria="Determine if the 'actual output' is factually correct based on the 'expected output'. Do not penalize for different format, structure, wording or unnecessary information as long as the fact provided is correct"
-            model="gpt-4o-mini",
+            model="gpt-4.1-mini",
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
             threshold=0.7
         ),
-        ContextualPrecisionMetric(threshold=0.7, model="gpt-4o-mini"),
-        ContextualRecallMetric(threshold=0.7, model="gpt-4o-mini"),
-        ContextualRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
+        ContextualPrecisionMetric(threshold=0.7, model="gpt-4.1-mini"),
+        ContextualRecallMetric(threshold=0.7, model="gpt-4.1-mini"),
+        ContextualRelevancyMetric(threshold=0.7, model="gpt-4.1-mini"),
     ]
 
     # Run evaluations

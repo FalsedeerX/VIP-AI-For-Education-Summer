@@ -1,14 +1,14 @@
 import argparse
 from pathlib import Path
 import os
-
+from instructorchat.retrieval.colpali import ColPali
 from deepeval.synthesizer import Synthesizer
 
 def generate_from_docs(docs_dir: str = "documents", save_dir: str = "eval_data"):
     """
     Generates an evaluation set from the RAG documents.
     """
-    synthesizer = Synthesizer()
+    synthesizer = Synthesizer(max_concurrent=10, model="gpt-4.1")
 
     temp_dir = Path(docs_dir) / "temp_text_files"
     temp_dir.mkdir(exist_ok=True)
@@ -23,7 +23,7 @@ def generate_from_docs(docs_dir: str = "documents", save_dir: str = "eval_data")
             with open(file_path, "r") as md_file, open(temp_file_path, "w") as txt_file:
                 txt_file.write(md_file.read())
             file_paths.append(str(temp_file_path))
-        else:
+        elif file_path.suffix in (".txt", ".pdf", ".docx"):
             file_paths.append(str(file_path))
 
     synthesizer.generate_goldens_from_docs(file_paths)
