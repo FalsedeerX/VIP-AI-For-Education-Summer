@@ -4,8 +4,8 @@ import threading
 import ipaddress
 from typing import Any
 from uuid import UUID, uuid4
-from collections.abc import Sequence
 from dataclasses import dataclass, field
+from collections.abc import Sequence, Iterable
 
 
 @dataclass
@@ -22,6 +22,7 @@ class SessionManager:
 	def __init__(self, config: ValkeyConfig):
 		self.db = redis.Redis(host=config.db_host, port=config.db_port, db=config.db_index, 
 							  username=config.db_user, password=config.db_pass, decode_responses=True)
+		self.config = config
 		self.db.ping()
 
 
@@ -33,18 +34,10 @@ class SessionManager:
 		except ValueError:
 			return None
 
-		# create a new hash entry
+		# insert session entry, reverse lookup and token tracking
 		token = uuid4()
-		session_key = f"session:{token}"
-		session_data = {
-			"username": username,
-			"ip_address": str(parsed_ip),
-			"created_at": str(time.time())
-		}
-
-		# insert and set auto-expire
-		self.db.hset(session_key, mapping=session_data)
-		self.db.expire(session_key, ttl_seconds)
+		self.db.set(f"username:{token}", username)
+		self.db.setex(f"ip_address:{token}", ttl_seconds, ip_address)
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return token
 
@@ -57,45 +50,43 @@ class SessionManager:
 		except ValueError:
 			return False
 
-		# verify whether the session token exist in DB
-		session_key = f"session:{token}"
-		if not self.db.exists(session_key): return False
-
-		# compare the metadata to ensure integrity
-		username_metadata = self.db.hget(session_key, "username")
-		ipaddress_metadata = self.db.hget(session_key, "ip_address")
-		if not username_metadata == username and not ipaddress_metadata == ip_address:
-			return False
+		# verify username and IP
+		address_key = f"ip_address:{token}"
+		username_key = f"username:{token}"
+		if not self.db.exists(address_key) or not self.db.exists(username_key): return False
+		if self.db.get(address_key) != ip_address or self.db.get(username_key) != username: return False
 
 		# update the score in session tracking
 		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
 		return True
 
 
-	def extend_token(self, token: UUID, extend_seconds: int) -> int:
-		""" Extend the user session for a specific amount of time. Returns reamining TTL in seconds. """
-		session_key = f"session:{token}"
-		ttl = self.db.ttl(session_key)
-		if not isinstance(ttl, int): return 0
-
+	def extend_token(self, token: UUID, extend_seconds: int) -> bool:
+		""" Extend the user session for a specific amount of time. """
 		# check if the key expired already (-2) or not expirable (-1)
-		if ttl <= 0: return 0
+		# and we will leave a 10 second internal delay to avoid race condition
+		address_key = f"ip_address:{token}"
+		ttl = self.db.ttl(address_key)
+		if not isinstance(ttl, int): return False
+		if ttl <= 5: return False
 
 		# update the remaining time-to-live
-		self.db.expire(session_key, ttl + extend_seconds)
-		return ttl + extend_seconds
+		if ttl + extend_seconds < 0: return False
+		self.db.expire(address_key, ttl + extend_seconds)
+		return True
 
 
 	def purge_token(self, token: UUID) -> bool:
 		""" Remove a specific token from a user. """
 		# check whether the key exist in database & username
-		session_key = f"session:{token}"
-		username = self.db.hget(session_key, "username")
-		if not username: return False
+		username_key = f"username:{token}"
+		address_key = f"ip_address:{token}"
+		if not self.db.get(username_key) or not self.db.get(address_key): return False
 
 		# remove key and untrack session
-		self.db.zrem(f"user_sessions:{username}", str(token))
-		self.db.delete(session_key)
+		self.db.zrem(f"user_sessions:{self.db.get(username_key)}", str(token))
+		self.db.delete(username_key)
+		self.db.delete(address_key)
 		return True
 
 
@@ -122,32 +113,32 @@ class SessionManager:
 
 
 class SessionWorker:
-	def __init__(self, config: ValkeyConfig, scan_interval_seconds: int = 60, idle_timeout_seconds: int = 3600):
-		self.db = redis.Redis(host=config.db_host, port=config.db_port, db=config.db_index, 
-							  username=config.db_user, password=config.db_pass)
+	def __init__(self, manager: SessionManager, scan_interval_seconds: int = 60, idle_timeout_seconds: int = 3600):
+		self.manager = manager
+		self.db = manager.db
+		self.config = manager.config
 		self.scan_interval = scan_interval_seconds
 		self.idle_timeout = idle_timeout_seconds
 		self.stop_event = threading.Event()
-		self.config = config
 		self._threads = []
-
-		# database connection test
 		self.db.ping()
 
 
-	def start(self) -> None:
+	def start(self) -> bool:
 		""" Start the IDLE cleanup worker & expire cleanup worker in the background. """
-		idle_cleanup_thread = threading.Thread(target=self._idle_cleanup_worker,
-											   args=(self.scan_interval, self.idle_timeout),
-											   name="IdleCleanupWorker",
-											   daemon=True)
-
-		expire_cleanup_thread = threading.Thread(target=self._expire_cleanup_worker,
-												 name="ExpireCleanupWorker",
-												 daemon=True)
-
-		# log the threads
-		self._threads.extend([idle_cleanup_thread, expire_cleanup_thread])
+		try:
+			idle_cleanup_thread = threading.Thread(target=self._idle_cleanup_worker, args=(self.scan_interval, self.idle_timeout), name="IdleCleanupWorker", daemon=True)
+			expire_cleanup_thread = threading.Thread(target=self._expire_cleanup_worker, name="ExpireCleanupWorker", daemon=True)
+			
+			# start the thread workers and track them
+			idle_cleanup_thread.start()
+			expire_cleanup_thread.start()
+			self._threads.extend([idle_cleanup_thread, expire_cleanup_thread])
+		
+		except Exception:
+			return False
+		
+		return True
 
 
 	def stop(self) -> bool:
@@ -161,24 +152,60 @@ class SessionWorker:
 
 	def _idle_cleanup_worker(self, scan_interval_seconds: int, idle_timeout_seconds: int) -> None:
 		""" Scan through the database a few minutes to terminate unactive session token. """
-		pass
+		while not self.stop_event.is_set():
+			cutoff = time.time() - idle_timeout_seconds
+			
+			# walk through all the sessions owned by each user
+			for user in self.db.scan_iter(match="user_sessions:*", count=100):
+				idle_token = self.db.zrangebyscore(user, "-inf", cutoff)
+				if not isinstance(idle_token, Iterable): continue
+				for token in idle_token:
+					self.manager.purge_token(token)
+
+			# wait for next scan or early exit
+			self.stop_event.wait(scan_interval_seconds)
 
 
 	def _expire_cleanup_worker(self) -> None:
 		""" Event callback triggered when a key expired in database. """
-		pass
+		notification = self.db.pubsub()
+		notification.psubscribe(f"__keyevent@{self.config.db_index}__:expired")
+
+		# filter on the key expire event `username:{token}`, ignore others
+		while not self.stop_event.is_set():
+			message = notification.get_message(timeout=1)
+			if not message: continue
+			if message.get('type') != "pmessage": continue
+			expired_session = message.get('data')
+			if not expired_session: continue
+			if not expired_session.startswith("ip_address:"): continue
+
+			# parse and search the corresponding username
+			_, _, token = expired_session.partition("ip_address:")
+			username = self.db.get(f"username:{token}")
+			if not username: continue
+
+			# untrack the session from ZLIST
+			self.db.zrem(f"user_sessions:{username}", token)
+			self.db.delete(f"username:{token}")
 
 
 
 if __name__ == "__main__":
+	# sample config, scan every 60 seonds and purging IDLE session which is unactive over 30 seconds
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
+	worker = SessionWorker(manager, 20, 60)
+	
+	print("Starting the thread worker.")
+	status = worker.start()
+	print("status:", status)
 
-	# register 5 tokens in batch
-	for _ in range(0, 5):
-		# manager.assign_token("chen5292", "127.0.0.1")
-		pass
+	# dummy insert of session and make it IDLE for 30+ seconds
+	token1 = manager.assign_token("chen5292", "127.0.0.1", 30)
+	token2 = manager.assign_token("chen5292", "192.168.1.1")
+	time.sleep(60)
 
-	# terminate all sessions
-	termianted_sessions = manager.purge_all_tokens("chen5292")
-	print("Total terminated:", termianted_sessions)
+	print("Stopping the thread worker.")
+	status = worker.stop()
+	print("status:", status)

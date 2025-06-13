@@ -14,16 +14,28 @@ These features are intended to enhance user experience and ensure the website op
 
 ## Key: `session:<token_uuid>`
 
-- **Purpose**: Track each individual session token, and timeout automatically.
-- **Auto Expire**: 10800 seconds
-- **Datatype**: `Redis Hash`
+- **Purpose**: Track each IP address origin of the session owner.
+- **Auto Expire**: `Dynamic` (Default: `10800 Seconds`)
+- **Datatype**: `Redis Key-String`
 
-```json
-{
-	"username": "chen5292",
-	"ip_address": "203.0.113.10",
-	"created_at": 1717523894.753216
-}
+Sample Data:  
+
+```redis
+session:620dd3f3-b43c-4409-bd44-8f4fa0b7d3f0 → 127.0.0.1
+```
+
+---
+
+## Key: `session_user:<token>`
+
+- **Purpose**: Track the owner of a specific session token.
+- **Auto Expire**: `Dynamic` (Default: `10800 Seconds`)
+- **Datatype**: `Redis Key-String`
+
+Sample Data:  
+
+```redis
+session_user:e6b47741-a3f7-43f0-b4e0-1ad14ba9e124 → chen5292
 ```
 
 ---
@@ -34,6 +46,20 @@ These features are intended to enhance user experience and ensure the website op
 - **Auto Expire**: Never
 - **Datatype**: `Redis ZSET (Sorted Lists)`
 
+Query:  
+
 ```redis
 ZADD user_sessions:chen5292 3600 8342684d-82c5-4cdb-9835-3ee9ae7ebf37
+```
+
+Sample Data:  
+
+```redis
+Key: "user_sessions"
+|
+├── Entry 1: 1728839201.500000 → "session:aaa111"
+├── Entry 2: 1728839203.320000 → "session:bbb222"
+├── Entry 3: 1728839211.654321 → "session:abc123"
+├── Entry 4: 1728839250.000000 → "session:xyz999"
+
 ```
