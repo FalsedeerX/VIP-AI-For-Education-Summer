@@ -3,11 +3,11 @@
 ---
 
 ## Table - `users`
- 
+
 From now on, all user will be refernced by their unique `SERIAL` `id` instead of the original `TEXT` `username`,  
 in order to reduce the risk of performing an injection attack by using special username.  
 User password will be hashed with **Argon2** before storage,  
-authentication system will verify user by comparing hashes rather than plaintext.  
+authentication system will verify user by comparing hashes rather than plaintext.
 
 ```sql
 CREATE TABLE users (
@@ -36,7 +36,7 @@ CREATE TABLE courses (
 ## Table - `folders`
 
 This will be holding data for every single folder,  
-keeping track of the owner and the custom label for it.  
+keeping track of the owner and the custom label for it.
 
 ```sql
 CREATE TABLE folders (
