@@ -4,34 +4,32 @@ This is the backend service for AI For Education, a chat-based application that 
 
 ## Project Structure
 
+```txt
 backend/
 ├── DatabaseAgent/
-│ ├── database_async.py # Async PostgreSQL connection & methods
-│ ├── database_v2.py # Alternate or refactored database logic
-│ ├── reset.py # Script to clear/truncate tables and to view current db
-│ └── test_database_agent.py # Unit tests for database logic
-│
+│   ├── database_async.py    # Async PostgreSQL connection & methods
+│   ├── database_v2.py       # Alternate or refactored database logic
+│   ├── reset.py             # Script to clear/truncate tables and to view current db
+│   └── test_database_agent.py
 ├── services/
-│ ├── chat_services.py # Logic for chat handling
-│ ├── folder_services.py # Folder creation, update, linking
-│ └── user_services.py # User auth, registration, validation
-│
-├── schemas/ # Pydantic models for request/response
-│ ├── chat.py
-│ ├── folder.py
-│ └── user.py
-│
+│   ├── chat_services.py     # Logic for chat handling
+│   ├── folder_services.py   # Folder creation, update, linking
+│   └── user_services.py     # User auth, registration, validation
+├── schemas/
+│   ├── chat.py
+│   ├── folder.py
+│   └── user.py
 ├── SessionManager/
-│ ├── session.py # Session-based data management
-│
-├── Utils/ # (Add utilities/helpers here if any)
-│ ├── mods/
-| │ ├── **init**.py
-│ | └── hd.py
-| └── echo_server.py
-│
-├── main.py # FastAPI app entry point
-└── requirements.txt # Python dependencies
+│   └── session.py           # Session-based data management
+├── Utils/
+│   ├── mods/
+│   │   ├── __init__.py
+│   │   └── hd.py
+│   └── echo_server.py
+├── main.py                  # FastAPI app entry point
+└── requirements.txt         # Python dependencies
+'''
+
 
 ## Core Features
 
@@ -74,14 +72,14 @@ See the full schema here [Database Agent Docs](/backend/DatabaseAgent/README.md)
 
 ## Session Managment
 
-This backend uses a custom session system powered by Redis to manage user logins.  
-Each authenticated user receives a unique UUID token tied to their IP address.  
+This backend uses a custom session system powered by Redis to manage user logins.
+Each authenticated user receives a unique UUID token tied to their IP address.
 A background worker monitors session activity and:
 
 - Expires tokens after inactivity or TTL timeout
 - Allows session verification and extension via service methods
 
-See the more on session managment [Session Manager Docs](/backend/SessionManager/README.md),  
+See the more on session managment [Session Manager Docs](/backend/SessionManager/README.md),
 this system supports multi-session tracking, secure IP validation, and idle cleanup.
 
 ## Running Tests
@@ -93,3 +91,4 @@ pytest -q
 
 Shrey Agarwal – Backend Developer
 Yu-Kuang Chen – Backend Developer
+```
