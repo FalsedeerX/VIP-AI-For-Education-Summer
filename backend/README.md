@@ -32,12 +32,12 @@ backend/
 
 ## Core Features
 
-Secure User Authentication using Argon2 hashing  
-Organized Conversations by folders and courses  
-Asynchronous interactions with PostgreSQL  
-Yestable Design with isolated services and schema layers  
-UID-based Chat Linking with folder associations  
-Database Schema
+- Secure User Authentication using Argon2 hashing
+- Organized Conversations by folders and courses
+- Asynchronous interactions with PostgreSQL
+- Testable Design with isolated services and schema layers
+- UUID-based Chat Linking with folder associations
+- Database Schema
 
 ## Getting Started
 
