@@ -26,7 +26,7 @@ backend/
 │   │   ├── __init__.py
 │   │   └── hd.py
 │   └── echo_server.py
-├── main.py                  # FastAPI app entry point
+├── README.md                  # FastAPI app entry point
 └── requirements.txt         # Python dependencies
 ```
 
