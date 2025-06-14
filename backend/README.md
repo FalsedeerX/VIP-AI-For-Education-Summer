@@ -84,7 +84,7 @@ this system supports multi-session tracking, secure IP validation, and idle clea
 
 ## Running Tests
 
-pytest DatabaseAgent/test_database_agent.py 
+pytest DatabaseAgent/test_database_agent.py  
 pytest -q
 
 ## Authors
