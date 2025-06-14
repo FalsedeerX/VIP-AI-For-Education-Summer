@@ -89,5 +89,5 @@ pytest -q
 
 ## Authors
 
-- Shrey Agarwal – Backend Developer
-- Yu-Kuang Chen – Backend Developer
+Shrey Agarwal – Backend Developer  
+Yu-Kuang Chen – Backend Developer
