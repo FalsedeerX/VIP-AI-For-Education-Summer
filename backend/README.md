@@ -28,8 +28,7 @@ backend/
 │   └── echo_server.py
 ├── main.py                  # FastAPI app entry point
 └── requirements.txt         # Python dependencies
-'''
-
+```
 
 ## Core Features
 
@@ -91,4 +90,7 @@ pytest -q
 
 Shrey Agarwal – Backend Developer
 Yu-Kuang Chen – Backend Developer
+
+```
+
 ```
