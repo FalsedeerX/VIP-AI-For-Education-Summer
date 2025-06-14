@@ -32,11 +32,11 @@ backend/
 
 ## Core Features
 
-Secure User Authentication using Argon2 hashing
-Organized Conversations by folders and courses
-Asynchronous interactions with PostgreSQL
-Yestable Design with isolated services and schema layers
-UID-based Chat Linking with folder associations
+Secure User Authentication using Argon2 hashing  
+Organized Conversations by folders and courses  
+Asynchronous interactions with PostgreSQL  
+Yestable Design with isolated services and schema layers  
+UID-based Chat Linking with folder associations  
 Database Schema
 
 ## Getting Started
@@ -91,4 +91,3 @@ pytest -q
 
 - Shrey Agarwal – Backend Developer
 - Yu-Kuang Chen – Backend Developer
-
