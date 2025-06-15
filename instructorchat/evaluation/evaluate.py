@@ -39,7 +39,6 @@ async def get_responses(
     # Load model
     adapter = get_model_adapter(model_path)
     load_model(model_path, api_key)
-    conv = adapter.get_default_conv_template(model_path)
 
     retrieval = Retrieval()
     retrieval.populate_pipelines()
@@ -50,6 +49,8 @@ async def get_responses(
     responses = []
 
     for idx, test_case in enumerate(test_cases):
+        conv = adapter.get_default_conv_template(model_path)
+
         question = test_case["input"]
 
         print(f"Question {idx + 1}/{len(test_cases)}: {question}")
