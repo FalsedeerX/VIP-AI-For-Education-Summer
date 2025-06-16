@@ -4,7 +4,7 @@ setup(
     name="DatabaseAgent",
     version="0.1.0",
     author="VIP",
-    description="PostgreSQL Databse Broker",
+    description="PostgreSQL Database Broker",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
     packages=find_packages(),
