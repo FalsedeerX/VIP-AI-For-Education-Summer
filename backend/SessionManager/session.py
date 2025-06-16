@@ -195,15 +195,14 @@ if __name__ == "__main__":
 	# sample config, scan every 60 seonds and purging IDLE session which is unactive over 30 seconds
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
-	worker = SessionWorker(manager, 20, 60)
+	worker = SessionWorker(manager, 10, 20)
 	
 	print("Starting the thread worker.")
 	status = worker.start()
 	print("status:", status)
 
 	# dummy insert of session and make it IDLE for 30+ seconds
-	token1 = manager.assign_token("chen5292", "127.0.0.1", 30)
-	token2 = manager.assign_token("chen5292", "192.168.1.1")
+	token1 = manager.assign_token("chen5292", "192.168.1.1")
 	time.sleep(60)
 
 	print("Stopping the thread worker.")
