@@ -1,15 +1,12 @@
-from fastapi import FastAPI, HTTPException
-from backend.DatabaseAgent.database_async import DatabaseAgent
-from schemas.chat import NewChat, ChatMessage
+from fastapi import APIRouter, HTTPException, Depends
+from databaseagent.database_async import DatabaseAgent
+from .schemas.chat import NewChat, ChatMessage
 
-app = FastAPI()
+router = APIRouter(prefix="/chats", tags=["chats"])
 agent = DatabaseAgent()
 
-@app.post(
-    "/chat/",
-    response_model=int,
-    status_code=201,
-)
+
+@router.post("/chat/", response_model=int, status_code=201)
 async def api_create_chat(payload: NewChat) -> int:
     """Create a new chat message."""
     try:
@@ -18,7 +15,8 @@ async def api_create_chat(payload: NewChat) -> int:
         raise HTTPException(404, "Could not create chat")
     return id
 
-@app.get("/chat/{chat_id}", response_model=ChatMessage)
+
+@router.get("/chat/{chat_id}", response_model=ChatMessage)
 async def api_get_chat_message(chat_id: int):
     try:
         chat_history = await agent.get_chat_history(chat_id)
@@ -26,7 +24,8 @@ async def api_get_chat_message(chat_id: int):
         raise HTTPException(404, "Chat not found")
     return chat_history
 
-@app.put("/chat/{chat_id}", status_code=204)
+
+@router.put("/chat/{chat_id}", status_code=204)
 async def api_add_chat_message(chat_id: int, payload: NewChat):
     ok = False
     try:
@@ -37,7 +36,8 @@ async def api_add_chat_message(chat_id: int, payload: NewChat):
         raise HTTPException(404, "Cannot add message to chat")
     return
 
-@app.delete("/chat/{chat_id}", status_code=204)
+
+@router.delete("/chat/{chat_id}", status_code=204)
 async def api_delete_chat(chat_id: int):
     ok = False
     try:
