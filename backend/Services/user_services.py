@@ -2,6 +2,7 @@
 from fastapi import FastAPI, HTTPException
 from backend.DatabaseAgent.database_v2 import DatabaseAgent
 from schemas.user import UserCreate, UserLogin
+
 app = FastAPI()
 agent = DatabaseAgent()
 
