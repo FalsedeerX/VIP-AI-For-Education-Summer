@@ -86,7 +86,7 @@ async def chat_loop(
 
         contexts = retrieval.retrieve_documents(inp)
         messages = conv.to_openai_api_messages()
-        content = retrieval.create_prompt_with_retrievals(inp, " ".join(contexts["contents"]))
+        content = retrieval.create_prompt_with_retrievals(inp, "\n".join(contexts["contents"]))
         messages.append({"role": "user", "content": content})
 
         gen_params = {
