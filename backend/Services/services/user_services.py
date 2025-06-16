@@ -6,7 +6,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 agent = DatabaseAgent()
 
 
-@router.post("/users/", status_code=201)
+@router.post("/", status_code=201)
 async def api_create_user(payload: UserCreate):
     """Create a new folder for a user."""
     try:
@@ -16,22 +16,22 @@ async def api_create_user(payload: UserCreate):
     return user_id
 
 
-@router.get("/users/{username}", response_model=int)
+@router.get("/id/{username}", response_model=int)
 async def api_get_user_id(username: str):
     user_id = await agent.get_user_id(username)
     if user_id is None:
         raise HTTPException(404, "User not found")
-    return 
+    return user_id
 
 
-@router.get("/users/{user_id}", response_model=bool)
+@router.get("/{user_id}", response_model=bool)
 async def api_verify_user(payload: UserLogin):
     is_verified = await agent.verify_user(payload.user_id, payload.password)
     return is_verified
 
 
-@router.delete("/users/{user_id}", status_code=204)
-async def api_delete_folder(payload: UserLogin):
+@router.delete("/delete/{user_id}", status_code=204)
+async def api_delete_user(payload: UserLogin):
     ok = await agent.delete_user(payload.username)
     if not ok:
         raise HTTPException(404, "User not found")

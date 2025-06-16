@@ -21,6 +21,7 @@ async def get_connection() -> AsyncConnection:
             f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWD')}@"
             f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
         )
+        await _conn.execute("SET search_path TO chatbot;")
     return _conn
 
 class DatabaseAgent:

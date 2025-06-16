@@ -10,7 +10,7 @@ from argon2.exceptions import VerifyMismatchError
 class DatabaseAgent:
 	def __init__(self, db_host: str, db_port: int, db_name: str, db_user: str, db_passwd: str):
 		self.conn = psycopg.connect(f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}")
-		#self.conn.execute("SET search_path TO chatbot;")
+		self.conn.execute("SET search_path TO chatbot;")
 		self.hasher = PasswordHasher()
 
 	def register_user(self, username: str, email: str, password: str) -> bool:
@@ -257,6 +257,6 @@ if __name__ == "__main__":
 	
 	# connect to the database broker
 	agent = DatabaseAgent(db_host, db_port, db_name, db_user, db_passwd)
-
+	agent.register_user("banana", "banana@purdue.edu", "apple123")
 
 	
