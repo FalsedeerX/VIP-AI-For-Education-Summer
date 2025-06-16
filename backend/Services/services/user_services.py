@@ -10,7 +10,7 @@ agent = DatabaseAgent()
 async def api_create_user(payload: UserCreate):
     """Create a new folder for a user."""
     try:
-        user_id = await agent.create_folder(payload.username, payload.email, payload.password)
+        user_id = await agent.register_user(payload.username, payload.email, payload.password)
     except Exception as e:
         raise HTTPException(404, "Could not register user")
     return user_id
