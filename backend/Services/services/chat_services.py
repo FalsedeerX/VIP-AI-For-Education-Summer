@@ -10,7 +10,6 @@ agent = DatabaseAgent()
 async def create_chat(payload: NewChat) -> int:
     """Create a new chat message."""
     try:
-        print("I got here")
         id = await agent.create_chat(payload.user_id, payload.title)
     except Exception as e:
         raise HTTPException(404, "Could not create chat")
