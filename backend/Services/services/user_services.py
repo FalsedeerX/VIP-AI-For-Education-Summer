@@ -42,3 +42,4 @@ class UserRouter:
 		if not ok:
 			raise HTTPException(404, "User not found")
 		return
+
