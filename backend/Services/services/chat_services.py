@@ -17,7 +17,7 @@ async def create_chat(payload: NewChat) -> int:
     return id
 
 
-@router.get("/chat/{chat_id}", response_model=ChatMessage)
+@router.get("/{chat_id}", response_model=ChatMessage)
 async def get_chat_message(chat_id: int):
     try:
         chat_history = await agent.get_chat_history(chat_id)
@@ -26,7 +26,7 @@ async def get_chat_message(chat_id: int):
     return chat_history
 
 
-@router.put("/chat/{chat_id}", status_code=204)
+@router.put("/{chat_id}", status_code=204)
 async def log_chat_message(chat_id: int, payload: NewChat):
     ok = False
     try:
