@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from databaseagent.database_async import DatabaseAgent
-from .schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
+from services .schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
 
 router = APIRouter(prefix="/folders", tags=["folders"])
 agent = DatabaseAgent()

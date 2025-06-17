@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from databaseagent.database_async import DatabaseAgent
-from .schemas.chat import NewChat, ChatMessage
+from services.schemas.chat import NewChat, ChatMessage
 
 router = APIRouter(prefix="/chats", tags=["chats"])
 agent = DatabaseAgent()

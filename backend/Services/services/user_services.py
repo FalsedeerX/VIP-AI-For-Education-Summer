@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
 from databaseagent.database_async import DatabaseAgent
-from .schemas.user import UserCreate, UserLogin
+from services.schemas.user import UserCreate, UserLogin
 
 router = APIRouter(prefix="/users", tags=["users"])
 agent = DatabaseAgent()
