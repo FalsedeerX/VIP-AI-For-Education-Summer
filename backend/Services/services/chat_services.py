@@ -6,8 +6,8 @@ router = APIRouter(prefix="/chats", tags=["chats"])
 agent = DatabaseAgent()
 
 
-@router.post("/chat/", response_model=int, status_code=201)
-async def api_create_chat(payload: NewChat) -> int:
+@router.post("/create", response_model=int, status_code=201)
+async def create_chat(payload: NewChat) -> int:
     """Create a new chat message."""
     try:
         print("I got here")
@@ -18,7 +18,7 @@ async def api_create_chat(payload: NewChat) -> int:
 
 
 @router.get("/chat/{chat_id}", response_model=ChatMessage)
-async def api_get_chat_message(chat_id: int):
+async def get_chat_message(chat_id: int):
     try:
         chat_history = await agent.get_chat_history(chat_id)
     except Exception as e:
@@ -27,7 +27,7 @@ async def api_get_chat_message(chat_id: int):
 
 
 @router.put("/chat/{chat_id}", status_code=204)
-async def api_add_chat_message(chat_id: int, payload: NewChat):
+async def log_chat_message(chat_id: int, payload: NewChat):
     ok = False
     try:
         ok = await agent.log_chat(chat_id, payload.user_id, payload.message)
@@ -38,8 +38,8 @@ async def api_add_chat_message(chat_id: int, payload: NewChat):
     return
 
 
-@router.delete("/chat/{chat_id}", status_code=204)
-async def api_delete_chat(chat_id: int):
+@router.delete("/{chat_id}", status_code=204)
+async def delete_chat(chat_id: int):
     ok = False
     try:
         ok = await agent.delete_chat(chat_id)
@@ -48,3 +48,4 @@ async def api_delete_chat(chat_id: int):
     if not ok:
         raise HTTPException(404, "Cannot delete chat")
     return
+

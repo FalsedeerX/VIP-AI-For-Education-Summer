@@ -30,7 +30,7 @@ async def verify_user(payload: UserLogin):
     return is_verified
 
 
-@router.delete("/delete/{user_id}", status_code=204)
+@router.delete("/{user_id}", status_code=204)
 async def delete_user(payload: UserLogin):
     ok = await agent.delete_user(payload.username)
     if not ok:
