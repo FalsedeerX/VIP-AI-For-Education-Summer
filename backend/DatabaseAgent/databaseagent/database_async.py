@@ -1,17 +1,15 @@
 # database_async.py
 import os
 import uuid
+import psycopg
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
-import psycopg
 from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
 load_dotenv()
-
-# Singleton async connection
 _conn: AsyncConnection | None = None
 
 async def get_connection() -> AsyncConnection:
@@ -24,9 +22,11 @@ async def get_connection() -> AsyncConnection:
         await _conn.execute("SET search_path TO chatbot;")
     return _conn
 
+
 class DatabaseAgent:
     def __init__(self):
         self.hasher = PasswordHasher()
+
 
     async def register_user(self, username: str, email: str, password: str) -> bool:
         """Create a new user entry."""
@@ -45,6 +45,7 @@ class DatabaseAgent:
         await conn.commit()
         return True
 
+
     async def get_user_id(self, username: str) -> Optional[int]:
         """Fetch user ID by username."""
         conn = await get_connection()
@@ -52,6 +53,7 @@ class DatabaseAgent:
             await cur.execute("SELECT id FROM users WHERE username = %s;", (username,))
             row = await cur.fetchone()
         return row[0] if row else None
+
 
     async def delete_user(self, username: str) -> bool:
         """Delete user by username."""
@@ -67,6 +69,7 @@ class DatabaseAgent:
         await conn.commit()
         return True
 
+
     async def verify_user(self, username: str, password: str) -> bool:
         """Validate a user's password."""
         conn = await get_connection()
@@ -81,6 +84,7 @@ class DatabaseAgent:
             return True
         except VerifyMismatchError:
             return False
+
 
     async def get_folders(self, owner_id: int) -> Optional[Dict[str, List[str]]]:
         """Fetch folders and their chat IDs for a user."""
@@ -106,6 +110,7 @@ class DatabaseAgent:
                 result[label] = [str(r["chat_id"]) for r in links]
         return result
 
+
     async def organize_chat(self, chat_id: str, folder_name: str) -> bool:
         """Link a chat UUID to a folder label."""
         # Validate UUID
@@ -127,6 +132,7 @@ class DatabaseAgent:
         await conn.commit()
         return True
 
+
     async def get_chat_history(self, chat_id: str) -> Optional[List[Dict[str, Any]]]:
         """Fetch messages for a chat ordered by timestamp."""
         try:
@@ -142,6 +148,7 @@ class DatabaseAgent:
             rows = await cur.fetchall()
         return rows if rows else None
 
+
     async def create_chat(self, user_id: int, title: str) -> str:
         """Create a new chat and return its UUID string."""
         uid = uuid.uuid4()
@@ -153,6 +160,7 @@ class DatabaseAgent:
             )
         await conn.commit()
         return str(uid)
+
 
     async def log_chat(self, chat_id: str, sender: str, message: str) -> bool:
         """Append a message to a chat."""
@@ -172,6 +180,7 @@ class DatabaseAgent:
             )
         await conn.commit()
         return True
+
 
     async def delete_chat(self, chat_id: str) -> bool:
         """Delete a chat and related data."""
@@ -199,6 +208,7 @@ class DatabaseAgent:
         await conn.commit()
         return True
 
+
     async def create_folder(self, name: str, owner_id: int) -> int:
         """Create a new folder for a user; return the new folder's id."""
         conn = await get_connection()
@@ -210,6 +220,7 @@ class DatabaseAgent:
             row = await cur.fetchone()
         await conn.commit()
         return row[0] if row else -1
+
 
     async def delete_folder(self, owner_id: int, folder_id: int) -> bool:
         """Delete a folder and its links for a user."""
@@ -225,3 +236,4 @@ class DatabaseAgent:
             return False
         await conn.commit()
         return True
+
