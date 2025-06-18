@@ -6,10 +6,10 @@ from .schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
 
 
 class FolderRouter:
-	def __init__(self, session: SessionManager):
+	def __init__(self, database: DatabaseAgent, session: SessionManager):
 		self.router = APIRouter(prefix="/folders", tags=["folders"])
-		self.db = DatabaseAgent()
-		self.manager = session
+		self.session = session
+		self.db = database
 
 		# register the endpoints
 		self.router.post("/create", response_model=int, status_code=201)(self.create_folder)
