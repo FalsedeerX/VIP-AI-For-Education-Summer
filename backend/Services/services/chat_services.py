@@ -6,10 +6,10 @@ from sessionmanager.session import SessionManager
 
 
 class ChatRouter:
-	def __init__(self, session: SessionManager):
+	def __init__(self, database: DatabaseAgent, session: SessionManager):
 		self.router = APIRouter(prefix="/chats", tags=["chats"])
-		self.db = DatabaseAgent()
-		self.manager = session
+		self.session = session
+		self.db = database
 
 		# register the endpoints
 		self.router.post("/create", response_model=str, status_code=201)(self.create_chat)
