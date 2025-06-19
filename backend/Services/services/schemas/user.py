@@ -8,6 +8,5 @@ class UserCreate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    ip_address: str
     username: str
     password: str

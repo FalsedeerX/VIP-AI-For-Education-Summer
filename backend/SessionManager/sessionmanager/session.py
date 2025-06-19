@@ -54,7 +54,7 @@ class SessionManager:
 		id_key = f"user_id:{token}"
 		address_key = f"ip_address:{token}"
 		if not self.db.exists(address_key) or not self.db.exists(id_key): return False
-		if self.db.get(address_key) != ip_address or self.db.get(id_key) != user_id: return False
+		if self.db.get(address_key) != ip_address or int(self.db.get(id_key)) != user_id: return False
 
 		# update the score in session tracking
 		self.db.zadd(f"user_sessions:{user_id}", {str(token): time.time()})
@@ -88,6 +88,14 @@ class SessionManager:
 		self.db.delete(address_key)
 		self.db.delete(id_key)
 		return True
+
+
+	def query_owner(self, token: UUID) -> int:
+		""" Query the owner of a certain token. Returns -1 if failed. """
+		id_key = f"user_id:{token}"
+		user_id = self.db.get(id_key)
+		if not user_id: return -1
+		return int(user_id)
 
 
 	def fetch_active_tokens(self, user_id: int) -> list[str]|None:
@@ -195,14 +203,17 @@ if __name__ == "__main__":
 	# sample config, scan every 60 seonds and purging IDLE session which is unactive over 30 seconds
 	config = ValkeyConfig("localhost", 6379)
 	manager = SessionManager(config)
-	worker = SessionWorker(manager, 10, 20)
+	worker = SessionWorker(manager, 10, 60)
 	
 	print("Starting the thread worker.")
 	status = worker.start()
 	print("status:", status)
 
 	# dummy insert of session and make it IDLE for 30+ seconds
-	token1 = manager.assign_token("chen5292", "192.168.1.1")
+	token = manager.assign_token(23, "192.168.1.1")
+	token = manager.assign_token(23, "192.168.1.2")
+	user_id = manager.query_owner(token)
+	print("User ID:", user_id)
 	time.sleep(60)
 
 	print("Stopping the thread worker.")

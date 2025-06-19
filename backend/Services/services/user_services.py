@@ -1,7 +1,8 @@
+from uuid import UUID
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import SessionManager
 from services.schemas.user import UserCreate, UserLogin
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response, requests
 
 
 class UserRouter:
@@ -11,45 +12,41 @@ class UserRouter:
 		self.db = database
 
 		# register the endpoints
-		self.router.post("/register", status_code=201)(self.create_user)
-		self.router.post("/auth/{user_id}", response_model=bool)(self.login_user)
-		self.router.get("/id/{username}", response_model=int)(self.get_user_id)
-		self.router.delete("/{user_id}", status_code=204)(self.delete_user)
+		self.router.post("/auth", status_code=200, response_model=bool)(self.login_user)
+		self.router.post("/register", status_code=201, response_model=bool)(self.create_user)
+		self.router.delete("/delete/{user_id}", status_code=200, response_model=bool)(self.delete_user)
 
 
 	async def create_user(self, payload: UserCreate) -> bool:
 		""" Register a new user. """
 		status = await self.db.register_user(payload.username, payload.email, payload.password)
-		if not status:
-			raise HTTPException(status_code=409, detail="Registration info conflict.")
+		if not status: raise HTTPException(status_code=409, detail="Registration info conflict.")
 		return True
 
 
 	async def login_user(self, payload: UserLogin, request: Request, response: Response) -> bool:
 		""" Verify a user credential, if approved, will assign a token in cookie """
-		status = await self.db.verify_user(payload.user_id, payload.password)
+		status = await self.db.verify_user(payload.username, payload.password)
 		if not status: raise HTTPException(status_code=403, detail="User authentication failed.")
-
-		# resolve the clients IP		
+		
+		# authentication success, assign token and set cookie
+		user_id = await self.db.get_user_id(payload.username)
+		token = self.session.assign_token(user_id, request.state.ip_address)
+		response.set_cookie(key="purduegpt-token", value=str(token), httponly=True, secure=False, samesite="lax", max_age=10800, path="/") 
 		return True
 
 
-	async def get_user_id(self, username: str) -> int:
-		""" Resolve the current user's username into ID. User are only allowed to query their own ID. """
-		user_id = await self.db.get_user_id(username)
-		if user_id is None:
-			raise HTTPException(404, "User not found")
-		return user_id
+	async def delete_user(self, user_id: int, request: Request, response: Response) -> bool:
+		""" Meant for user deletion, but this thing needs a better designed """
+		# if the user is not logged in
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
 
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
 
-	async def verify_user(self, payload: UserLogin):
-		is_verified = await self.db.verify_user(payload.username, payload.password)
-		return is_verified
-
-
-	async def delete_user(self, payload: UserLogin):
-		ok = await self.db.delete_user(payload.username)
-		if not ok:
-			raise HTTPException(404, "User not found")
-		return
-
+		# proceed the user deletion
+		status = await self.db.delete_user(user_id)
+		if not status: raise HTTPException(404, "User not found")
+		return True
