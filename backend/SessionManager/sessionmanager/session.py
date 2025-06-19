@@ -26,7 +26,7 @@ class SessionManager:
 		self.db.ping()
 
 
-	def assign_token(self, username: str, ip_address: str, ttl_seconds: int = 10800) -> UUID|None:
+	def assign_token(self, user_id: int, ip_address: str, ttl_seconds: int = 10800) -> UUID|None:
 		""" Assigning authenciated user with an UUID as the session token. """
 		# validate IP format
 		try:
@@ -36,13 +36,13 @@ class SessionManager:
 
 		# insert session entry, reverse lookup and token tracking
 		token = uuid4()
-		self.db.set(f"username:{token}", username)
+		self.db.set(f"user_id:{token}", user_id)
 		self.db.setex(f"ip_address:{token}", ttl_seconds, ip_address)
-		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
+		self.db.zadd(f"user_sessions:{user_id}", {str(token): time.time()})
 		return token
 
 
-	def verify_token(self, username: str, ip_address: str, token: UUID) -> bool:
+	def verify_token(self, user_id: int, ip_address: str, token: UUID) -> bool:
 		""" Verify whether a certain token expired. """
 		# validate IP format
 		try:
@@ -51,13 +51,13 @@ class SessionManager:
 			return False
 
 		# verify username and IP
+		id_key = f"user_id:{token}"
 		address_key = f"ip_address:{token}"
-		username_key = f"username:{token}"
-		if not self.db.exists(address_key) or not self.db.exists(username_key): return False
-		if self.db.get(address_key) != ip_address or self.db.get(username_key) != username: return False
+		if not self.db.exists(address_key) or not self.db.exists(id_key): return False
+		if self.db.get(address_key) != ip_address or self.db.get(id_key) != user_id: return False
 
 		# update the score in session tracking
-		self.db.zadd(f"user_sessions:{username}", {str(token): time.time()})
+		self.db.zadd(f"user_sessions:{user_id}", {str(token): time.time()})
 		return True
 
 
@@ -79,30 +79,30 @@ class SessionManager:
 	def purge_token(self, token: UUID) -> bool:
 		""" Remove a specific token from a user. """
 		# check whether the key exist in database & username
-		username_key = f"username:{token}"
+		id_key = f"user_id:{token}"
 		address_key = f"ip_address:{token}"
-		if not self.db.get(username_key) or not self.db.get(address_key): return False
+		if not self.db.get(id_key) or not self.db.get(address_key): return False
 
 		# remove key and untrack session
-		self.db.zrem(f"user_sessions:{self.db.get(username_key)}", str(token))
-		self.db.delete(username_key)
+		self.db.zrem(f"user_sessions:{self.db.get(id_key)}", str(token))
 		self.db.delete(address_key)
+		self.db.delete(id_key)
 		return True
 
 
-	def fetch_active_tokens(self, username: str) -> list[str]|None:
+	def fetch_active_tokens(self, user_id: int) -> list[str]|None:
 		""" Fetch all active session tokens from a certain user """
-		entries = self.db.zrange(f"user_sessions:{username}", 0, -1)
+		entries = self.db.zrange(f"user_sessions:{user_id}", 0, -1)
 		if not entries: return None
 		if not isinstance(entries, Sequence): return None
 		if not isinstance(entries[0], str): return None
 		return list(entries)
 
 
-	def purge_all_tokens(self, username: str) -> int:
+	def purge_all_tokens(self, user_id: int) -> int:
 		""" Remove all tokens which belong to a specific user. Return number of session terminated. """
 		purge_count = 0
-		active_tokens = self.fetch_active_tokens(username)
+		active_tokens = self.fetch_active_tokens(user_id)
 		if active_tokens is None: return 0
 		for token in active_tokens:
 			if self.purge_token(UUID(token)):
@@ -182,12 +182,12 @@ class SessionWorker:
 
 			# parse and search the corresponding username
 			_, _, token = expired_session.partition("ip_address:")
-			username = self.db.get(f"username:{token}")
-			if not username: continue
+			user_id = self.db.get(f"user_id:{token}")
+			if not user_id: continue
 
 			# untrack the session from ZLIST
-			self.db.zrem(f"user_sessions:{username}", token)
-			self.db.delete(f"username:{token}")
+			self.db.zrem(f"user_sessions:{user_id}", token)
+			self.db.delete(f"user_id:{token}")
 
 
 
