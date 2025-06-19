@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends
 from databaseagent.database_async import DatabaseAgent
-from services .schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
+from services.schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
 from sessionmanager.session import SessionManager
-from .schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
+#from .schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
 
 
 class FolderRouter:

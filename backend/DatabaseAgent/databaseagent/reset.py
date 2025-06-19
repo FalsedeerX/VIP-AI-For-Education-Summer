@@ -15,6 +15,9 @@ def dump_every_table():
         f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}"
     )
 
+    with conn.cursor() as cur:
+        cur.execute("SET search_path TO chatbot;")
+
     with conn.cursor(row_factory=dict_row) as cur:
         cur.execute("""
             SELECT table_name
@@ -59,6 +62,9 @@ def reset_database():
     conn = psycopg.connect(
         f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}"
     )
+
+    with conn.cursor() as cur:
+        cur.execute("SET search_path TO chatbot;")
 
     with conn.cursor() as cur:
         cur.execute("""

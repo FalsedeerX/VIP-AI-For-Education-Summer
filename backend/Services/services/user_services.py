@@ -33,7 +33,7 @@ class UserRouter:
 
 
 	async def verify_user(self, payload: UserLogin):
-		is_verified = await self.db.verify_user(payload.user_id, payload.password)
+		is_verified = await self.db.verify_user(payload.username, payload.password)
 		return is_verified
 
 
