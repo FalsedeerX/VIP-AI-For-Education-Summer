@@ -55,19 +55,22 @@ class DatabaseAgent:
         return row[0] if row else None
 
 
-    async def delete_user(self, username: str) -> bool:
-        """Delete user by username."""
+    async def delete_user(self, user_id: int) -> bool:
+        """Delete user by user ID."""
         conn = await get_connection()
         async with conn.cursor() as cur:
             await cur.execute(
-                "DELETE FROM users WHERE username = %s RETURNING id;",
-                (username,)
+                "DELETE FROM users WHERE id = %s RETURNING id;",
+                (user_id,)
             )
             result = await cur.fetchone()
+
         if result is None:
             return False
+
         await conn.commit()
         return True
+
 
 
     async def verify_user(self, username: str, password: str) -> bool:
