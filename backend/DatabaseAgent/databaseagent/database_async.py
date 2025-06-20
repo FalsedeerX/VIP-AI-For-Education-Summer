@@ -72,7 +72,6 @@ class DatabaseAgent:
         return True
 
 
-
     async def verify_user(self, username: str, password: str) -> bool:
         """Validate a user's password."""
         conn = await get_connection()
