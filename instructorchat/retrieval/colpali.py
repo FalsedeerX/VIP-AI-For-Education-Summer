@@ -4,6 +4,8 @@ import pdf2image
 from pathlib import Path
 from tqdm import tqdm
 from PIL import Image
+import os
+import warnings
 
 import torch
 from torch.utils.data import DataLoader
@@ -96,3 +98,56 @@ class ColPali:
         images = pdf2image.convert_from_path(file_path)
 
         return images, self.embed_images(images, batch_size=batch_size)
+
+
+class InMemoryColPali:
+    def __init__(self, docs_dir: str = "documents", use_fast_plaid: bool = True) -> None:
+        self.colpali = ColPali()
+
+        if (use_fast_plaid and
+            not (self.colpali.device == torch.cuda or (isinstance(self.colpali.device, str) and "cuda" in self.colpali.device))):
+            warnings.warn(f"CUDA is recommended for FastPlaid. Current device is {self.colpali.device}")
+
+        self.use_fast_plaid = use_fast_plaid
+        self.index(docs_dir)
+
+    def index(self, docs_dir: str = "documents") -> None:
+        file_paths = []
+
+        for name in os.listdir(docs_dir):
+            file_path = Path(docs_dir) / name
+            if file_path.suffix == ".pdf":
+                file_paths.append(file_path)
+
+        all_embeddings: List[torch.Tensor] = []
+        self.images: List[Image.Image] = []
+
+        for pdf_file in file_paths:
+            images, embeddings = self.colpali.embed_pdf(pdf_file)
+            self.images.extend(images)
+            all_embeddings.append(embeddings)
+
+        self.embeddings = torch.cat(all_embeddings, dim=0)
+
+        if self.use_fast_plaid:
+            self.plaid_index = self.colpali.create_plaid_index(self.embeddings)
+
+    def search(self, query: str, top_k: int = 3) -> List[Image.Image]:
+        if self.use_fast_plaid:
+            search_results = self.colpali.plaid_search([query], self.plaid_index, top_k)[0]
+
+            result_images: List[Image.Image] = []
+
+            for img_idx, _ in search_results:
+                result_images.append(self.images[img_idx])
+
+            return result_images
+        else:
+            search_results = self.colpali.search([query], self.embeddings, top_k)
+
+            result_images: List[Image.Image] = []
+
+            for img_idx in search_results.indices.squeeze():
+                result_images.append(self.images[img_idx])
+
+            return result_images
