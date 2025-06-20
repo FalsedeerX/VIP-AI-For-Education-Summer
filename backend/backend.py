@@ -7,6 +7,8 @@ from services.chat_services import ChatRouter
 from services.folder_services import FolderRouter
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import ValkeyConfig, SessionManager
+from fastapi.middleware.cors import CORSMiddleware
+
 
 # pass in configuration
 app = FastAPI()
@@ -42,6 +44,14 @@ app.include_router(user_router.router)
 app.include_router(chat_router.router)
 app.include_router(folder_router.router)
 
+
+app.add_middleware(
+  CORSMiddleware,
+  allow_origins=["http://localhost:3000"],
+  allow_credentials=True,
+  allow_methods=["*"],
+  allow_headers=["*"],
+)
 
 if __name__ == "__main__":
 	uvicorn.run("backend:app", host="127.0.0.1", port=8000, reload=True)

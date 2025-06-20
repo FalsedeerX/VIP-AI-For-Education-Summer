@@ -15,6 +15,7 @@ class UserRouter:
 		self.router.post("/auth", status_code=200, response_model=bool)(self.login_user)
 		self.router.post("/register", status_code=201, response_model=bool)(self.create_user)
 		self.router.delete("/delete/{user_id}", status_code=200, response_model=bool)(self.delete_user)
+		self.router.get("/me", status_code=200, response_model=dict)(self.get_current_user)
 
 
 	async def create_user(self, payload: UserCreate) -> bool:
@@ -50,3 +51,32 @@ class UserRouter:
 		status = await self.db.delete_user(user_id)
 		if not status: raise HTTPException(404, "User not found")
 		return True
+	
+	async def get_current_user(self, request: Request, response: Response) -> dict:
+		"""
+		Returns the currently authenticated user.
+		Relies on your middleware having populated request.state.token and request.state.user_id.
+		"""
+		token = request.state.token
+		user_id = request.state.user_id
+
+		if not token:
+			raise HTTPException(status_code=401, detail="Not authenticated.")
+
+		try:
+			ok = self.session.verify_token(
+				user_id,
+				request.state.ip_address,
+				UUID(token)
+			)
+		except ValueError:
+			ok = False
+
+		if not ok:
+			response.delete_cookie("purduegpt-token", path="/")
+			raise HTTPException(status_code=401, detail="Session expired or invalid.")
+
+		user = await self.db.get_username(user_id)
+		if user is None:
+			raise HTTPException(status_code=404, detail="User not found.")
+		return {"id": user_id, "username": user}

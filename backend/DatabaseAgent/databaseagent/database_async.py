@@ -46,11 +46,11 @@ class DatabaseAgent:
         return True
 
 
-    async def get_user_id(self, username: str) -> Optional[int]:
-        """Fetch user ID by username."""
+    async def get_username(self, user_id: str) -> Optional[str]:
+        """Fetch user username by id."""
         conn = await get_connection()
         async with conn.cursor() as cur:
-            await cur.execute("SELECT id FROM users WHERE username = %s;", (username,))
+            await cur.execute("SELECT username FROM users WHERE id = %s;", (user_id,))
             row = await cur.fetchone()
         return row[0] if row else None
 
