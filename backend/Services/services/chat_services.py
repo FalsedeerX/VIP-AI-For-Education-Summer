@@ -43,7 +43,7 @@ class ChatRouter:
 			raise HTTPException(401, "Malformed session token.")
 
 		chat_history = await self.db.get_chat_history(chat_id)
-		if chat_history is None: raise HTTPException(404, "Not a valid chat ID")
+		if not chat_history: raise HTTPException(404, "Invalid chatID or empty chat history.")
 		return chat_history
 
 

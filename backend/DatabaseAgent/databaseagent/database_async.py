@@ -46,6 +46,15 @@ class DatabaseAgent:
         return True
 
 
+    async def get_user_id(self, username: str) -> Optional[int]:
+        """Fetch user ID by username."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT id FROM users WHERE username = %s;", (username,))
+            row = await cur.fetchone()
+        return row[0] if row else None
+
+
     async def get_username(self, user_id: str) -> Optional[str]:
         """Fetch user username by id."""
         conn = await get_connection()
@@ -88,7 +97,7 @@ class DatabaseAgent:
             return False
 
 
-    async def get_folders(self, owner_id: int) -> Optional[Dict[str, List[str]]]:
+    async def get_folders(self, owner_id: int) -> Dict[str, List[str]]:
         """Fetch folders and their chat IDs for a user."""
 
         conn = await get_connection()
@@ -99,7 +108,7 @@ class DatabaseAgent:
             )
             folders = await cur.fetchall()
             if not folders:
-                return None
+                return {}
             result: Dict[str, List[str]] = {}
             for f in folders:
                 fid = f["id"]
@@ -135,12 +144,12 @@ class DatabaseAgent:
         return True
 
 
-    async def get_chat_history(self, chat_id: str) -> Optional[List[Dict[str, Any]]]:
+    async def get_chat_history(self, chat_id: str) -> List[Dict[str, Any]]:
         """Fetch messages for a chat ordered by timestamp."""
         try:
             uid = uuid.UUID(chat_id)
         except ValueError:
-            return None
+            return []
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
@@ -148,7 +157,7 @@ class DatabaseAgent:
                 (uid,)
             )
             rows = await cur.fetchall()
-        return rows if rows else None
+        return rows if rows else []
 
 
     async def create_chat(self, user_id: int, title: str) -> str:

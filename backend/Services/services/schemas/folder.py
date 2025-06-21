@@ -1,11 +1,13 @@
 from pydantic import BaseModel
 
-class FolderCreate(BaseModel):
-    owner_id: int
-    name: str
 
 FoldersWithChats = dict[str, list[str]]
 
+
+class FolderCreate(BaseModel):
+    folder_name: str
+
+
 class FolderUpdate(BaseModel):
-    chat_id: str
     folder_name: str 
+    chat_id: str
