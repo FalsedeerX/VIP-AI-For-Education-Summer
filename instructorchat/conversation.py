@@ -12,7 +12,7 @@ class Conversation:
     
     def __init__(self):
         self.name = "gpt4_mini"
-        self.system_message = "You are an instructor for Purdue's course ECE 20875. Your mission is to answer student's questions based on the provided context. Always be helpful, clear, and concise in your responses." #change prompt for instructor AI
+        self.system_message = "You are a helpful AI assistant." #change prompt for instructor AI
         self.roles = ("user", "assistant")
         # this variable goes into the database
         # might need to consider having multimodel's url with the text | Each message is either a string or a tuple of (string, List[image_url]).

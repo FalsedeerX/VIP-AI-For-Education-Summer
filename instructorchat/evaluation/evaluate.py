@@ -34,7 +34,7 @@ async def get_responses(
 
     from instructorchat.model.model_adapter import load_model, get_model_adapter
     from instructorchat.conversation import get_conv_template #if have more models => more templates => need for getting a correct templ
-    from instructorchat.serve.inference import generate_response
+    from instructorchat.serve.inference import generate_stream
 
     # Load model
     adapter = get_model_adapter(model_path)
@@ -69,7 +69,7 @@ async def get_responses(
         }
 
         await chatio.prompt_for_output(conv.roles[1])
-        output_stream = await generate_response(gen_params)
+        output_stream = await generate_stream(gen_params)
         answer = await chatio.stream_output(output_stream)
         conv.update_last_message(answer.strip())
         #print(conv.get_message)
