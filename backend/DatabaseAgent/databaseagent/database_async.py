@@ -2,6 +2,7 @@
 import os
 import uuid
 import psycopg
+import asyncio
 from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 from psycopg import AsyncConnection
@@ -11,6 +12,7 @@ from argon2.exceptions import VerifyMismatchError
 
 load_dotenv()
 _conn: AsyncConnection | None = None
+
 
 async def get_connection() -> AsyncConnection:
     global _conn
@@ -99,7 +101,6 @@ class DatabaseAgent:
 
     async def get_folders(self, owner_id: int) -> Dict[str, List[str]]:
         """Fetch folders and their chat IDs for a user."""
-
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
@@ -122,8 +123,8 @@ class DatabaseAgent:
         return result
 
 
-    async def organize_chat(self, chat_id: str, folder_name: str) -> bool:
-        """Link a chat UUID to a folder label."""
+    async def organize_chat(self, chat_id: str, folder_id: int) -> bool:
+        """ Link a chat UUID to a folder label."""
         # Validate UUID
         try:
             uid = uuid.UUID(chat_id)
@@ -131,11 +132,6 @@ class DatabaseAgent:
             return False
         conn = await get_connection()
         async with conn.cursor() as cur:
-            await cur.execute("SELECT id FROM folders WHERE label = %s;", (folder_name,))
-            row = await cur.fetchone()
-            if not row:
-                return False
-            folder_id = row[0]
             await cur.execute(
                 "INSERT INTO chat_folder_link (chat_id, folder_id) VALUES (%s, %s);",
                 (uid, folder_id)
@@ -144,12 +140,13 @@ class DatabaseAgent:
         return True
 
 
-    async def get_chat_history(self, chat_id: str) -> List[Dict[str, Any]]:
+    async def get_chat_history(self, chat_id: str) -> Optional[List[Dict[str, Any]]]:
         """Fetch messages for a chat ordered by timestamp."""
         try:
             uid = uuid.UUID(chat_id)
         except ValueError:
             return []
+
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
@@ -171,6 +168,39 @@ class DatabaseAgent:
             )
         await conn.commit()
         return str(uid)
+
+
+    async def get_chat_owner(self, chat_id: str) -> int:
+        """ Get the owner of a specific chat. Returns -1 if chat_id DNE. """
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return -1
+
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT user_id FROM chats WHERE id = %s;",
+                (uid,)
+            )
+            row = await cur.fetchone()
+        
+        if row: return row[0]
+        else: return -1
+
+
+    async def get_folder_owner(self, folder_id: int) -> int:
+        """ Get the owner of a specific folder. Returns -1 if folder_id DNE. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT user_id FROM folders WHERE id = %s;",
+                (folder_id,)
+            )
+            row = await cur.fetchone()
+        
+        if row: return row[0]
+        else: return -1
 
 
     async def log_chat(self, chat_id: str, sender: str, message: str) -> bool:
@@ -220,13 +250,13 @@ class DatabaseAgent:
         return True
 
 
-    async def create_folder(self, name: str, owner_id: int) -> int:
+    async def create_folder(self, name: str, course_id: int, user_id: int) -> int:
         """Create a new folder for a user; return the new folder's id."""
         conn = await get_connection()
         async with conn.cursor() as cur:
             await cur.execute(
-                "INSERT INTO folders (user_id, label) VALUES (%s, %s) RETURNING id;",
-                (owner_id, name)
+                "INSERT INTO folders (label, course_id, user_id) VALUES (%s, %s, %s) RETURNING id;",
+                (name, course_id, user_id)
             )
             row = await cur.fetchone()
         await conn.commit()
@@ -248,3 +278,64 @@ class DatabaseAgent:
         await conn.commit()
         return True
 
+
+    async def get_courses(self, user_id: int) -> list[int]:
+        """ Return a list of course id which the user is currently in. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                    "SELECT DISTINCT course_id FROM folders WHERE user_id = %s;",
+                    (user_id,)
+                )
+            rows = await cur.fetchall()
+
+        await conn.commit()
+        return [row[0] for row in rows]
+
+
+    async def delete_course(self, course_id: int) -> bool:
+        """ Delete a course and all object which is referencing it. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                    "DELETE FROM courses WHERE id = %s",
+                    (course_id,)
+                )
+            rows = cur.rowcount
+
+        await conn.commit()
+        return rows > 0
+
+
+    async def create_course(self, course_code: str, course_title: str|None = None) -> int:
+        """ Create a new course entry. On failure returns -1 """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            if course_title:
+                await cur.execute(
+                        "INSERT INTO courses (code, title) VALUES (%s, %s) RETURNING id;",
+                        (course_code, course_title)
+                    )
+            else:
+                await cur.execute(
+                        "INSERT INTO courses (code) VALUES (%s) RETURNING ID;",
+                        (course_code)
+                    )
+
+            row = await cur.fetchone()
+        
+        await conn.commit()
+        return row[0] if row else -1
+
+
+    async def organize_folder():
+        pass
+
+
+
+if __name__ == "__main__":
+    agent = DatabaseAgent()
+    # asyncio.run(agent.create_course("ECE30100", "Signals and Systems"))
+    # asyncio.run(agent.create_folder("MyFolder", 6, 1))
+    courses = asyncio.run(agent.get_folder_owner(2))
+    print(courses)

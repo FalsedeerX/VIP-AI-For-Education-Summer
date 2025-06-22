@@ -9,5 +9,10 @@ class NewChat(BaseModel):
     title: str
 
 
+class ChatOrganize(BaseModel):
+    folder_id: int
+    chat_id: str
+
+
 class NewChatMessage(BaseModel):
     message: str 

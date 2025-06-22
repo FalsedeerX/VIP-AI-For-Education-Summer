@@ -1,8 +1,8 @@
 from uuid import UUID
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
-from services.schemas.chat import NewChat, ChatMessages, NewChatMessage
 from fastapi import APIRouter, HTTPException, Request, Response
+from services.schemas.chat import NewChat, ChatMessages, NewChatMessage, ChatOrganize
 
 
 class ChatRouter:
@@ -13,6 +13,7 @@ class ChatRouter:
 
 		# register the endpoints
 		self.router.post("/create", status_code=201, response_model=str)(self.create_chat)
+		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_chat)
 		self.router.get("/{chat_id}", status_code=200, response_model=ChatMessages)(self.get_chat_message)
 		self.router.put("/{chat_id}", status_code=200, response_model=bool)(self.log_chat_message)
 		self.router.delete("/{chat_id}", status_code=200, response_model=bool)(self.delete_chat)
@@ -63,11 +64,7 @@ class ChatRouter:
 
 
 	async def delete_chat(self, chat_id: str, request: Request, response: Response) -> bool:
-		""" 
-		Delete a chat by a specific chat UUID.
-		Avoid using this endpoint, the authentication method isn't well implemented.
-		Currently all user which is logged in can delete arbitrary chat as long as their seesion token is valid. 
-		"""
+		""" Delete a chat by a specific chat UUID. """
 		# check if the user is logged in 
 		if not request.state.token: raise HTTPException(401, "User not logged in.")
 
@@ -76,8 +73,32 @@ class ChatRouter:
 			response.delete_cookie("purduegpt-token")
 			raise HTTPException(401, "Malformed session token.")
 
+		# verify chat ownership
+		chat_owner_id = await self.db.get_chat_owner(chat_id)
+		if request.state.user_id != chat_owner_id: raise HTTPException(401, "Access denied.")
+
 		status = await self.db.delete_chat(chat_id)
 		if not status: raise HTTPException(400, "Unable to delete chat.")
 		return True
 
 
+	async def organize_chat(self, payload: ChatOrganize, request: Request, response: Response) -> bool:
+		""" Organize a chat into a folder. """
+		# check if the user is logged in 
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		# receive the actual owner of the chat and folder 
+		chat_owner_id = await self.db.get_chat_owner(payload.chat_id)		
+		folder_owner_id = await self.db.get_folder_owner(payload.folder_id)
+		if chat_owner_id == -1 or folder_owner_id == -1: raise HTTPException(404, "Target chat or folder doens't exist")
+
+		# verify if current user is the owner
+		if request.state.user_id != chat_owner_id or request.state.user_id != folder_owner_id: raise HTTPException(401, "Access denied.")
+		status = await self.db.organize_chat(payload.chat_id, payload.folder_id)
+		if not status: raise HTTPException(404, "Failed assigning chat to folder.")
+		return True

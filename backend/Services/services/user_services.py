@@ -52,6 +52,7 @@ class UserRouter:
 		if not status: raise HTTPException(404, "User not found")
 		return True
 	
+	
 	async def get_current_user(self, request: Request, response: Response) -> dict:
 		"""
 		Returns the currently authenticated user.
