@@ -62,5 +62,5 @@ if __name__ == "__main__":
 
     try:
         trio.run(main)
-    except ExceptionGroup as exc:
+    except Exception as exc:
         traceback.print_exception(exc)

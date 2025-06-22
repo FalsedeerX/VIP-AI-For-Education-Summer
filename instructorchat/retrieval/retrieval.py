@@ -9,7 +9,8 @@ from instructorchat.retrieval.documents import imported_docs, evals
 from instructorchat.retrieval.scoring import texas_hybrid_score
 from instructorchat.retrieval.file_docs import add_docs_from_files
 
-from haystack import Pipeline, Document
+from haystack import Pipeline
+from haystack.dataclasses import Document
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack.components.preprocessors import DocumentCleaner, DocumentSplitter
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder

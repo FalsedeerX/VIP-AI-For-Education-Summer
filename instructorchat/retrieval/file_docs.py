@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import List
 
-from haystack import Document
+from haystack.dataclasses import Document
 from haystack.core.pipeline import Pipeline
 from haystack.components.routers.file_type_router import FileTypeRouter
 from haystack.components.converters.txt import TextFileToDocument

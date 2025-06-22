@@ -1,5 +1,5 @@
 # Only stores documents for retrieval
-from haystack import Document
+from haystack.dataclasses import Document
 
 
 evals = [

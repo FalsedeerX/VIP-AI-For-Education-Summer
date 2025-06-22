@@ -8,12 +8,18 @@ import argparse
 import os
 import traceback
 import trio
+from typing import Optional
 
 from instructorchat.serve.inference import ChatIO, chat_loop
-from instructorchat.evaluation.evaluate import get_responses, run_evaluations
+# from instructorchat.evaluation.evaluate import get_responses, run_evaluations
 
 class SimpleChatIO(ChatIO):
-    async def prompt_for_input(self, role) -> str:
+    def __init__(self):
+        self.prompt = "User: "
+        self.output_prefix = "Assistant: "
+
+    async def prompt_for_input(self, role: str) -> str:
+        """Get input from user."""
         prompt_data = []
         line = input(f"{role} : ")
         while True: # helps collect multi-line inputs.
@@ -25,19 +31,12 @@ class SimpleChatIO(ChatIO):
         return "\n".join(prompt_data)
 
     async def prompt_for_output(self, role: str):
-        print(f"{role}: ", end="", flush=True)
+        """Prompt for output."""
+        print(self.output_prefix, end="", flush=True)
 
-    async def stream_output(self, output_stream):
-        output = ""
-        async for chunk in output_stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                output += delta
-                print(delta, end="", flush=True)
-
-        print()
-
-        return output
+    async def display_output(self, output: str):
+        """Display output to user."""
+        print(f"assistant :", output)
 
 async def main():
     parser = argparse.ArgumentParser()
@@ -68,6 +67,7 @@ async def main():
 
             return responses_file
         elif "eval_responses" in args:
+            run_evaluations(eval_responses)
             return args.eval_responses if args.eval_responses is not None else "responses.json"
         else:
             await chat_loop(
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     try:
         eval_responses = trio.run(main)
 
-        if eval_responses is not None:
-            run_evaluations(eval_responses)
-    except ExceptionGroup as exc:
+        # if eval_responses is not None:
+        #     run_evaluations(eval_responses)
+    except Exception as exc:
         traceback.print_exception(exc)
