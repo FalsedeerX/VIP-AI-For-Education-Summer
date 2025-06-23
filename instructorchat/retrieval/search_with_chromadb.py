@@ -1,5 +1,6 @@
 from pymongo import MongoClient
 from chromadb import Client
+from chromadb.config import Settings
 from sentence_transformers import SentenceTransformer
 import numpy as np
 import argparse
@@ -18,27 +19,27 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define available folders for classification
-AVAILABLE_FOLDERS = ['project', 'logistics', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5', 
+AVAILABLE_FOLDERS = ['project', 'logistics', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5',
                     'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
 
 embedder = SentenceTransformer("thenlper/gte-large")
 
 # Connect to MongoDB Atlas
-username = quote_plus("voquangtri2021") 
+username = quote_plus("voquangtri2021")
 password = quote_plus("Voquangtri123@")
 mongo = MongoClient(f"mongodb+srv://{username}:{password}@test.funii81.mongodb.net/?retryWrites=true&w=majority&appName=Test")
 db = mongo["rag_database"]
 collection = db["ece20875"]
 
 # Set up Chroma client
-chroma_client = Client()
+chroma_client = Client(Settings(anonymized_telemetry=False))
 chroma_collect = chroma_client.get_or_create_collection("retrieved_chunks")
 
 async def classify_query(query: str, api_key: str) -> str:
     """Classify the query into one of the available folders using GPT-4-mini."""
     try:
         client = openai.AsyncOpenAI(api_key=api_key)
-        
+
         # Create a prompt for classification
         system_prompt = f"""You are a query classifier. Your task is to classify the user's query into one of these folders: {', '.join(AVAILABLE_FOLDERS)}.
         Choose the most relevant folder based on the query content. If the query is about homework, choose the specific homework folder (hw1-hw10).
@@ -53,15 +54,15 @@ async def classify_query(query: str, api_key: str) -> str:
             ],
             temperature=0.1,  # Low temperature for more consistent classification
         )
-        
+
         folder = response.choices[0].message.content.strip().lower()
-        
+
         # Validate the folder is in our list
         if folder not in AVAILABLE_FOLDERS:
             return 'other'
-            
+
         return folder
-        
+
     except Exception as e:
         logger.error(f"Error in query classification: {str(e)}")
         return 'other'
@@ -72,10 +73,10 @@ async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
         # First classify the query
         folder = await classify_query(query, api_key)
         logger.info(f"Query classified into folder: {folder}")
-        
+
         # Then use vector search to get relevant content
         results = vector_search(folder, query, top_k=5)
-        
+
         # Format the results for context
         context = []
         for doc in results:
@@ -84,9 +85,9 @@ async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
                 "content": doc["chunk"]["chunk_text"],
                 "metadata": doc["metadata"]
             })
-            
+
         return context
-        
+
     except Exception as e:
         logger.error(f"Error in context retrieval: {str(e)}")
         return []
@@ -112,7 +113,7 @@ def vector_search(folder, query, top_k=5):
     chroma_collect.upsert(embeddings=embeddings, ids=ids, metadatas=metadata)
 
     results = chroma_collect.query(query_embeddings=[query_embedding], n_results=top_k)
-    
+
     matching_ids = results["ids"][0]
     found_chunks = []
     for chunk_id in matching_ids:
@@ -145,7 +146,7 @@ if __name__ == "__main__":
         if query.lower() in ["exit", "quit"]:
             print("Exiting.")
             break
-        
+
         start = time.time()
         results = vector_search(args.folder, query)
         end = time.time()

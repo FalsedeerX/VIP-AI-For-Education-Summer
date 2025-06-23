@@ -21,9 +21,9 @@ class NetworkChatIO(ChatIO):
     async def prompt_for_output(self, role: str):
         pass
 
-    async def stream_output(self, output_stream):
+    async def display_output(self, output):
         output = ""
-        async for chunk in output_stream:
+        async for chunk in output:
             delta = chunk.choices[0].delta.content
             if delta:
                 output += delta
@@ -37,12 +37,13 @@ async def connect(request: WebSocketRequest):
     ws = await request.accept()
 
     try:
-        await chat_loop(
+        async for _ in chat_loop(
             model_path="gpt-4o-mini",
             temperature=args.temperature,
             chatio=NetworkChatIO(ws),
             api_key=api_key,
-        )
+        ):
+            pass
     except ConnectionClosed:
         pass
 

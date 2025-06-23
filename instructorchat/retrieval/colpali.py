@@ -15,6 +15,8 @@ from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from colpali_engine.compression.token_pooling import HierarchicalTokenPooler
 from colpali_engine.utils.torch_utils import get_torch_device
 
+from fast_plaid.search.fast_plaid import FastPlaid
+
 class ColPali:
     """
     Initialize the ColPali model for document retrieval and processing.
@@ -40,8 +42,8 @@ class ColPali:
         self.pooler = HierarchicalTokenPooler() if pool_factor is not None else None
         self.pool_factor = pool_factor
 
-    def embed_images(self, images: List[Image.Image], context_prompts: Optional[List[str]] = None, batch_size: int = 1) -> torch.Tensor:
-        all_embeddings: List[torch.Tensor] = []
+    def embed_images(self, images: List[Image.Image], context_prompts: Optional[List[str]] = None, batch_size: int = 1) -> List[torch.Tensor]:
+        embeddings: List[torch.Tensor] = []
 
         dataloader = DataLoader(
             dataset=range(len(images)),
@@ -56,36 +58,34 @@ class ColPali:
         for batch_doc in tqdm(dataloader):
             with torch.inference_mode():
                 batch_doc = {k: v.to(self.device) for k, v in batch_doc.items()}
-                image_embeddings = self.model(**batch_doc)
+                image_embeddings: torch.Tensor = self.model(**batch_doc)
 
-            all_embeddings.append(image_embeddings)
-
-        embeddings_tensor = torch.cat(all_embeddings, dim=0)
+            embeddings.extend(list(torch.unbind(image_embeddings.cpu())))
 
         if self.pooler is not None:
-            return self.pooler.pool_embeddings(embeddings_tensor, pool_factor=self.pool_factor)
+            return self.pooler.pool_embeddings(embeddings, pool_factor=self.pool_factor)
         else:
-            return embeddings_tensor
+            return embeddings
 
-    def score(self, queries: List[str], image_embeddings: torch.Tensor) -> torch.Tensor:
+    def score(self, queries: List[str], image_embeddings: List[torch.Tensor]) -> torch.Tensor:
         batch_queries = self.processor.process_queries(queries).to(self.device)
 
         with torch.inference_mode():
             query_embeddings = self.model(**batch_queries)
 
-        return self.processor.score_multi_vector(query_embeddings, image_embeddings)
+        return self.processor.score_multi_vector(query_embeddings, image_embeddings, device=self.device)
 
-    def search(self, queries: List[str], image_embeddings: torch.Tensor, top_k: int = 3) -> torch.return_types.topk:
-        scores = self.score(queries, image_embeddings.to(self.device)).squeeze()
+    def search(self, queries: List[str], image_embeddings: List[torch.Tensor], top_k: int = 3) -> torch.return_types.topk:
+        scores = self.score(queries, image_embeddings)
 
         return torch.topk(scores, top_k)
 
-    def create_plaid_index(self, image_embeddings: torch.Tensor) -> torch.Tensor:
+    def create_plaid_index(self, image_embeddings: List[torch.Tensor]) -> FastPlaid:
         device = "cpu" if self.device in ("mps", torch.mps) else self.device
 
         return self.processor.create_plaid_index(image_embeddings, device=device)
 
-    def plaid_search(self, queries: List[str], plaid_index: torch.Tensor, top_k: int = 3) -> List[List[Tuple[int, float]]]:
+    def plaid_search(self, queries: List[str], plaid_index: FastPlaid, top_k: int = 3) -> List[List[Tuple[int, float]]]:
         batch_queries = self.processor.process_queries(queries).to(self.device)
 
         with torch.inference_mode():
@@ -119,15 +119,13 @@ class InMemoryColPali:
             if file_path.suffix == ".pdf":
                 file_paths.append(file_path)
 
-        all_embeddings: List[torch.Tensor] = []
+        self.embeddings: List[torch.Tensor] = []
         self.images: List[Image.Image] = []
 
         for pdf_file in file_paths:
             images, embeddings = self.colpali.embed_pdf(pdf_file)
             self.images.extend(images)
-            all_embeddings.append(embeddings)
-
-        self.embeddings = torch.cat(all_embeddings, dim=0)
+            self.embeddings.extend(embeddings)
 
         if self.use_fast_plaid:
             self.plaid_index = self.colpali.create_plaid_index(self.embeddings)
