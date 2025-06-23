@@ -26,8 +26,8 @@ CREATE TABLE users (
 ```sql
 CREATE TABLE courses (
     id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE,
-    description TEXT,
+    code TEXT NOT NULL UNIQUE,
+    title TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
