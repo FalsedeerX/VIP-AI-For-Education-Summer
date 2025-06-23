@@ -9,14 +9,16 @@ export function Header() {
   return (
     <header className="w-full bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)] p-4 flex justify-between items-center">
       <div className="flex items-center space-x-4">
-        <Image
-          //className="dark:invert"
-          src="/Purdue_Boilermakers_logo.svg.png"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
+        <Link href="/" className="hover:underline ">
+          <Image
+            //className="dark:invert"
+            src="/Purdue_Boilermakers_logo.png"
+            alt="Next.js logo"
+            width={180}
+            height={38}
+            priority
+          />
+        </Link>
         <h1 className="text-4xl font-extrabold">PurdueGPT</h1>
       </div>
       <nav className="space-x-4">

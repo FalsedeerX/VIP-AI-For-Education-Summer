@@ -10,7 +10,6 @@ import React, {
 import { postJson, getJson } from "../lib/api";
 const API_BASE = "http://127.0.0.1:8000";
 
-// 1. Define what our context will hold
 interface AuthContextType {
   userId: number | null;
   login: (username: string, password: string) => Promise<void>;
@@ -18,7 +17,6 @@ interface AuthContextType {
   loading: boolean;
 }
 
-// 2. Create the context with defaults
 const AuthContext = createContext<AuthContextType>({
   userId: null,
   login: async () => {},
@@ -26,7 +24,6 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
 });
 
-// 3. Provider component
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function logout() {
-    // make sure you have a /users/logout or similar on the backend
     await postJson("/users/logout", {}, true);
     setUserId(null);
   }
@@ -72,7 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// 7. Handy hook for pages/components
 export function useAuth() {
   return useContext(AuthContext);
 }

@@ -27,13 +27,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="flex flex-col h-screen bg-[var(--background)] text-[var(--foreground)]">
-        <Header />
         <AuthProvider>
+          <Header />
           <main className="flex-1 flex items-center justify-center overflow-auto">
             {children}
           </main>
+          <Footer />
         </AuthProvider>
-        <Footer />
       </body>
     </html>
   );
