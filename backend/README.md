@@ -42,9 +42,9 @@ keeping track of the owner and the custom label for it.
 ```sql
 CREATE TABLE folders (
     id SERIAL PRIMARY KEY,
-    course_id INT NOT NULL REFERENCES courses(id),
-    user_id INT NOT NULL REFERENCES users(id),
-    course_id INT NOT NULL REFERENCES course(id),
+    course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    course_id INT NOT NULL REFERENCES course(id) ON DELETE CASCADE,
     label TEXT NOT NULL
 );
 ```
@@ -57,8 +57,8 @@ This table link the two entry from `chats` and `folder` table.
 
 ```sql
 CREATE TABLE chat_folder_link (
-    folder_id INT NOT NULL REFERENCES folders(id),
-    chat_id  UUID NOT NULL REFERENCES chats(id),
+    folder_id INT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
+    chat_id  UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
     PRIMARY KEY (folder_id, chat_id)
 );
 ```
@@ -83,7 +83,7 @@ CREATE TABLE course (
 ```sql
 CREATE TABLE chats (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    user_id INT NOT NULL REFERENCES users(id),
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     title TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -99,8 +99,8 @@ message rotation logic should be implemented in the backend to prevent unbounded
 ```sql
 CREATE TABLE chat_messages (
     id BIGSERIAL PRIMARY KEY,
-    user_id INT NOT NULL REFERENCES users(id),
-    chat_id UUID NOT NULL REFERENCES chats(id),
+    user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    chat_id UUID NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
     message TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
