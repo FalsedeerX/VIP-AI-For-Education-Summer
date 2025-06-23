@@ -64,19 +64,6 @@ CREATE TABLE chat_folder_link (
 
 ---
 
-## Table - `courses`
-
-Using collection of chat folders to create a group of course.  
-
-```sql
-CREATE TABLE course (
-    id SERIAL PRIMARY KEY,
-    name TEXT NOT NULL
-);
-```
-
----
-
 ## Table - `chats`
 
 ```sql
