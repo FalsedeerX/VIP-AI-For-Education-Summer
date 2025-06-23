@@ -70,7 +70,7 @@ def generate_from_pdfs_visual(pdfs_dir: str = "documents", save_dir: str="eval_d
         questions: list[QAPair]
 
     QA_generation_prompt = """
-Your task is to write factoid questions (input) and answers (expected_output) given a image.
+Given a hypothetical search result image, your task is to write a factoid question (input) that would cause that image to come up, and an answer (expected_output) to that question using the image.
 Your factoid questions should be answerable with a specific, concise piece of factual information from the image.
 Your factoid questions should be formulated in the same style as questions users could ask in a search engine.
 Your factoid questions should be questions someone could ask without seeing the image.
@@ -81,7 +81,7 @@ the image should be used as a knowledge base to answer the question.
 
     # def get_QA(image: Image.Image):
     #     response = client.chat.completions.create(
-    #         model="gpt-4.1",
+    #         model="gpt-4o-mini",
     #         temperature=0.1,
     #         # This is to enable JSON mode, making sure responses are valid json objects
     #         response_format={
@@ -113,7 +113,7 @@ the image should be used as a knowledge base to answer the question.
     #     return response.choices[0].message.content
 
     # results = []
-    # for idx, image in enumerate(images[1:2]):
+    # for idx, image in enumerate(images[:4]):
     #     output = get_QA(image)
     #     assert output
     #     qa = json.loads(output)["questions"]
@@ -135,7 +135,7 @@ the image should be used as a knowledge base to answer the question.
             "method": "POST",
             "url": "/v1/chat/completions",
             "body": {
-                "model": "gpt-4.1",
+                "model": "gpt-4o-mini",
                 "temperature": 0.1,
                 "response_format": {
                     "type": "json_schema",

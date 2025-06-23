@@ -1,7 +1,7 @@
 """Inference for GPT-4-mini model."""
 import abc
 import openai
-from typing import Dict, Optional
+from typing import Dict, Optional, List, Any, AsyncGenerator, Union
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -49,6 +49,7 @@ async def chat_loop(
     temperature: float,
     chatio: ChatIO, #chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
     api_key: Optional[str] = None,
+    evaluation_test_cases: Optional[List[Dict[str, Any]]] = None
 ):
     """Main chat loop."""
     # Set API key
@@ -65,13 +66,18 @@ async def chat_loop(
     )
     logger = logging.getLogger(__name__)
 
+    if evaluation_test_cases:
+        logger.info("Running chat loop in evaluation mode")
+
     # Load model
     adapter = get_model_adapter(model_path)
     load_model(model_path, api_key)
     conv = adapter.get_default_conv_template(model_path)
 
+    idx = 0
+
     while True:
-        inp = await chatio.prompt_for_input(conv.roles[0])
+        inp = evaluation_test_cases[idx]["input"] if evaluation_test_cases else await chatio.prompt_for_input(conv.roles[0])
 
         # Handle commands
         if inp == "return conv":
@@ -108,7 +114,7 @@ async def chat_loop(
 
         # Prepare the prompt with context
         context_text = "\n\n".join([
-            f"From {ctx['title']}:\n{ctx['content']}"
+            f"Title: {ctx['title']}\n{ctx['content']}"
             for ctx in contexts
         ])
 
@@ -139,3 +145,18 @@ async def chat_loop(
         # Update conversation and display response
         # conv.update_last_message(response.strip())
         await chatio.display_output(response.strip())
+
+        if evaluation_test_cases:
+            yield {
+                "idx": idx,
+                "input": inp,
+                "actual_output": response,
+                "retrieval_context": [f"Title: {ctx["title"]}\n{ctx["content"]}" for ctx in contexts],
+                "expected_output": evaluation_test_cases[idx]["expected_output"],
+                "context": evaluation_test_cases[idx]["context"] if "context" in evaluation_test_cases[idx] else None,
+            }
+
+            idx += 1
+
+            if idx >= len(evaluation_test_cases):
+                break

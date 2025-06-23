@@ -11,7 +11,7 @@ import trio
 from typing import Optional
 
 from instructorchat.serve.inference import ChatIO, chat_loop
-# from instructorchat.evaluation.evaluate import get_responses, run_evaluations
+from instructorchat.evaluation.evaluate import get_responses, run_evaluations
 
 class SimpleChatIO(ChatIO):
     def __init__(self):
@@ -70,12 +70,14 @@ async def main():
             run_evaluations(eval_responses)
             return args.eval_responses if args.eval_responses is not None else "responses.json"
         else:
-            await chat_loop(
+            # Same thing as await but has to be implemented this way because I need to use yield for evaluations
+            async for _ in chat_loop(
                 model_path="gpt-4o-mini",
                 temperature=args.temperature,
                 chatio=chatio,
                 api_key=api_key,
-            )
+            ):
+                pass
 
             return None
     except KeyboardInterrupt:
