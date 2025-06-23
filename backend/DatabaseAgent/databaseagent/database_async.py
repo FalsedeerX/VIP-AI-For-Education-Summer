@@ -3,11 +3,11 @@ import os
 import uuid
 import psycopg
 import asyncio
-from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
-from psycopg import AsyncConnection
 from psycopg.rows import dict_row
 from argon2 import PasswordHasher
+from psycopg import AsyncConnection
+from typing import Any, Dict, List, Optional
 from argon2.exceptions import VerifyMismatchError
 
 load_dotenv()
@@ -99,28 +99,21 @@ class DatabaseAgent:
             return False
 
 
-    async def get_folders(self, owner_id: int) -> Dict[str, List[str]]:
-        """Fetch folders and their chat IDs for a user."""
+    async def get_chats(self, folder_id: int) -> dict[str, str]:
+        """ Get a list of chat IDs of a speicifc folder_id. 
+            Return type: <chat-title, chat-id> """
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
-                "SELECT id, label FROM folders WHERE user_id = %s;",
-                (owner_id,)
-            )
-            folders = await cur.fetchall()
-            if not folders:
-                return {}
-            result: Dict[str, List[str]] = {}
-            for f in folders:
-                fid = f["id"]
-                label = f["label"]
-                await cur.execute(
-                    "SELECT chat_id FROM chat_folder_link WHERE folder_id = %s;",
-                    (fid,)
+                    """ SELECT c.title, c.id FROM chat_folder_link AS l 
+                        JOIN chats as c ON c.id = l.chat_id 
+                        WHERE l.folder_id = %s """,
+                    (folder_id,)
                 )
-                links = await cur.fetchall()
-                result[label] = [str(r["chat_id"]) for r in links]
-        return result
+            rows = await cur.fetchall()
+
+        # parse the returned results
+        return {row["title"]: str(row["id"]) for row in rows}
 
 
     async def organize_chat(self, chat_id: str, folder_id: int) -> bool:
@@ -263,34 +256,34 @@ class DatabaseAgent:
         return row[0] if row else -1
 
 
-    async def delete_folder(self, owner_id: int, folder_id: int) -> bool:
-        """Delete a folder and its links for a user."""
+    async def delete_folder(self, folder_id: int) -> bool:
+        """ Delete a folder and its links for a user. """
         conn = await get_connection()
         async with conn.cursor() as cur:
-            await cur.execute("DELETE FROM chat_folder_link WHERE folder_id = %s;", (folder_id,))
+            # remove the chat contained inside the folder
             await cur.execute(
-                "DELETE FROM folders WHERE id = %s AND user_id = %s RETURNING id;",
-                (folder_id, owner_id)
-            )
+                    """ DELETE FROM chats
+                        WHERE id IN (
+                            SELECT chat_id FROM chat_folder_link WHERE folder_id = %s
+                        );""",
+                    (folder_id,)
+                )
+
+            # remove the actual folder
+            await cur.execute(
+                    "DELETE FROM folders WHERE id = %s RETURNING id;",
+                    (folder_id,)
+                )
             deleted = await cur.fetchone()
-        if not deleted:
-            return False
+
+        if not deleted: return False
         await conn.commit()
         return True
 
 
-    async def get_courses(self, user_id: int) -> list[int]:
-        """ Return a list of course id which the user is currently in. """
-        conn = await get_connection()
-        async with conn.cursor() as cur:
-            await cur.execute(
-                    "SELECT DISTINCT course_id FROM folders WHERE user_id = %s;",
-                    (user_id,)
-                )
-            rows = await cur.fetchall()
-
-        await conn.commit()
-        return [row[0] for row in rows]
+    async def get_courses(self, user_id: int) -> dict[int, list[int]]:
+        """ Return a list of course id and the folder id in each entry. """
+        pass
 
 
     async def delete_course(self, course_id: int) -> bool:
@@ -328,8 +321,26 @@ class DatabaseAgent:
         return row[0] if row else -1
 
 
-    async def organize_folder():
-        pass
+    async def organize_folder(self, folder_id: int, course_id: int) -> bool:
+        """Update folder's course_id only if course exists and folder is valid."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            # check whether the coruse exist
+            await cur.execute(
+                    "SELECT 1 FROM courses WHERE id = %s;", 
+                    (course_id,)
+                )
+            if not await cur.fetchone(): return False
+
+            # update folder
+            await cur.execute(
+                    "UPDATE folders SET course_id = %s WHERE id = %s RETURNING id; ", 
+                    (course_id, folder_id)
+                )
+            status = await cur.fetchone()
+
+        await conn.commit()
+        return status is not None
 
 
 
@@ -337,5 +348,5 @@ if __name__ == "__main__":
     agent = DatabaseAgent()
     # asyncio.run(agent.create_course("ECE30100", "Signals and Systems"))
     # asyncio.run(agent.create_folder("MyFolder", 6, 1))
-    courses = asyncio.run(agent.get_folder_owner(2))
+    courses = asyncio.run(agent.get_chats(4))
     print(courses)

@@ -1,8 +1,8 @@
 from uuid import UUID
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
-from services.schemas.folder import FolderCreate, FolderUpdate, FoldersWithChats
 from fastapi import APIRouter, HTTPException, Request, Response
+from services.schemas.folder import FolderContent, NewFolder, FolderOrganize, FolderInfo
 
 
 class FolderRouter:
@@ -12,14 +12,14 @@ class FolderRouter:
 		self.db = database
 
 		# register the endpoints
-		self.router.get("/", response_model=FoldersWithChats)(self.get_folders)
-		self.router.post("/create", response_model=int, status_code=201)(self.create_folder)
-		self.router.put("/organize/{folder_id}", status_code=204)(self.organize_folder)
-		self.router.delete("/{folder_id}", status_code=204)(self.delete_folder)
+		self.router.get("", status_code=200, response_model=FolderContent)(self.get_chats)
+		self.router.post("/create", status_code=201, response_model=int)(self.create_folder)
+		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_folder)
+		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_folder)
 
 
-	async def get_folders(self, request: Request, response: Response) -> FoldersWithChats:
-		""" Get a list of fodlers which the current user owns. """
+	async def get_chats(self, payload: FolderInfo, request: Request, response: Response) -> FolderContent:
+		""" Get a list of chats which is organized in a specific folder_id """
 		# check if the user is logged in
 		if not request.state.token: raise HTTPException(401, "User not logged in.")
 
@@ -28,29 +28,55 @@ class FolderRouter:
 			response.delete_cookie("purduegpt-token")
 			raise HTTPException(401, "Malformed session token.")
 
-		folders = await self.db.get_folders(request.state.user_id)
-		if folders is None: raise HTTPException(404, "No folders found for this user")
+		# verify whether user owned that folder
+		folder_owner_id =  await self.db.get_folder_owner(payload.folder_id)
+		if request.state.user_id != folder_owner_id: raise HTTPException(401, "Access denied.")
+		
+		folders = await self.db.get_chats(payload.folder_id)
 		return folders
 
 
-	async def create_folder(self, payload: FolderCreate) -> int:
-		try:
-			folder = await self.db.create_folder(payload.name, payload.owner_id)
-		except Exception as e:
-			raise HTTPException(404, "Could not create folder")
-		return folder
+	async def create_folder(self, payload: NewFolder, request: Request, response: Response) -> int:
+		""" Create a new folder under a folder. """
+		# check if the user is logged in
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		folder_id = await self.db.create_folder(payload.folder_name, payload.course_id, request.state.user_id)
+		if folder_id == -1: raise HTTPException(404, "Could not create folder")
+		return folder_id
 
 
-	async def organize_folder(self, folder_id: int, payload: FolderUpdate):
-		ok = await self.db.organize_chat(payload.chat_id, payload.folder_name)
-		if not ok:
-			raise HTTPException(404, "Cannot add chat to folder")
-		return
+	async def delete_folder(self, payload: FolderInfo, request: Request, response: Response) -> bool:
+		""" Remove a folder permanently. """
+		# check if the user is logged in
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		status = await self.db.delete_folder(payload.folder_id)
+		if not status: raise HTTPException(404, "Target folder couldn't be found.")
+		return True
 
 
-	async def delete_folder(self, folder_id: int, owner_id: int):
-		ok = await self.db.delete_folder(owner_id, folder_id)
-		if not ok:
-			raise HTTPException(404, "Folder not found")
-		return
+	async def organize_folder(self, payload: FolderOrganize, request: Request, response: Response) -> bool:
+		""" Organize a folder into a course """
+		# check if the user is logged in
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		status = await self.db.organize_folder(payload.folder_id, payload.course_id)
+		if not status: raise HTTPException(404, "Target folder couldn't be found.")
+		return True
 
