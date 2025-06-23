@@ -1,16 +1,17 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { postJson } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import "@/app/globals.css"; // Ensure global styles are imported
+import Image from "next/image";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [confirmPassword, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -34,12 +35,13 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-purdue-black p-4">
+    <div className="flex flex-1 flex-col md:flex-row items-center justify-center bg-[var(--background)] p-4 space-y-6 md:space-y-0 md:space-x-5">
+      {/* ── Registration Form ── */}
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md bg-purdue-gold rounded-2xl shadow-lg p-8 space-y-6"
+        className="w-full max-w-md bg-[var(--color-purdue-gold)] rounded-2xl shadow-lg p-8 space-y-6"
       >
-        <h2 className="text-3xl font-bold text-purdue-black text-center">
+        <h2 className="text-3xl font-bold text-center text-[var(--color-purdue-black)]">
           Sign Up
         </h2>
 
@@ -50,51 +52,57 @@ export default function RegisterPage() {
         )}
 
         <div className="space-y-4">
+          {/** Username */}
           <label className="block">
-            <span className="text-purdue-black">Username</span>
+            <span className="text-[var(--color-purdue-black)]">Username</span>
             <Input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
               placeholder="Your username"
-              className="mt-1 bg-white text-purdue-black placeholder-gray-400"
+              className="mt-1 bg-white text-black placeholder-gray-400"
             />
           </label>
 
+          {/** Email */}
           <label className="block">
-            <span className="text-purdue-black">Email</span>
+            <span className="text-[var(--color-purdue-black)]">Email</span>
             <Input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="you@example.com"
-              className="mt-1 bg-white text-purdue-black placeholder-gray-400"
+              className="mt-1 bg-white text-black placeholder-gray-400"
             />
           </label>
 
+          {/** Password */}
           <label className="block">
-            <span className="text-purdue-black">Password</span>
+            <span className="text-[var(--color-purdue-black)]">Password</span>
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               placeholder="••••••••"
-              className="mt-1 bg-white text-purdue-black placeholder-gray-400"
+              className="mt-1 bg-white text-black placeholder-gray-400"
             />
           </label>
 
+          {/** Confirm Password */}
           <label className="block">
-            <span className="text-purdue-black">Confirm Password</span>
+            <span className="text-[var(--color-purdue-black)]">
+              Confirm Password
+            </span>
             <Input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => setConfirm(e.target.value)}
               required
               placeholder="••••••••"
-              className="mt-1 bg-white text-purdue-black placeholder-gray-400"
+              className="mt-1 bg-white text-black placeholder-gray-400"
             />
           </label>
         </div>
@@ -102,11 +110,32 @@ export default function RegisterPage() {
         <Button
           type="submit"
           disabled={loading}
-          className="w-full bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold"
+          className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
         >
           {loading ? "Signing up…" : "Sign Up"}
         </Button>
       </form>
+
+      {/* ── Prompt box for existing users ── */}
+      <div className="w-full max-w-sm bg-[var(--color-purdue-brown)] text-[var(--color-purdue-black)] rounded-2xl shadow-lg p-6 text-center space-y-4">
+        <h3 className="text-xl font-semibold">Already registered?</h3>
+        <p>Click below to sign in to your account.</p>
+        <Link href="/login">
+          <Button className="w-full bg-[var(--color-purdue-gold)] hover:opacity-90 text-[var(--color-purdue-black)]">
+            Go to Log In
+          </Button>
+        </Link>
+        <div className="mt-8 flex justify-center">
+          <Image
+            //className="dark:invert"
+            src="/purdue_boilermakers_logo_mascot_2023_sportslogosnet-2378.png"
+            alt="Next.js logo"
+            width={180}
+            height={38}
+            priority
+          />
+        </div>
+      </div>
     </div>
   );
 }

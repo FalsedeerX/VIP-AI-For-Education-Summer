@@ -22,21 +22,21 @@ def dump_every_table():
         cur.execute("""
             SELECT table_name
               FROM information_schema.tables
-             WHERE table_schema = 'public'
+             WHERE table_schema = 'chatbot'
                AND table_type   = 'BASE TABLE'
              ORDER BY table_name;
         """)
         tables = [row["table_name"] for row in cur.fetchall()]
 
     for table in tables:
-        print(f"\n\n===== TABLE: public.{table} =====")
+        print(f"\n\n===== TABLE: chatbot.{table} =====")
         with conn.cursor() as cur:
-            cur.execute(f"SELECT * FROM public.{table} LIMIT 0;")
+            cur.execute(f"SELECT * FROM chatbot.{table} LIMIT 0;")
             column_names = [desc.name for desc in cur.description]
         print("COLUMNS:", column_names)
 
         with conn.cursor(row_factory=dict_row) as cur:
-            cur.execute(f"SELECT * FROM public.{table} ORDER BY 1;")
+            cur.execute(f"SELECT * FROM chatbot.{table} ORDER BY 1;")
             rows = cur.fetchall()
 
         if not rows:

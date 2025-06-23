@@ -13,6 +13,9 @@
   --color-foreground: var(--foreground);
   --color-purdue-gold: #cfb991;
   --color-purdue-black: #000000;
+  --color-purdue-brown: #8e6f3e;
+  --color-purdue-white: #ffffff;
+  --color-purdue-gray: #98a4ae;
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 
