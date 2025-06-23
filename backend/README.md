@@ -42,7 +42,6 @@ keeping track of the owner and the custom label for it.
 ```sql
 CREATE TABLE folders (
     id SERIAL PRIMARY KEY,
-    course_id INT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     course_id INT NOT NULL REFERENCES course(id) ON DELETE CASCADE,
     label TEXT NOT NULL
