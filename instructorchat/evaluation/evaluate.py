@@ -1,6 +1,10 @@
 from typing import List, Dict, Optional
 from datetime import datetime
 import json
+import argparse
+import os
+import trio
+
 import openai
 
 from deepeval import evaluate
@@ -8,6 +12,7 @@ from deepeval.metrics import AnswerRelevancyMetric, GEval, ContextualPrecisionMe
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from instructorchat.serve.inference import ChatIO, chat_loop
+from instructorchat.serve.cli import SimpleChatIO
 
 import pandas as pd
 
@@ -111,3 +116,28 @@ def run_evaluations(
     df.to_csv(output_csv_file, index=False)
     print(f"Results saved to {output_csv_file}")
     print("\nEvaluation Complete!")
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("input_file", type=str) # Specify test cases or responses file
+    parser.add_argument("--api-key", type=str, help="OpenAI API key")
+    parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--judge-only", type=str, default=argparse.SUPPRESS) # Evaluate existing responses file
+    args = parser.parse_args()
+
+    # Use API key from environment variable if not provided
+    api_key = args.api_key or os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OpenAI API key must be provided either through --api-key or OPENAI_API_KEY environment variable")
+
+    chatio = SimpleChatIO()
+
+    if "judge_only" not in args:
+        responses_file = trio.run(get_responses, "gpt-4o-mini", args.temperature, chatio, api_key, args.input_file)
+    else:
+        responses_file = args.input_file
+
+    run_evaluations(responses_file)
+
+if __name__ == "__main__":
+    main()
