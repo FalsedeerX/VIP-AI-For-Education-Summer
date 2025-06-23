@@ -5,8 +5,6 @@ import argparse
 import os
 import trio
 
-import openai
-
 from deepeval import evaluate
 from deepeval.metrics import AnswerRelevancyMetric, GEval, ContextualPrecisionMetric, ContextualRecallMetric, ContextualRelevancyMetric
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams

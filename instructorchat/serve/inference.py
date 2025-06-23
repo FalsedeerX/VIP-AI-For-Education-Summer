@@ -1,7 +1,9 @@
 """Inference for GPT-4-mini model."""
 import abc
 import openai
-from typing import Dict, Optional, List, Any, AsyncGenerator, Union
+from openai import AsyncStream
+from openai.types.chat import ChatCompletionChunk
+from typing import Dict, Optional, List, Any, Union, Union
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -16,12 +18,38 @@ class ChatIO(abc.ABC):
         """Prompt for input from a role."""
 
     @abc.abstractmethod
-    async def prompt_for_output(self, role: str):
+    async def prompt_for_output(self, role: str) -> None:
         """Prompt for output from a role."""
 
     @abc.abstractmethod
-    async def display_output(self, output: str):
+    async def display_output(self, output: str) -> None:
         """Display output to user."""
+
+    @abc.abstractmethod
+    async def stream_output(self, output_stream: AsyncStream[ChatCompletionChunk]) -> str:
+        pass
+
+async def generate_response_stream(params: Dict):
+    """Stream response using OpenAI API."""
+    try:
+        client = openai.AsyncOpenAI(api_key=openai.api_key)
+
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=params["messages"],
+            temperature=0.7,
+            stream=True,
+        )
+
+        if not response:
+            print("Error: Empty response from API")
+            return None
+
+        return response
+
+    except Exception as e:
+        print(f"Error: {str(e)}")
+        return None
 
 async def generate_response(params: Dict) -> str:
     """Generate response using OpenAI API."""
@@ -32,10 +60,10 @@ async def generate_response(params: Dict) -> str:
             model="gpt-4o-mini",
             messages=params["messages"],
             temperature=0.7,
-            stream=False,  # Disable streaming
+            stream=False,
         )
 
-        if not response or not response.choices:
+        if not response or not response.choices or not response.choices[0].message.content:
             return "Error: Empty response from API"
 
         return response.choices[0].message.content
@@ -138,24 +166,27 @@ async def chat_loop(
             "temperature": temperature
         }
 
-        response = await generate_response(gen_params)
-        #Add response to complete a question-response pair
+        stream = await generate_response_stream(gen_params)
 
-        conv.append_message(conv.roles[1], response.strip())
+        if stream is not None:
+            response = await chatio.stream_output(stream)
+            #Add response to complete a question-response pair
 
-        await chatio.display_output(response.strip())
+            conv.append_message(conv.roles[1], response.strip())
 
-        if evaluation_test_cases:
-            yield {
-                "idx": idx,
-                "input": inp,
-                "actual_output": response,
-                "retrieval_context": [f"Title: {ctx['title']}\n{ctx['content']}" for ctx in contexts],
-                "expected_output": evaluation_test_cases[idx]["expected_output"],
-                "context": evaluation_test_cases[idx]["context"] if "context" in evaluation_test_cases[idx] else None,
-            }
+            if evaluation_test_cases:
+                yield {
+                    "idx": idx,
+                    "input": inp,
+                    "actual_output": response,
+                    "retrieval_context": [f"Title: {ctx['title']}\n{ctx['content']}" for ctx in contexts],
+                    "expected_output": evaluation_test_cases[idx]["expected_output"],
+                    "context": evaluation_test_cases[idx]["context"] if "context" in evaluation_test_cases[idx] else None,
+                }
 
-            idx += 1
+                idx += 1
 
-            if idx >= len(evaluation_test_cases):
-                break
+                if idx >= len(evaluation_test_cases):
+                    break
+        else:
+            logger.error("Received empty stream")

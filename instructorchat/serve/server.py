@@ -21,9 +21,12 @@ class NetworkChatIO(ChatIO):
     async def prompt_for_output(self, role: str):
         pass
 
-    async def display_output(self, output):
+    async def display_output(self, output: str) -> None:
+        await self.connection.send_message(json.dumps({"content": output}))
+
+    async def stream_output(self, output_stream):
         output = ""
-        async for chunk in output:
+        async for chunk in output_stream:
             delta = chunk.choices[0].delta.content
             if delta:
                 output += delta

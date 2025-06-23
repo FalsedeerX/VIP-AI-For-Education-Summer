@@ -7,8 +7,9 @@ python3 cli.py --api-key YOUR_API_KEY
 import argparse
 import os
 import traceback
+from openai import AsyncStream
+from openai.types.chat import ChatCompletionChunk
 import trio
-from typing import Optional
 
 from instructorchat.serve.inference import ChatIO, chat_loop
 
@@ -37,6 +38,17 @@ class SimpleChatIO(ChatIO):
         """Display output to user."""
         print(f"assistant :", output)
 
+    async def stream_output(self, output_stream: AsyncStream[ChatCompletionChunk]) -> str:
+        output = ""
+        async for chunk in output_stream:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                output += delta
+                print(delta, end="", flush=True)
+        print()
+
+        return output
+
 async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
@@ -50,16 +62,16 @@ async def main():
 
     chatio = SimpleChatIO()
     try:
-            # Same thing as await but has to be implemented this way because I need to use yield for evaluations
-            async for _ in chat_loop(
-                model_path="gpt-4o-mini",
-                temperature=args.temperature,
-                chatio=chatio,
-                api_key=api_key,
-            ):
-                pass
+        # Same thing as await but has to be implemented this way because I need to use yield for evaluations
+        async for _ in chat_loop(
+            model_path="gpt-4o-mini",
+            temperature=args.temperature,
+            chatio=chatio,
+            api_key=api_key,
+        ):
+            pass
 
-            return None
+        return None
     except KeyboardInterrupt:
         print("exit...")
 
