@@ -150,7 +150,7 @@ async def chat_loop(
                 "idx": idx,
                 "input": inp,
                 "actual_output": response,
-                "retrieval_context": [f"Title: {ctx["title"]}\n{ctx["content"]}" for ctx in contexts],
+                "retrieval_context": [f"Title: {ctx['title']}\n{ctx['content']}" for ctx in contexts],
                 "expected_output": evaluation_test_cases[idx]["expected_output"],
                 "context": evaluation_test_cases[idx]["context"] if "context" in evaluation_test_cases[idx] else None,
             }
