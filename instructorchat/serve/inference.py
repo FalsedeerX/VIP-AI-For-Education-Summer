@@ -140,10 +140,9 @@ async def chat_loop(
 
         response = await generate_response(gen_params)
         #Add response to complete a question-response pair
-        conv.append_message(conv.roles[1], response)
 
-        # Update conversation and display response
-        # conv.update_last_message(response.strip())
+        conv.append_message(conv.roles[1], response.strip())
+
         await chatio.display_output(response.strip())
 
         if evaluation_test_cases:
