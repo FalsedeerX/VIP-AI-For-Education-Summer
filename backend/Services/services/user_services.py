@@ -16,6 +16,7 @@ class UserRouter:
 		self.router.post("/register", status_code=201, response_model=bool)(self.create_user)
 		self.router.delete("/delete/{user_id}", status_code=200, response_model=bool)(self.delete_user)
 		self.router.get("/me", status_code=200, response_model=dict)(self.get_current_user)
+		self.router.get("/logout", status_code=200, response_model=bool)(self.logout_user)
 
 
 	async def create_user(self, payload: UserCreate) -> bool:
@@ -62,7 +63,6 @@ class UserRouter:
 		user_id = request.state.user_id
 
 		if not token:
-			print(token)
 			raise HTTPException(status_code=401, detail="Not authenticated.")
 
 		try:
@@ -82,3 +82,25 @@ class UserRouter:
 		if user is None:
 			raise HTTPException(status_code=404, detail="User not found.")
 		return {"id": user_id, "username": user}
+	
+	async def logout_user(self, request: Request, response: Response) -> bool:
+		""" Logout the user by deleting the session token """
+		token = request.state.token
+		if not token:
+			raise HTTPException(status_code=401, detail="Not authenticated.")
+
+		try:
+			ok = self.session.verify_token(
+				request.state.user_id,
+				request.state.ip_address,
+				UUID(token)
+			)
+		except ValueError:
+			ok = False
+
+		if not ok:
+			response.delete_cookie("purduegpt-token", path="/")
+			raise HTTPException(status_code=401, detail="Session expired or invalid.")
+
+		response.delete_cookie("purduegpt-token", path="/")
+		return True

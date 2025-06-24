@@ -8,10 +8,10 @@ import React, {
   useEffect,
 } from "react";
 import { postJson, getJson } from "../lib/api";
-const API_BASE = "http://127.0.0.1:8000";
 
 interface AuthContextType {
   userId: number | null;
+  name?: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
@@ -19,6 +19,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({
   userId: null,
+  name: null,
   login: async () => {},
   logout: async () => {},
   loading: true,
@@ -27,42 +28,54 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [name, setName] = useState<string | null>(null);
 
-  // Bootstrap on mount (GET /users/me)
+  // 1) On mount, fetch /users/me
   useEffect(() => {
     (async () => {
       try {
-        const { user_id } = await getJson<{ user_id: number }>(
-          "/users/me",
-          true
-        );
-        setUserId(user_id);
+        // note: response shape is { id, username }
+        const { id, username } = await getJson<{
+          id: number;
+          username: string;
+        }>("/users/me", true);
+        setUserId(id);
+        setName(username);
       } catch {
         setUserId(null);
+        setName(null);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  // login() → POST /users/auth → GET /users/me
+  // 2) login → POST /users/auth → GET /users/me
   async function login(username: string, password: string) {
     await postJson<{ success: boolean }>(
       "/users/auth",
       { username, password },
       true
     );
-    const { user_id } = await getJson<{ user_id: number }>("/users/me", true);
-    setUserId(user_id);
+
+    // now re-fetch the “me” endpoint
+    const { id } = await getJson<{ id: number; username: string }>(
+      "/users/me",
+      true
+    );
+    setUserId(id);
+    setName(username);
   }
 
+  // 3) logout
   async function logout() {
-    await postJson("/users/logout", {}, true);
+    await getJson("/users/logout", true);
     setUserId(null);
+    setName(null);
   }
 
   return (
-    <AuthContext.Provider value={{ userId, login, logout, loading }}>
+    <AuthContext.Provider value={{ userId, name, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

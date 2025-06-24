@@ -5,27 +5,38 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import MainScreen from "@/app/mainscreen";
+import ChatScreen from "@/app/chatscreen";
 
 export default function Home() {
-  const { userId, loading } = useAuth();
+  const { name, loading } = useAuth();
 
-  // While we’re checking auth, avoid a flash
   if (loading) {
     return null;
   }
 
-  // Authenticated view
-  if (userId) {
+  if (name) {
+    // User is logged in, show main screen
     return (
       <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
-        <h1 className="text-4xl font-bold text-[var(--color-purdue-black)]">
-          Welcome back, User #{userId}!
+        <h1 className="text-4xl font-bold text-[var(--color-purdue-white)]">
+          Welcome back, {name}!
         </h1>
       </div>
     );
+    //return MainScreen();
   }
 
-  // Unauthenticated view
+  //return ChatScreen({ chatId: "2e7862c8-b538-4c82-994f-c1f8b535cb2b" });
+  /*
+    <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
+      <h1 className="text-4xl font-bold text-[var(--color-purdue-white)]">
+        Welcome back, !
+      </h1>
+    </div>
+    */
+  //}
+
   return (
     <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
       <div className="max-w-md w-full bg-[var(--color-purdue-gold)] rounded-2xl shadow-lg p-8 space-y-6">

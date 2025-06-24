@@ -8,6 +8,7 @@ import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Network } from "inspector/promises";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -24,8 +25,8 @@ export default function LoginPage() {
     try {
       await login(username, password);
       router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err) {
+      setError("Invalid username or password. Please try again.");
     } finally {
       setLoading(false);
     }
