@@ -5,6 +5,7 @@ import Link from "next/link";
 import { postJson } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 
 export default function RegisterPage() {
@@ -12,6 +13,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirm] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -25,8 +27,12 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      await postJson("/users/register", { username, email, password }, false);
-      router.push("/login");
+      await postJson(
+        "/users/register",
+        { username, email, password, isAdmin },
+        false
+      );
+      router.push("/");
     } catch (err: any) {
       setError("Registration failed");
     } finally {
@@ -105,6 +111,38 @@ export default function RegisterPage() {
               className="mt-1 bg-white text-black placeholder-gray-400"
             />
           </label>
+
+          {/** Admin */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="admin"
+              onChange={(e) =>
+                setIsAdmin((e.target as HTMLInputElement).checked)
+              }
+              className="text-[var(--color-purdue-black)] bg-white"
+            />
+            <label htmlFor="admin" className="text-[var(--color-purdue-black)]">
+              I am an admin
+            </label>
+          </div>
+
+          {/** Terms and Conditions */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="terms"
+              required
+              className="text-[var(--color-purdue-black)] bg-white"
+            />
+            <label htmlFor="terms" className="text-[var(--color-purdue-black)]">
+              I agree to the{" "}
+              <Link
+                href="/terms"
+                className="text-[var(--color-purdue-blue)] underline style=cursor: pointer"
+              >
+                Terms and Conditions
+              </Link>
+            </label>
+          </div>
         </div>
 
         <Button

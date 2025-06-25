@@ -1,20 +1,18 @@
 // src/components/Header.tsx
 "use client";
-
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { getJson, postJson } from "@/lib/api";
+import { Button } from "@/components/ui/button";
 
 export function Header() {
   const { name, logout } = useAuth();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleLogout(e: React.FormEvent) {
     e.preventDefault();
     try {
       logout();
@@ -23,14 +21,14 @@ export function Header() {
       setError(err.message || "Logout failed");
     }
   }
+
   return (
     <header className="w-full bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)] p-4 flex justify-between items-center">
       <div className="flex items-center space-x-4">
-        <Link href="/" className="hover:underline ">
+        <Link href="/">
           <Image
-            //className="dark:invert"
             src="/Purdue_Boilermakers_logo.png"
-            alt="Next.js logo"
+            alt="Boilermakers logo"
             width={180}
             height={38}
             priority
@@ -38,25 +36,33 @@ export function Header() {
         </Link>
         <h1 className="text-4xl font-extrabold">PurdueGPT</h1>
       </div>
+
       <nav className="space-x-4">
         {!name ? (
           <>
-            <Link href="/login" className="hover:underline ">
-              <Button className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold">
+            <Link href="/login">
+              <Button
+                variant="purdue"
+                className="bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)] hover:bg-[var(--color-purdue-black)]/90"
+              >
                 Log In
               </Button>
             </Link>
-            <Link href="/register" className="hover:underline">
-              <Button className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold">
-                Sign up
+            <Link href="/register">
+              <Button
+                variant="purdue"
+                className="bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)] hover:bg-[var(--color-purdue-black)]/90"
+              >
+                Sign Up
               </Button>
             </Link>
           </>
         ) : (
-          <form onSubmit={handleSubmit} className="inline">
+          <form onSubmit={handleLogout} className="inline">
             <Button
               type="submit"
-              className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold"
+              variant="purdue"
+              className="bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)] hover:bg-[var(--color-purdue-black)]/90"
             >
               Log Out
             </Button>
