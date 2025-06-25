@@ -10,6 +10,7 @@ import warnings
 import torch
 from torch.utils.data import DataLoader
 from transformers.utils.import_utils import is_flash_attn_2_available
+from transformers import BitsAndBytesConfig
 
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from colpali_engine.compression.token_pooling import HierarchicalTokenPooler
@@ -27,15 +28,31 @@ class ColPali:
             If None, automatically detects the best available device. Defaults to None.
     """
 
-    def __init__(self, pool_factor: Optional[int] = 3, device: Optional[Union[str, torch.device]] = None):
+    def __init__(self, pool_factor: Optional[int] = 3, device: Optional[Union[str, torch.device]] = None, quantized: bool = False):
         self.device = device or get_torch_device()
 
-        self.model = ColQwen2_5.from_pretrained(
-            "vidore/colqwen2.5-v0.2",
-            torch_dtype=torch.bfloat16,
-            device_map=self.device,
-            attn_implementation="flash_attention_2" if is_flash_attn_2_available() else None,
-        ).eval()
+        if quantized:
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,  # Set False for 8-bit
+                bnb_4bit_use_double_quant=True,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_compute_dtype=torch.bfloat16
+            )
+
+            self.model = ColQwen2_5.from_pretrained(
+                "vidore/colqwen2.5-v0.2",
+                torch_dtype=torch.bfloat16,
+                device_map=self.device,
+                attn_implementation="flash_attention_2" if is_flash_attn_2_available() else None,
+                quantization_config=bnb_config,
+            ).eval()
+        else:
+            self.model = ColQwen2_5.from_pretrained(
+                "vidore/colqwen2.5-v0.2",
+                torch_dtype=torch.bfloat16,
+                device_map=self.device,
+                attn_implementation="flash_attention_2" if is_flash_attn_2_available() else None,
+            ).eval()
 
         self.processor = ColQwen2_5_Processor.from_pretrained("vidore/colqwen2.5-v0.2", use_fast=True)
 
