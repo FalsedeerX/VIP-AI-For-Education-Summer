@@ -161,7 +161,7 @@ Sample Request Body:
 
 ```json
 {
-	"username": "chen5292",
+    "username": "chen5292",
     "email": "chen5292@purdue.edu",
     "password": "apple123"
 }
