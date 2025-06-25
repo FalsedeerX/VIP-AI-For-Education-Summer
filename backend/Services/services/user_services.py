@@ -19,6 +19,7 @@ class UserRouter:
 		self.router.post("/logout", status_code=200, response_model=bool)(self.logout_user)
 		self.router.post("/joincourse", status_code=200, response_model=bool)(self.join_course)
 		self.router.post("/deletecourse", status_code=200, response_model=bool)(self.delete_course)
+		self.router.get("/getcourses", status_code=200, response_model=list)(self.get_user_courses)
 
 
 	async def create_user(self, payload: UserCreate) -> bool:
@@ -138,4 +139,19 @@ class UserRouter:
 			raise HTTPException(404, "Course not found or already deleted.")
 
 		return True
+	
+	async def get_user_courses(self, request: Request) -> list:
+		""" Get the list of courses the user is enrolled in """
+		if not request.state.token:
+			raise HTTPException(status_code=401, detail="User not logged in.")
+
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			raise HTTPException(status_code=401, detail="Malformed session token.")
+
+		uid = request.state.user_id
+		courses = await self.db.get_user_courses(uid)
+		if courses is None:
+			raise HTTPException(status_code=404, detail="No courses found for this user.")
+		
+		return courses
 	

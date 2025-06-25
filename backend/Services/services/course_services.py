@@ -2,7 +2,7 @@ from uuid import UUID
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
 from fastapi import APIRouter, HTTPException, Request, Response
-from services.schemas.course import CourseContent, CourseInfo, NewCourse
+from services.schemas.course import CourseContent, CourseInfo, NewCourse, CourseFolder
 
 
 class CourseRouter:
@@ -15,6 +15,7 @@ class CourseRouter:
 		self.router.get("", status_code=200, response_model=CourseContent)(self.get_courses)
 		self.router.post("/create", status_code=200, response_model=int)(self.create_course)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_course)
+		self.router.get("/get", status_code=200, response_model=CourseFolder)(self.get_course_folders)
 
 
 	async def get_courses(self, request: Request, response: Response) -> CourseContent:
@@ -59,6 +60,19 @@ class CourseRouter:
 
 		status = await self.db.delete_course(payload.course_id)
 		return status
+	
+	async def get_course_folders(self, payload: CourseInfo, request: Request, response: Response) -> CourseFolder:
+		""" Get the folders of a course. """
+		# check if the user is logged in
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		folders = await self.db.get_folders_for_course(payload.course_id)
+		return folders
 
 
 if __name__ == "__main__":

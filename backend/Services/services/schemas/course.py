@@ -1,3 +1,4 @@
+from typing import Any, Dict, List
 from pydantic import BaseModel
 
 
@@ -11,3 +12,5 @@ class NewCourse(BaseModel):
 
 class CourseInfo(BaseModel):
 	course_id: int
+
+CourseFolder = List[Dict[str, Any]]

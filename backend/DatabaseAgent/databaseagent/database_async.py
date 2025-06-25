@@ -379,7 +379,7 @@ class DatabaseAgent:
         await conn.commit()
         return True
     
-    async def delete_user_courses(self, user_id: int, course_code: str) -> bool:
+    async def delete_user_course(self, user_id: int, course_code: str) -> bool:
         """ Remove a course from a user's list of courses. """
         conn = await get_connection()
         async with conn.cursor() as cur:
@@ -403,8 +403,35 @@ class DatabaseAgent:
         await conn.commit()
         return True
     
+    async def get_user_courses(self, user_id: int) -> List[Dict[str, Any]]:
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id AS course_id, title
+                FROM courses
+                WHERE id = ANY(
+                        SELECT course_ids
+                        FROM users
+                        WHERE id = %s
+                    );
+                """,
+                (user_id,)
+            )
+            return await cur.fetchall() 
 
-
+    async def get_folders_for_course(self, course_id: int) -> List[Dict[str, Any]]:
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id AS folder_id, label AS folder_label
+                FROM folders
+                WHERE course_id = %s
+                """,
+                (course_id,)
+            )
+            return await cur.fetchall()
 
 
 if __name__ == "__main__":
