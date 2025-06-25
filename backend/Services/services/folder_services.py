@@ -12,13 +12,13 @@ class FolderRouter:
 		self.db = database
 
 		# register the endpoints
-		self.router.get("", status_code=200, response_model=FolderContent)(self.get_chats)
+		self.router.get("", status_code=200, response_model=FolderContent)(self.get_folder)
 		self.router.post("/create", status_code=201, response_model=int)(self.create_folder)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_folder)
 		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_folder)
 
 
-	async def get_chats(self, payload: FolderInfo, request: Request, response: Response) -> FolderContent:
+	async def get_folder(self, payload: FolderInfo, request: Request, response: Response) -> FolderContent:
 		""" Get a list of chats which is organized in a specific folder_id """
 		# check if the user is logged in
 		if not request.state.token: raise HTTPException(401, "User not logged in.")

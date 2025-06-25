@@ -5,6 +5,7 @@ from fastapi import FastAPI, Request
 from services.user_services import UserRouter
 from services.chat_services import ChatRouter
 from services.folder_services import FolderRouter
+from services.course_services import CourseRouter
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import ValkeyConfig, SessionManager
 from fastapi.middleware.cors import CORSMiddleware
@@ -20,6 +21,7 @@ database_broker = DatabaseAgent()
 user_router = UserRouter(database_broker, session_manager)
 chat_router = ChatRouter(database_broker, session_manager)
 folder_router = FolderRouter(database_broker, session_manager)
+course_router = CourseRouter(database_broker, session_manager)
 
 
 @app.middleware("http")
@@ -43,6 +45,7 @@ async def auto_resolve(request: Request, call_next):
 app.include_router(user_router.router)
 app.include_router(chat_router.router)
 app.include_router(folder_router.router)
+app.include_router(course_router.router)
 
 
 app.add_middleware(

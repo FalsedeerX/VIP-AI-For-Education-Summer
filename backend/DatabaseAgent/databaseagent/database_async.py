@@ -281,9 +281,22 @@ class DatabaseAgent:
         return True
 
 
-    async def get_courses(self, user_id: int) -> dict[int, list[int]]:
-        """ Return a list of course id and the folder id in each entry. """
-        pass
+    async def get_courses(self, user_id: int) -> dict[str, list[int]]:
+        """ Return a dictonary of course id and the folder id in each entry.
+            <course-name>: [folder_ids] """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """SELECT c.title, f.id FROM folders AS f
+                   JOIN courses AS c ON f.course_id = c.id WHERE f.user_id = %s;""", 
+                (user_id,)
+            )
+            rows = await cur.fetchall()
+
+        result = {}
+        for course_title, folder_id in rows:
+            result.setdefault(course_title, []).append(folder_id)
+        return result
 
 
     async def delete_course(self, course_id: int) -> bool:
@@ -312,7 +325,7 @@ class DatabaseAgent:
             else:
                 await cur.execute(
                         "INSERT INTO courses (code) VALUES (%s) RETURNING ID;",
-                        (course_code)
+                        (course_code,)
                     )
 
             row = await cur.fetchone()
@@ -346,7 +359,5 @@ class DatabaseAgent:
 
 if __name__ == "__main__":
     agent = DatabaseAgent()
-    # asyncio.run(agent.create_course("ECE30100", "Signals and Systems"))
-    # asyncio.run(agent.create_folder("MyFolder", 6, 1))
-    courses = asyncio.run(agent.get_chats(4))
-    print(courses)
+    data = asyncio.run(agent.get_courses(6))
+    print(data)

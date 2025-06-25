@@ -62,7 +62,6 @@ class UserRouter:
 		user_id = request.state.user_id
 
 		if not token:
-			print(token)
 			raise HTTPException(status_code=401, detail="Not authenticated.")
 
 		try:
