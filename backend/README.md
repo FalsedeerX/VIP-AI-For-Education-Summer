@@ -2,6 +2,8 @@
 
 This is the backend service for AI For Education, a chat-based application that helps users organize conversations by course and folder. It supports secure user authentication, asynchronous database operations, and modular service architecture.
 
+---
+
 ## Project Structure
 
 ```txt
@@ -13,10 +15,12 @@ backend/
 │   └── test_database_agent.py
 ├── services/
 │   ├── chat_services.py     # Logic for chat handling
+|   ├── course_services.py   # Course creation, deletion and retrieval
 │   ├── folder_services.py   # Folder creation, update, linking
 │   └── user_services.py     # User auth, registration, validation
 ├── schemas/
 │   ├── chat.py
+│   ├── course.py
 │   ├── folder.py
 │   └── user.py
 ├── SessionManager/
@@ -24,20 +28,24 @@ backend/
 ├── Utils/
 │   ├── mods/
 │   │   ├── __init__.py
-│   │   └── hd.py
+│   │   └── hd.py            # HexDump module for connection debugging.
 │   └── echo_server.py
-├── README.md                  # FastAPI app entry point
+├── backend.py               # FastAPI app entry point
 └── requirements.txt         # Python dependencies
 ```
 
+---
+
 ## Core Features
 
-- Secure User Authentication using Argon2 hashing
-- Organized Conversations by folders and courses
-- Asynchronous interactions with PostgreSQL
-- Testable Design with isolated services and schema layers
-- UUID-based Chat Linking with folder associations
-- Database Schema
+- Secure User Authentication using Argon2 hashing.
+- Organized Conversations by folders and courses.
+- Asynchronous interactions with PostgreSQL.
+- Testable Design with isolated services and schema layers.
+- UUID-based Chat Linking with folder associations.
+- Modern and secure session mangement solution.
+
+---
 
 ## Getting Started
 
@@ -58,6 +66,8 @@ backend/
 4. Run the Server
    ???
 
+---
+
 ## Database Schema Design
 
 Refer to the SQL definitions in the /schemas section above for how to initialize your tables.
@@ -70,22 +80,133 @@ Refer to the SQL definitions in the /schemas section above for how to initialize
 - chat_messages — logs every user/bot message
 - See the full schema here [Database Agent Docs](/backend/DatabaseAgent/README.md)
 
+---
+
 ## Session Managment
 
 This backend uses a custom session system powered by Redis to manage user logins.
 Each authenticated user receives a unique UUID token tied to their IP address.
 A background worker monitors session activity and:
 
-- Expires tokens after inactivity or TTL timeout
-- Allows session verification and extension via service methods
+- Session token impersonate prevention.
+- Expires tokens after inactivity or TTL timeout.
+- Allows session verification and extension via service methods.
 
 See the more on session managment [Session Manager Docs](/backend/SessionManager/README.md),
 this system supports multi-session tracking, secure IP validation, and idle cleanup.
+
+---
+
+## Endpoints API
+
+### UserRouter
+
+#### `/users/me`
+
+Action: `GET`  
+
+Behavior: **Receive current username and the corresponding user ID.**  
+
+This request doesn't need a body.  
+
+Sample Response:  
+
+```json
+{
+    "id": 6,
+    "username": "chen5292"
+}
+```
+
+---
+
+#### `users/auth`
+
+Action: 'POST'
+
+Behavior: **Verify user credential, if succeed a session token will be assigned.**
+
+Sample Request:  
+
+```json
+{
+    "username": "chen5292",
+    "password": "apple123"
+}
+```
+
+Sample Response:  
+
+```raw
+true
+```
+
+---
+
+#### `users/register`
+
+Action: `POST`
+
+Behavior: **Register a new user in the database.**
+
+Sample Request:  
+
+```json
+{
+	"username": "banana",
+    "email": "banana@purdue.edu",
+    "password": "apple123"
+}
+```
+
+Sample Response:
+
+```raw
+true
+```
+
+---
+
+#### `users/delete`
+
+Action: `DELETE`
+
+Behavior: **Delete a user from the database, along with the chat history and folders.**
+
+Sample Request:
+
+```json
+{
+    "user_id": 6
+}
+```
+
+Sample Response:
+
+```raw
+true
+```
+
+---
+
+### ChatRouter
+
+---
+
+### FolderRouter
+
+---
+
+### CourseRouter
+
+---
 
 ## Running Tests
 
 pytest DatabaseAgent/test_database_agent.py  
 pytest -q
+
+---
 
 ## Authors
 
