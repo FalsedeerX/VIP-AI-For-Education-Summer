@@ -366,7 +366,95 @@ class DatabaseAgent:
 
         await conn.commit()
         return status is not None
+    
+    async def add_course(self, user_id: int, course_code: str) -> bool:
+        """ Add a course to a user's list of courses. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id FROM courses WHERE code = %s;", 
+                (course_code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return False
+            course_id = row[0]
 
+            await cur.execute(
+                """
+                UPDATE users
+                   SET course_ids = array_append(course_ids, %s)
+                 WHERE id = %s;
+                """,
+                (course_id, user_id)
+            )
+        await conn.commit()
+        return True
+    
+    async def delete_user_course(self, user_id: int, course_code: str) -> bool:
+        """ Remove a course from a user's list of courses. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id FROM courses WHERE code = %s;", 
+                (course_code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return False
+            course_id = row[0]
+
+            await cur.execute(
+                """
+                UPDATE users
+                   SET course_ids = array_remove(course_ids, %s)
+                 WHERE id = %s;
+                """,
+                (course_id, user_id)
+            )
+        await conn.commit()
+        return True
+    
+    async def get_user_courses(self, user_id: int) -> List[Dict[str, Any]]:
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id AS course_id, title
+                FROM courses
+                WHERE id = ANY(
+                        SELECT course_ids
+                        FROM users
+                        WHERE id = %s
+                    );
+                """,
+                (user_id,)
+            )
+            return await cur.fetchall() 
+
+    async def get_folders_for_course(self, course_id: int) -> List[Dict[str, Any]]:
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id AS folder_id, label AS folder_label
+                FROM folders
+                WHERE course_id = %s
+                """,
+                (course_id,)
+            )
+            return await cur.fetchall()
+        
+    async def get_admin(self, user_id: int) -> bool:
+        """ Check if the user is an admin. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT is_admin FROM users WHERE id = %s;", 
+                (user_id,)
+            )
+            row = await cur.fetchone()
+        return row[0] if row else False
 
 
 if __name__ == "__main__":

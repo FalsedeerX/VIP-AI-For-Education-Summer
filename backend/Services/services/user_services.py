@@ -1,7 +1,7 @@
 from uuid import UUID
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import SessionManager
-from services.schemas.user import UserCreate, UserLogin, UserInfo
+from services.schemas.user import UserCreate, UserLogin, UserInfo, UserCourse
 from fastapi import APIRouter, HTTPException, Request, Response, requests
 
 
@@ -16,7 +16,10 @@ class UserRouter:
 		self.router.post("/register", status_code=201, response_model=bool)(self.create_user)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_user)
 		self.router.get("/me", status_code=200, response_model=dict)(self.get_current_user)
-		self.router.get("/logout", status_code=200, response_model=bool)(self.logout_user)
+		self.router.post("/logout", status_code=200, response_model=bool)(self.logout_user)
+		self.router.post("/joincourse", status_code=200, response_model=bool)(self.join_course)
+		self.router.post("/deletecourse", status_code=200, response_model=bool)(self.delete_course)
+		self.router.get("/getcourses", status_code=200, response_model=list)(self.get_user_courses)
 
 
 	async def create_user(self, payload: UserCreate) -> bool:
@@ -82,7 +85,10 @@ class UserRouter:
 		user = await self.db.get_username(user_id)
 		if user is None:
 			raise HTTPException(status_code=404, detail="User not found.")
-		return {"id": user_id, "username": user}
+		
+		admin = await self.db.get_admin(user_id)
+
+		return {"id": user_id, "username": user, "admin": admin}
 	
 	
 	async def logout_user(self, request: Request, response: Response) -> bool:
@@ -104,5 +110,52 @@ class UserRouter:
 			response.delete_cookie("purduegpt-token", path="/")
 			raise HTTPException(status_code=401, detail="Session expired or invalid.")
 
+		self.session.purge_token(UUID(token))
 		response.delete_cookie("purduegpt-token", path="/")
 		return True
+	
+	async def join_course(self, payload: UserCourse, request: Request) -> bool:
+		""" Add a course to the user's course list """
+		if not request.state.token:
+			raise HTTPException(status_code=401, detail="User not logged in.")
+
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			raise HTTPException(status_code=401, detail="Malformed session token.")
+
+		uid = request.state.user_id
+		ok = await self.db.add_course(uid, payload.course_code)
+		if not ok:
+			raise HTTPException(404, "Course not found or already added.")
+
+		return True
+	
+	async def delete_course(self, payload: UserCourse, request: Request) -> bool:
+		""" Delete a course from the user's course list """
+		if not request.state.token:
+			raise HTTPException(status_code=401, detail="User not logged in.")
+
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			raise HTTPException(status_code=401, detail="Malformed session token.")
+
+		uid = request.state.user_id
+		ok = await self.db.delete_user_course(uid, payload.course_code)
+		if not ok:
+			raise HTTPException(404, "Course not found or already deleted.")
+
+		return True
+	
+	async def get_user_courses(self, request: Request) -> list:
+		""" Get the list of courses the user is enrolled in """
+		if not request.state.token:
+			raise HTTPException(status_code=401, detail="User not logged in.")
+
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			raise HTTPException(status_code=401, detail="Malformed session token.")
+
+		uid = request.state.user_id
+		courses = await self.db.get_user_courses(uid)
+		if courses is None:
+			raise HTTPException(status_code=404, detail="No courses found for this user.")
+		
+		return courses
+	

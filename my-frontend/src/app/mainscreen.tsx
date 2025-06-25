@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { getJson } from "@/lib/api";
 
 interface Course {
   id: string;
@@ -37,7 +38,7 @@ export default function MainScreen() {
   // Placeholder fetch - replace with real endpoint calls
   useEffect(() => {
     async function loadCourses() {
-      const data: Course[] = []; // await fetchCoursesForStudent();
+      const data: Course[] = await await getJson<{}>("/users/getcourses", true);
       setCourses(data);
     }
     loadCourses();
