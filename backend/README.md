@@ -128,7 +128,7 @@ Sample Response:
 
 ---
 
-#### `users/auth`
+#### `/users/auth`
 
 Action: 'POST'
 
@@ -151,7 +151,7 @@ true
 
 ---
 
-#### `users/register`
+#### `/users/register`
 
 Action: `POST`
 
@@ -175,7 +175,7 @@ true
 
 ---
 
-#### `users/delete`
+#### `/users/delete`
 
 Action: `DELETE`
 
@@ -199,7 +199,7 @@ true
 
 ### ChatRouter
 
-#### `chats/create`
+#### `/chats/create`
 
 Action: `POST`  
 
@@ -221,7 +221,7 @@ Sample Response:
 
 ---
 
-#### `chats/organize`
+#### `/chats/organize`
 
 Action: `POST`
 
@@ -244,7 +244,7 @@ true
 
 ---
 
-#### `chats/<chat_id>`
+#### `/chats/<chat_id>`
 
 Action: `GET`  
 
@@ -278,7 +278,7 @@ Sample Response:
 
 ---
 
-#### `chats/<chat-id>`
+#### `/chats/<chat-id>`
 
 Action: `PUT`
 
@@ -300,7 +300,7 @@ true
 
 ---
 
-#### `chats/<chat-id>`
+#### `/chats/<chat-id>`
 
 Action: `DELETE`
 
@@ -320,13 +320,40 @@ true
 
 ### FolderRouter
 
-#### `folders/create`
+#### `/folders`
+
+Action: `GET`
+
+Behavior: **Get a list of chats which is organized in the specified folder.**  
+
+Sample Request Body:  
+
+```json
+{
+    "folder_id": 12
+}
+```
+
+Sample Response:  
+
+```json
+{
+    "How to prepare for exam ?": "4e61c2bb-7da0-4b0f-9e4c-cdb3498dc2f3",
+    "Homework 2 Questions": "35ff37f5-1c2b-44f0-a3ad-c561072a45c2",
+    "Exam Preparation Tips": "5ed48f9a-7df4-46dc-91ba-357dae9aa0d5",
+    "Important Formulas for Calculus": "95d33a97-6871-49d8-89d2-700d5c2c9a2e"
+}
+```
+
+---
+
+#### `/folders/create`
 
 Action: `POST`
 
 Behavior: **Create a folder of a specified course for the current logged in user. Return newly created folder ID upon success.**
 
-Sample Request:
+Sample Request Body:
 
 ```json
 {
@@ -339,6 +366,51 @@ Sample Response:
 
 ```json
 12
+```
+
+---
+
+#### `/folders/organize`
+
+Action: `POST`
+
+Behavior: **Organize a folder into a course by `course_id`. Will verify whether the current user owns the specified folder.**
+
+Sample Request Body:  
+
+```json
+{
+    "folder_id": 12,
+    "course_id": 1
+}
+```
+
+Sample Response:
+
+```json
+true
+```
+
+---
+
+#### `/folders/delete`
+
+Action: `DELETE`
+
+Behavior: **Delete a folder and the associated chats and messages.**
+
+Sample Request Body:
+
+```json
+{
+    "folder_id": 3
+}
+```
+
+Sample Response:
+
+```json
+true
 ```
 
 ---
