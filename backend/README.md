@@ -353,7 +353,7 @@ Action: `POST`
 
 Behavior: **Create a folder of a specified course for the current logged in user. Return newly created folder ID upon success.**
 
-Sample Request Body:
+Sample Request Body:  
 
 ```json
 {
@@ -362,7 +362,7 @@ Sample Request Body:
 }
 ```
 
-Sample Response:
+Sample Response:  
 
 ```json
 12
@@ -385,7 +385,7 @@ Sample Request Body:
 }
 ```
 
-Sample Response:
+Sample Response:  
 
 ```json
 true
@@ -399,7 +399,7 @@ Action: `DELETE`
 
 Behavior: **Delete a folder and the associated chats and messages.**
 
-Sample Request Body:
+Sample Request Body:  
 
 ```json
 {
@@ -407,7 +407,7 @@ Sample Request Body:
 }
 ```
 
-Sample Response:
+Sample Response:  
 
 ```json
 true
@@ -416,6 +416,79 @@ true
 ---
 
 ### CourseRouter
+
+#### `courses/`
+
+Action: `GET`
+
+Behavior: **Retrieve a list of `folders id` and the corresponding course title which the current user owns.**  
+
+Sample Request Body:  
+
+None
+
+Sample Response:  
+
+```json
+{
+    "Signals and Systems": [
+        14,
+        13
+    ],
+    "Object Oriented Programming with C++": [
+        16,
+        15
+    ],
+    "Probabilistic Methods": [
+        17
+    ]
+}
+```
+
+---
+
+#### `courses/create`
+
+Action: `POST`
+
+Behavior: **Create a new course in the database.**  
+
+Sample Request Body:  
+
+```json
+{
+    "course_code": "ECE36200",
+    "course_title": "Microprocessor Systems and Interfacing"
+}
+```
+
+Sample Response:  
+
+```json
+true
+```
+
+---
+
+#### `courses/delete`
+
+Action: `DELETE`
+
+Behavior: **Delete a course and the associated folders, chats and messages.**
+
+Sample Request Body:
+
+```json
+{
+    "course_id": 2    
+}
+```
+
+Sample Response:
+
+```json
+true
+```
 
 ---
 
