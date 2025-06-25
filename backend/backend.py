@@ -1,4 +1,3 @@
-import re
 import uvicorn
 from uuid import UUID
 from fastapi import FastAPI, Request
