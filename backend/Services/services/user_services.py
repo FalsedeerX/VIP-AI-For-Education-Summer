@@ -1,7 +1,7 @@
 from uuid import UUID
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import SessionManager
-from services.schemas.user import UserCreate, UserLogin
+from services.schemas.user import UserCreate, UserLogin, UserInfo
 from fastapi import APIRouter, HTTPException, Request, Response, requests
 
 
@@ -14,7 +14,7 @@ class UserRouter:
 		# register the endpoints
 		self.router.post("/auth", status_code=200, response_model=bool)(self.login_user)
 		self.router.post("/register", status_code=201, response_model=bool)(self.create_user)
-		self.router.delete("/delete/{user_id}", status_code=200, response_model=bool)(self.delete_user)
+		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_user)
 		self.router.get("/me", status_code=200, response_model=dict)(self.get_current_user)
 		self.router.get("/logout", status_code=200, response_model=bool)(self.logout_user)
 
@@ -27,7 +27,7 @@ class UserRouter:
 
 
 	async def login_user(self, payload: UserLogin, request: Request, response: Response) -> bool:
-		""" Verify a user credential, if approved, will assign a token in cookie """
+		""" Verify user credential, if approved, will assign a token in cookie """
 		status = await self.db.verify_user(payload.username, payload.password)
 		if not status: raise HTTPException(status_code=403, detail="User authentication failed.")
 		
@@ -38,8 +38,9 @@ class UserRouter:
 		return True
 
 
-	async def delete_user(self, user_id: int, request: Request, response: Response) -> bool:
-		""" Meant for user deletion, but this thing needs a better designed """
+	async def delete_user(self, payload: UserInfo, request: Request, response: Response) -> bool:
+		""" Meant for user deletion, but this thing needs a better design,
+			currently this implemtation is flawed allowing all login user to delete other's account. """
 		# if the user is not logged in
 		if not request.state.token: raise HTTPException(401, "User not logged in.")
 
@@ -49,7 +50,7 @@ class UserRouter:
 			raise HTTPException(401, "Malformed session token.")
 
 		# proceed the user deletion
-		status = await self.db.delete_user(user_id)
+		status = await self.db.delete_user(payload.user_id)
 		if not status: raise HTTPException(404, "User not found")
 		return True
 	
