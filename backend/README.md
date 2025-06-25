@@ -161,7 +161,7 @@ Sample Request Body:
 
 ```json
 {
-    "username": "chen5292",
+	"username": "chen5292",
     "email": "chen5292@purdue.edu",
     "password": "apple123"
 }
@@ -300,7 +300,7 @@ true
 
 ---
 
-`chats/<chat-id>`
+#### `chats/<chat-id>`
 
 Action: `DELETE`
 
