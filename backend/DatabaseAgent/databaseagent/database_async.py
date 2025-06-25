@@ -30,7 +30,7 @@ class DatabaseAgent:
         self.hasher = PasswordHasher()
 
 
-    async def register_user(self, username: str, email: str, password: str) -> bool:
+    async def register_user(self, username: str, email: str, password: str, is_admin: bool) -> bool:
         """Create a new user entry."""
         conn = await get_connection()
         async with conn.cursor() as cur:
@@ -41,11 +41,23 @@ class DatabaseAgent:
             if (await cur.fetchone())[0]:
                 return False
             await cur.execute(
-                "INSERT INTO users (username, email, password) VALUES (%s, %s, %s);",
-                (username, email, self.hasher.hash(password))
+                "INSERT INTO users (username, email, password, is_admin) VALUES (%s, %s, %s, %s);",
+                 (username, email, self.hasher.hash(password), is_admin)
             )
         await conn.commit()
         return True
+
+
+    async def is_admin(self, user_id: int) -> bool:
+        """ Determine whether a user have admin access. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT is_admin FROM users WHERE id = %s;", 
+                (user_id,)
+            )
+            row = await cur.fetchone()
+        return row[0] if row else False
 
 
     async def get_user_id(self, username: str) -> Optional[int]:

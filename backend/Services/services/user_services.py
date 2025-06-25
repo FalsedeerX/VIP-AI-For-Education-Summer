@@ -24,7 +24,7 @@ class UserRouter:
 
 	async def create_user(self, payload: UserCreate) -> bool:
 		""" Register a new user. """
-		status = await self.db.register_user(payload.username, payload.email, payload.password)
+		status = await self.db.register_user(payload.username, payload.email, payload.password, payload.is_admin)
 		if not status: raise HTTPException(status_code=409, detail="Registration info conflict.")
 		return True
 
@@ -89,6 +89,7 @@ class UserRouter:
 		admin = await self.db.get_admin(user_id)
 
 		return {"id": user_id, "username": user, "admin": admin}
+	
 	
 	async def logout_user(self, request: Request, response: Response) -> bool:
 		""" Logout the user by deleting the session token """

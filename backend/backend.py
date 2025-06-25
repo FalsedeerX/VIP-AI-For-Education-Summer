@@ -35,6 +35,7 @@ async def auto_resolve(request: Request, call_next):
 	if token:
 		request.state.token = token
 		request.state.user_id = session_manager.query_owner(UUID(token))
+		request.state.is_admin = await database_broker.is_admin(request.state.user_id)
 
 	response = await call_next(request)
 	return response

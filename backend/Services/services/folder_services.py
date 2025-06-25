@@ -39,14 +39,9 @@ class FolderRouter:
 	async def create_folder(self, payload: NewFolder, request: Request, response: Response) -> int:
 		""" Create a new folder under a folder. """
 		# check if the user is logged in
-		if not request.state.token: raise HTTPException(401, "User not logged in.")
+		if not request.state.is_admin: return -1
 
-		# verify the session token
-		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
-			response.delete_cookie("purduegpt-token")
-			raise HTTPException(401, "Malformed session token.")
-
-		folder_id = await self.db.create_folder(payload.folder_name, payload.course_id, request.state.user_id)
+		folder_id = await self.db.create_folder(payload.folder_name, payload.course_id, payload.user_id)
 		if folder_id == -1: raise HTTPException(404, "Could not create folder")
 		return folder_id
 
