@@ -70,15 +70,21 @@ backend/
 
 ## Database Schema Design
 
-Refer to the SQL definitions in the /schemas section above for how to initialize your tables.
+Refer to the SQL definitions in the `/schemas` section above for how to initialize your tables.
 
-- users — stores secure user accounts
-- courses — allows chats/folders to be organized by course
-- folders — user-defined containers for chat threads
-- chat_folder_link — many-to-many link between chats and folders
-- chats — contains metadata for each chat thread
-- chat_messages — logs every user/bot message
-- See the full schema here [Database Agent Docs](/backend/DatabaseAgent/README.md)
+- **users** — stores secure user accounts
+
+- **courses** — allows chats/folders to be organized by course
+
+- **folders** — user defined containers for chat threads
+
+- **chat_folder_link** — many-to-many link between chats and folders
+
+- **chats** — contains metadata for each chat thread
+
+- **chat_messages** — logs every user/bot message
+
+See the full schema here [Database Agent Docs](/backend/DatabaseAgent/README.md)
 
 ---
 
