@@ -432,6 +432,17 @@ class DatabaseAgent:
                 (course_id,)
             )
             return await cur.fetchall()
+        
+    async def get_admin(self, user_id: int) -> bool:
+        """ Check if the user is an admin. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT is_admin FROM users WHERE id = %s;", 
+                (user_id,)
+            )
+            row = await cur.fetchone()
+        return row[0] if row else False
 
 
 if __name__ == "__main__":

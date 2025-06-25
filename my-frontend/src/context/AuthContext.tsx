@@ -11,6 +11,7 @@ import { postJson, getJson } from "../lib/api";
 
 interface AuthContextType {
   userId: number | null;
+  admin: boolean;
   name?: string | null;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -20,6 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   userId: null,
   name: null,
+  admin: false,
   login: async () => {},
   logout: async () => {},
   loading: true,
@@ -28,22 +30,25 @@ const AuthContext = createContext<AuthContextType>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
+  const [admin, setAdmin] = useState(false); // Assuming admin state is needed
   const [name, setName] = useState<string | null>(null);
 
-  // 1) On mount, fetch /users/me
   useEffect(() => {
     (async () => {
       try {
         // note: response shape is { id, username }
-        const { id, username } = await getJson<{
+        const { id, username, admin } = await getJson<{
           id: number;
           username: string;
+          admin: boolean;
         }>("/users/me", true);
         setUserId(id);
         setName(username);
+        setAdmin(admin); // Set admin state if needed
       } catch {
         setUserId(null);
         setName(null);
+        setAdmin(false); // Reset admin state on error
       } finally {
         setLoading(false);
       }
@@ -59,12 +64,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     // now re-fetch the “me” endpoint
-    const { id } = await getJson<{ id: number; username: string }>(
-      "/users/me",
-      true
-    );
+    const { id, name, admin } = await getJson<{
+      id: number;
+      name: string;
+      admin: boolean;
+    }>("/users/me", true);
     setUserId(id);
-    setName(username);
+    setName(name);
+    setAdmin(admin); // Set admin state if needed
   }
 
   // 3) logout
@@ -72,10 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await getJson("/users/logout", true);
     setUserId(null);
     setName(null);
+    setAdmin(false);
   }
 
   return (
-    <AuthContext.Provider value={{ userId, name, login, logout, loading }}>
+    <AuthContext.Provider
+      value={{ userId, name, admin, login, logout, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );

@@ -85,7 +85,10 @@ class UserRouter:
 		user = await self.db.get_username(user_id)
 		if user is None:
 			raise HTTPException(status_code=404, detail="User not found.")
-		return {"id": user_id, "username": user}
+		
+		admin = await self.db.get_admin(user_id)
+
+		return {"id": user_id, "username": user, "admin": admin}
 	
 	async def logout_user(self, request: Request, response: Response) -> bool:
 		""" Logout the user by deleting the session token """
