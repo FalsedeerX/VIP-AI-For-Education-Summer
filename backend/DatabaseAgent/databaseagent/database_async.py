@@ -354,6 +354,56 @@ class DatabaseAgent:
 
         await conn.commit()
         return status is not None
+    
+    async def add_course(self, user_id: int, course_code: str) -> bool:
+        """ Add a course to a user's list of courses. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id FROM courses WHERE code = %s;", 
+                (course_code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return False
+            course_id = row[0]
+
+            await cur.execute(
+                """
+                UPDATE users
+                   SET course_ids = array_append(course_ids, %s)
+                 WHERE id = %s;
+                """,
+                (course_id, user_id)
+            )
+        await conn.commit()
+        return True
+    
+    async def delete_user_courses(self, user_id: int, course_code: str) -> bool:
+        """ Remove a course from a user's list of courses. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id FROM courses WHERE code = %s;", 
+                (course_code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return False
+            course_id = row[0]
+
+            await cur.execute(
+                """
+                UPDATE users
+                   SET course_ids = array_remove(course_ids, %s)
+                 WHERE id = %s;
+                """,
+                (course_id, user_id)
+            )
+        await conn.commit()
+        return True
+    
+
 
 
 
