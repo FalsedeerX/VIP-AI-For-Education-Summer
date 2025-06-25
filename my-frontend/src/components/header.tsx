@@ -4,8 +4,25 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
+import { useAuth } from "@/context/AuthContext";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { getJson, postJson } from "@/lib/api";
 
 export function Header() {
+  const { name, logout } = useAuth();
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    try {
+      logout();
+      router.push("/login");
+    } catch (err: any) {
+      setError(err.message || "Logout failed");
+    }
+  }
   return (
     <header className="w-full bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)] p-4 flex justify-between items-center">
       <div className="flex items-center space-x-4">
@@ -22,16 +39,29 @@ export function Header() {
         <h1 className="text-4xl font-extrabold">PurdueGPT</h1>
       </div>
       <nav className="space-x-4">
-        <Link href="/login" className="hover:underline ">
-          <Button className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold">
-            Log In
-          </Button>
-        </Link>
-        <Link href="/register" className="hover:underline">
-          <Button className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold">
-            Sign up
-          </Button>
-        </Link>
+        {!name ? (
+          <>
+            <Link href="/login" className="hover:underline ">
+              <Button className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold">
+                Log In
+              </Button>
+            </Link>
+            <Link href="/register" className="hover:underline">
+              <Button className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold">
+                Sign up
+              </Button>
+            </Link>
+          </>
+        ) : (
+          <form onSubmit={handleSubmit} className="inline">
+            <Button
+              type="submit"
+              className="bg-purdue-black hover:opacity-90 text-purdue-gold font-semibold"
+            >
+              Log Out
+            </Button>
+          </form>
+        )}
       </nav>
     </header>
   );

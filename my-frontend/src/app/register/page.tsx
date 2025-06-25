@@ -28,7 +28,7 @@ export default function RegisterPage() {
       await postJson("/users/register", { username, email, password }, false);
       router.push("/login");
     } catch (err: any) {
-      setError(err.message || "Registration failed");
+      setError("Registration failed");
     } finally {
       setLoading(false);
     }
