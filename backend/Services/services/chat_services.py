@@ -34,7 +34,7 @@ class ChatRouter:
 
 
 	async def get_chat_message(self, chat_id: str, request: Request, response: Response) -> ChatMessages:
-		""" Receive the chat log message in a dictionary """
+		""" Receive the chat messages in a dictionary """
 		# check if the user is logged in 
 		if not request.state.token: raise HTTPException(401, "User not logged in.")
 

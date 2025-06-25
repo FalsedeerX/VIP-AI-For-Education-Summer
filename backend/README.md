@@ -113,7 +113,9 @@ Action: `GET`
 
 Behavior: **Receive current username and the corresponding user ID.**  
 
-This request doesn't need a body.  
+Sample Request Body:  
+
+None
 
 Sample Response:  
 
@@ -132,7 +134,7 @@ Action: 'POST'
 
 Behavior: **Verify user credential, if succeed a session token will be assigned.**
 
-Sample Request:  
+Sample Request Body:  
 
 ```json
 {
@@ -143,7 +145,7 @@ Sample Request:
 
 Sample Response:  
 
-```raw
+```json
 true
 ```
 
@@ -155,19 +157,19 @@ Action: `POST`
 
 Behavior: **Register a new user in the database.**
 
-Sample Request:  
+Sample Request Body:  
 
 ```json
 {
-	"username": "banana",
-    "email": "banana@purdue.edu",
+	"username": "chen5292",
+    "email": "chen5292@purdue.edu",
     "password": "apple123"
 }
 ```
 
 Sample Response:
 
-```raw
+```json
 true
 ```
 
@@ -179,7 +181,7 @@ Action: `DELETE`
 
 Behavior: **Delete a user from the database, along with the chat history and folders.**
 
-Sample Request:
+Sample Request Body:
 
 ```json
 {
@@ -197,9 +199,147 @@ true
 
 ### ChatRouter
 
+#### `chats/create`
+
+Action: `POST`  
+
+Behavior: **Create a new chat for the current logged in user,  Returns newly created chat-id.**  
+
+Sample Request Body:
+
+```json
+{
+    "title": "How to prepare for exam ?"
+}
+```
+
+Sample Response:
+
+```json
+"da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
+```
+
+---
+
+#### `chats/organize`
+
+Action: `POST`
+
+Behavior: **Organize a chat into a folder by `folder_id`. Will verify if the current token owner owns the specified chat and folder.**  
+
+Sample Request Body:  
+
+```json
+{
+    "folder_id": 12,
+    "chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
+}
+```
+
+Sample Response:
+
+```json
+true
+```
+
+---
+
+#### `chats/<chat_id>`
+
+Action: `GET`  
+
+Behavior: **Retrieve all messages associated with a specific chat.**
+
+Sample Request Body:  
+
+None
+
+Sample Response:
+
+```json
+[
+    {
+        "user_id": 9,
+        "message": "How to prepare for calulas exam 1 ?",
+        "created_at": "2025-06-25T11:39:17.479368"
+    },
+    {
+        "user_id": 9,
+        "message": "What are some important formulas which I should know ?",
+        "created_at": "2025-06-25T11:39:56.731342"
+    },
+    {
+        "user_id": 9,
+        "message": "Is the exam open book ?",
+        "created_at": "2025-06-25T11:40:07.081901"
+    }
+]
+```
+
+---
+
+#### `chats/<chat-id>`
+
+Action: `PUT`
+
+Behavior: **Append a new message to the specified chat log.**
+
+Sample Request Body:  
+
+```json
+{
+    "message": "Is the exam open book ?"
+}
+```
+
+Sample Response Body:
+
+```json
+true
+```
+
+---
+
+`chats/<chat-id>`
+
+Action: `DELETE`
+
+Behavior: **Delete a specified chat and the associated chat messages.**
+
+Sample Request Body:
+
+None
+
+Sample Response:
+
+```json
+true
+```
+
 ---
 
 ### FolderRouter
+
+#### `folders/create`
+
+Action: `POST`
+
+Behavior: **Create a folder of a specified course for the current logged in user. Return newly created folder ID upon success.**
+
+Sample Request:
+
+```json
+{
+    "folder_name": "Calculus Exam 1",
+    "course_id": 1
+}
+```
+
+Sample Response:
+
+```json
+12
+```
 
 ---
 
