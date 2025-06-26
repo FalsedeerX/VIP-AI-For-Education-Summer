@@ -5,14 +5,25 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
-import MainScreen from "@/app/mainscreen";
+//import MainScreen from "@/app/mainscreen";
 import ChatScreen from "@/app/chatscreen";
+import AdminDashboard from "./admindashboard";
 
 export default function Home() {
-  const { name, loading } = useAuth();
+  const { name, loading, admin } = useAuth();
 
   if (loading) {
     return null;
+  }
+
+  if (admin) {
+    // User is an admin, show admin dashboard
+    return (
+      <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
+        <AdminDashboard />
+      </div>
+    );
+    //return AdminDashboard();
   }
 
   if (name) {

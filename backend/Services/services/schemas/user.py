@@ -17,5 +17,4 @@ class UserLogin(BaseModel):
     password: str
 
 class UserCourse(BaseModel):
-    user_id: int
     course_code: str

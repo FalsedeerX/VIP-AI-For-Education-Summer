@@ -63,20 +63,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       true
     );
 
-    // now re-fetch the “me” endpoint
-    const { id, name, admin } = await getJson<{
+    const {
+      id,
+      username: userName,
+      admin,
+    } = await getJson<{
       id: number;
-      name: string;
+      username: string;
       admin: boolean;
     }>("/users/me", true);
     setUserId(id);
-    setName(name);
-    setAdmin(admin); // Set admin state if needed
+    setName(userName);
+    setAdmin(admin);
   }
 
   // 3) logout
   async function logout() {
-    await getJson("/users/logout", true);
+    await postJson("/users/logout", {}, true);
     setUserId(null);
     setName(null);
     setAdmin(false);

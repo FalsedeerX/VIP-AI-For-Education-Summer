@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
+import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -16,6 +17,7 @@ export default function RegisterPage() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -29,9 +31,10 @@ export default function RegisterPage() {
     try {
       await postJson(
         "/users/register",
-        { username, email, password, isAdmin },
+        { username, email, password, is_admin: isAdmin },
         false
       );
+      await login(username, password);
       router.push("/");
     } catch (err: any) {
       setError("Registration failed");
@@ -116,9 +119,8 @@ export default function RegisterPage() {
           <div className="flex items-center space-x-2">
             <Checkbox
               id="admin"
-              onChange={(e) =>
-                setIsAdmin((e.target as HTMLInputElement).checked)
-              }
+              checked={isAdmin}
+              onCheckedChange={(checked) => setIsAdmin(checked as boolean)}
               className="text-[var(--color-purdue-black)] bg-white"
             />
             <label htmlFor="admin" className="text-[var(--color-purdue-black)]">
