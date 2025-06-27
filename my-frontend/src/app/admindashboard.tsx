@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getJson, postJson } from "@/lib/api";
+import { getJson, postJson, deleteJson } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Accordion,
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
   const handleDeleteCourse = async (courseId: number) => {
     if (!confirm("Really delete this course?")) return;
     try {
-      await postJson("/courses/delete", { course_id: courseId }, true);
+      await deleteJson("/courses/delete", { course_id: courseId }, true);
       loadCourses();
     } catch (err) {
       console.error(`Failed to delete course ${courseId}`, err);
@@ -124,7 +124,7 @@ export default function AdminDashboard() {
   const handleDeleteFolder = async (courseId: number, folderId: number) => {
     if (!confirm("Really delete this folder?")) return;
     try {
-      await postJson("/folders/delete", { folder_id: folderId }, true);
+      await deleteJson("/folders/delete", { folder_id: folderId }, true);
       loadFolders(courseId);
     } catch (err) {
       console.error(`Failed to delete folder ${folderId}`, err);
@@ -169,9 +169,9 @@ export default function AdminDashboard() {
             {courses.map((c) => (
               <AccordionItem value={c.course_id.toString()} key={c.course_id}>
                 <AccordionTrigger className="flex justify-between">
-                  <text className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
+                  <span className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
                     {c.title}
-                  </text>
+                  </span>
                   <Button
                     size="icon"
                     variant="ghost"
@@ -181,7 +181,7 @@ export default function AdminDashboard() {
                     }}
                   >
                     <Trash2
-                      className="h-4 w-4 text-[var(--color-purdue-black)]"
+                      className="h-4 w-4 text-[var(--color-purdue-black)] mb-2"
                       strokeWidth={2.5}
                     />
                   </Button>
@@ -194,7 +194,7 @@ export default function AdminDashboard() {
                           key={f.folder_id}
                           className="flex justify-between items-center"
                         >
-                          <text className="text-[var(--color-purdue-black)] ml-2">
+                          <text className="text-[var(--color-purdue-black)] ml-3">
                             {f.folder_label}
                           </text>
                           <Button
@@ -209,7 +209,7 @@ export default function AdminDashboard() {
                         </li>
                       ))
                     ) : (
-                      <p className="italic text-gray-500 ml-2 mb-2">
+                      <p className="italic text-gray-500 ml-3 mb-2">
                         No folders yet.
                       </p>
                     )}
