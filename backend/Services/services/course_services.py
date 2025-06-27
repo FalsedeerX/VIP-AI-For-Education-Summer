@@ -15,7 +15,7 @@ class CourseRouter:
 		self.router.get("", status_code=200, response_model=CourseContent)(self.get_courses)
 		self.router.post("/create", status_code=200, response_model=int)(self.create_course)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_course)
-		self.router.get("/get", status_code=200, response_model=CourseFolder)(self.get_course_folders)
+		self.router.post("/get", status_code=200, response_model=CourseFolder)(self.get_course_folders)
 
 
 	async def get_courses(self, request: Request, response: Response) -> CourseContent:

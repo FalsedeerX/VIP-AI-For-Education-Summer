@@ -7,7 +7,6 @@ FolderContent = dict[str, str]
 class NewFolder(BaseModel):
     folder_name: str
     course_id: int
-    user_id: int
 
 
 class FolderInfo(BaseModel):

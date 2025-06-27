@@ -1,3 +1,4 @@
+from typing import Any, Dict, List
 from pydantic import BaseModel
 
 
@@ -18,3 +19,5 @@ class UserLogin(BaseModel):
 
 class UserCourse(BaseModel):
     course_code: str
+
+UserCourseList = List[Dict[str, Any]]

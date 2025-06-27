@@ -1,7 +1,7 @@
 from uuid import UUID
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import SessionManager
-from services.schemas.user import UserCreate, UserLogin, UserInfo, UserCourse
+from services.schemas.user import UserCreate, UserLogin, UserInfo, UserCourse, UserCourseList
 from fastapi import APIRouter, HTTPException, Request, Response, requests
 
 
@@ -19,7 +19,7 @@ class UserRouter:
 		self.router.post("/logout", status_code=200, response_model=bool)(self.logout_user)
 		self.router.post("/joincourse", status_code=200, response_model=bool)(self.join_course)
 		self.router.post("/deletecourse", status_code=200, response_model=bool)(self.delete_course)
-		self.router.get("/getcourses", status_code=200, response_model=list)(self.get_user_courses)
+		self.router.get("/getcourses", status_code=200, response_model=UserCourseList)(self.get_user_course)
 
 
 	async def create_user(self, payload: UserCreate) -> bool:
@@ -144,7 +144,7 @@ class UserRouter:
 
 		return True
 	
-	async def get_user_courses(self, request: Request) -> list:
+	async def get_user_course(self, request: Request) -> UserCourseList:
 		""" Get the list of courses the user is enrolled in """
 		if not request.state.token:
 			raise HTTPException(status_code=401, detail="User not logged in.")

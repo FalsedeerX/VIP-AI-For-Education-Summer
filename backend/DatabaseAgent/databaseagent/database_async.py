@@ -420,17 +420,17 @@ class DatabaseAgent:
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
                 """
-                SELECT id AS course_id, title
-                FROM courses
-                WHERE id = ANY(
-                        SELECT course_ids
-                        FROM users
-                        WHERE id = %s
-                    );
+                SELECT c.id   AS course_id,
+                    c.title
+                FROM courses AS c
+                JOIN users   AS u
+                    ON c.id = ANY(u.course_ids)
+                WHERE u.id = %s;
                 """,
                 (user_id,)
             )
-            return await cur.fetchall() 
+            return await cur.fetchall()
+
 
     async def get_folders_for_course(self, course_id: int) -> List[Dict[str, Any]]:
         conn = await get_connection()
@@ -455,6 +455,8 @@ class DatabaseAgent:
             )
             row = await cur.fetchone()
         return row[0] if row else False
+
+
 
 
 if __name__ == "__main__":

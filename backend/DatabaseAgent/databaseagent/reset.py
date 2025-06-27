@@ -73,6 +73,7 @@ def reset_database():
               chat_messages,
               chats,
               folders,
+              courses,
               users
             RESTART IDENTITY CASCADE;
         """)

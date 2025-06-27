@@ -41,7 +41,7 @@ class FolderRouter:
 		# check if the user is logged in
 		if not request.state.is_admin: return -1
 
-		folder_id = await self.db.create_folder(payload.folder_name, payload.course_id, payload.user_id)
+		folder_id = await self.db.create_folder(payload.folder_name, payload.course_id, request.state.user_id)
 		if folder_id == -1: raise HTTPException(404, "Could not create folder")
 		return folder_id
 
