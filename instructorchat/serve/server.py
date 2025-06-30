@@ -6,52 +6,85 @@ from typing import Final
 import traceback
 import json
 
-from instructorchat.serve.inference import ChatIO, chat_loop
+from instructorchat.serve.inference import (
+    initialize_model, 
+    return_conversation, 
+    store_documents_action, 
+    generate_answer_action,
+    ping
+)
 
 HOST: Final = "localhost"
 PORT: Final = 6666
 
-class NetworkChatIO(ChatIO):
-    def __init__(self, connection: WebSocketConnection) -> None:
-        self.connection = connection
+# Action dispatch dictionary for regular actions
+ACTION_DISPATCH = {
+    "return_conversation": return_conversation,
+    "store_documents": store_documents_action,
+    "ping": ping
+}
 
-    async def prompt_for_input(self, role: str) -> str:
-        return await self.connection.get_message()
+# Streaming actions that handle their own messaging
+STREAMING_ACTIONS = {
+    "generate_answer": generate_answer_action
+}
 
-    async def prompt_for_output(self, role: str):
-        pass
-
-    async def display_output(self, output: str) -> None:
-        await self.connection.send_message(json.dumps({"content": output}))
-
-    async def stream_output(self, output_stream):
-        output = ""
-        async for chunk in output_stream:
-            delta = chunk.choices[0].delta.content
-            if delta:
-                output += delta
-                message = {"content": delta}
-                await self.connection.send_message(json.dumps(message))
-
-        await self.connection.send_message(json.dumps({}))
-        return output
-
-async def connect(request: WebSocketRequest):
+async def handle_websocket(request: WebSocketRequest):
+    """Handle WebSocket connections with action-based dispatch."""
     ws = await request.accept()
-
+    print(f"New WebSocket connection established")
+    
     try:
-        async for _ in chat_loop(
-            model_path="gpt-4o-mini",
-            temperature=args.temperature,
-            chatio=NetworkChatIO(ws),
-            api_key=api_key,
-        ):
-            pass
+        while True:
+            message = await ws.get_message()
+            print(f"[RECEIVED] {message}")
+
+            try:
+                payload = json.loads(message)
+                action = payload.get("action")
+                data = payload.get("data", {})
+
+                # Handle streaming actions (they manage their own messaging)
+                if action in STREAMING_ACTIONS:
+                    await STREAMING_ACTIONS[action](data, websocket=ws)
+                    continue
+
+                # Handle regular actions
+                if action not in ACTION_DISPATCH:
+                    await ws.send_message(json.dumps({
+                        "error": f"Unknown action: {action}",
+                        "status": "error"
+                    }))
+                    continue
+
+                # Call the corresponding function for regular actions
+                result = await ACTION_DISPATCH[action](data, websocket=ws)
+                
+                # Only send result if the function didn't already send a message
+                if result is not None:
+                    await ws.send_message(json.dumps(result))
+
+            except json.JSONDecodeError as e:
+                await ws.send_message(json.dumps({
+                    "error": f"Invalid JSON: {str(e)}",
+                    "status": "error"
+                }))
+            except Exception as e:
+                await ws.send_message(json.dumps({
+                    "error": str(e),
+                    "status": "error"
+                }))
+
     except ConnectionClosed:
-        pass
+        print("WebSocket connection closed")
 
 async def main() -> None:
-    await serve_websocket(connect, HOST, PORT, ssl_context=None) # Set ssl context for encryption
+    # Initialize the model before starting the server
+    await initialize_model("gpt-4o-mini", api_key, args.temperature)
+    print(f"Model initialized successfully")
+    print(f"Starting WebSocket server on {HOST}:{PORT}")
+    
+    await serve_websocket(handle_websocket, HOST, PORT, ssl_context=None)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
