@@ -1,118 +1,158 @@
 "use client";
 
-import { useState, useEffect, useRef, FormEvent } from "react";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { getJson } from "@/lib/api";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarMenuItem,
+  SidebarGroup,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Plus, MessageSquare } from "lucide-react";
 
-interface Message {
-  id: string;
-  sender: "user" | "bot";
-  text: string;
+interface Course {
+  course_id: number;
+  title: string;
 }
 
-interface ChatScreenProps {
-  chatId: string;
+interface Folder {
+  folder_id: number;
+  title: string;
 }
 
-export default function ChatScreen({ chatId }: ChatScreenProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [newMessage, setNewMessage] = useState("");
-  const bottomRef = useRef<HTMLDivElement | null>(null);
+export default function ChatScreen() {
+  const { userId, admin, loading } = useAuth();
+  const router = useRouter();
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [foldersByCourse, setFoldersByCourse] = useState<
+    Record<number, Folder[]>
+  >({});
+  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
+  const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
 
-  // Fetch existing messages
-  useEffect(() => {
-    async function loadMessages() {
-      try {
-        const res = await fetch(`/chats/${chatId}`);
-        if (!res.ok) throw new Error("Failed to load messages");
-        const data = await res.json(); // assumes { messages: [{ id, sender, text }] }
-        setMessages(
-          data.messages.map((m: any) => ({
-            id: m.id,
-            sender: m.sender,
-            text: m.text,
-          }))
-        );
-      } catch (e) {
-        console.error(e);
-      }
+  // Auth guard
+  if (loading) return null;
+  if (!userId) {
+    router.replace("/login");
+    return null;
+  }
+
+  // Load courses
+  const loadCourses = useCallback(async () => {
+    try {
+      const data = await getJson<Course[]>("/users/getcourses", true);
+      setCourses(data);
+    } catch (err) {
+      console.error("Failed to load courses", err);
     }
-    loadMessages();
-  }, [chatId]);
+  }, []);
 
-  // Scroll to bottom on new messages
+  // Load folders for a course
+  const loadFolders = useCallback(
+    async (courseId: number) => {
+      if (foldersByCourse[courseId]) return;
+      try {
+        const data = await getJson<Folder[]>(
+          `/courses/${courseId}/folders`,
+          true
+        );
+        setFoldersByCourse((prev) => ({ ...prev, [courseId]: data }));
+      } catch (err) {
+        console.error(`Failed to load folders for course ${courseId}`, err);
+      }
+    },
+    [foldersByCourse]
+  );
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    loadCourses();
+  }, [loadCourses]);
 
-  const handleSend = async (e: FormEvent) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return;
+  // Handlers
+  const handleSelectCourse = (courseId: number) => {
+    setSelectedCourse(courseId);
+    setSelectedFolder(null);
+    loadFolders(courseId);
+  };
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      sender: "user",
-      text: newMessage.trim(),
-    };
-    setMessages((prev) => [...prev, userMsg]);
-    setNewMessage("");
-
-    // send to backend
-    fetch(`/chats/${chatId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: userMsg.text }),
-    }).catch(console.error);
-
-    // simulate AI response
-    setTimeout(() => {
-      const botMsg: Message = {
-        id: `bot-${Date.now()}`,
-        sender: "bot",
-        text: "This is a simulated AI response. Replace with real API call soon.",
-      };
-      setMessages((prev) => [...prev, botMsg]);
-
-      // optionally log bot message
-      fetch(`/chats/${chatId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: botMsg.text }),
-      }).catch(console.error);
-    }, 1000);
+  const handleSelectFolder = (folderId: number) => {
+    setSelectedFolder(folderId);
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-2xl break-words whitespace-pre-wrap ${
-              msg.sender === "user"
-                ? "self-end bg-blue-600 text-white rounded-br-none"
-                : "self-start bg-gray-200 text-gray-800 rounded-bl-none"
-            }`}
-          >
-            {msg.text}
-          </div>
-        ))}
-        <div ref={bottomRef} />
+    <SidebarProvider>
+      <div className="flex h-screen">
+        <Sidebar className="w-64 border-r">
+          <SidebarHeader className="px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full flex items-center justify-center"
+              onClick={() => {
+                /* open add course modal */
+              }}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Course
+            </Button>
+          </SidebarHeader>
+
+          <SidebarContent>
+            {courses.map((course) => (
+              <SidebarGroup
+                key={course.course_id}
+                title={course.title}
+                onToggle={() => handleSelectCourse(course.course_id)}
+              >
+                {(foldersByCourse[course.course_id] || []).map((folder) => (
+                  <SidebarMenuItem
+                    key={folder.folder_id}
+                    onClick={() => handleSelectFolder(folder.folder_id)}
+                    className={
+                      selectedFolder === folder.folder_id ? "bg-muted" : ""
+                    }
+                  >
+                    {folder.title}
+                  </SidebarMenuItem>
+                ))}
+
+                {selectedCourse === course.course_id && (
+                  <SidebarMenuItem
+                    className="mt-2"
+                    onClick={() => {
+                      /* open create chat modal */
+                    }}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    New Chat
+                  </SidebarMenuItem>
+                )}
+              </SidebarGroup>
+            ))}
+          </SidebarContent>
+
+          <SidebarFooter className="px-4 py-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full flex items-center justify-center"
+              onClick={() => {
+                /* open settings modal */
+              }}
+            >
+              Settings
+            </Button>
+          </SidebarFooter>
+        </Sidebar>
+
+        <main className="flex-1 overflow-auto"></main>
       </div>
-      <form onSubmit={handleSend} className="flex items-center border-t p-3">
-        <Input
-          placeholder="Type your message..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          className="flex-1 mr-2"
-        />
-        <Button
-          className="w bg-[var(--color-purdue-gold)] hover:opacity-90 text-[var(--color-purdue-black)]"
-          type="submit"
-        >
-          Send
-        </Button>
-      </form>
-    </div>
+    </SidebarProvider>
   );
 }

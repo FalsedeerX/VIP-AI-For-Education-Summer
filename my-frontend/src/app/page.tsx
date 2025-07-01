@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 //import MainScreen from "@/app/mainscreen";
 import ChatScreen from "@/app/chatscreen";
 import AdminDashboard from "./admindashboard";
+import { Sidebar } from "@/components/ui/sidebar";
 
 export default function Home() {
   const { name, loading, admin } = useAuth();
@@ -30,11 +31,17 @@ export default function Home() {
     // User is logged in, show main screen
     return (
       <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
+        <ChatScreen />
+      </div>
+    ); /*
+    return (
+      <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
         <h1 className="text-4xl font-bold text-[var(--color-purdue-white)]">
           Welcome back, {name}!
         </h1>
       </div>
     );
+    */
     //return MainScreen();
   }
 
