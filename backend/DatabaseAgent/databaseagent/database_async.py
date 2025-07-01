@@ -111,21 +111,21 @@ class DatabaseAgent:
             return False
 
 
-    async def get_chats(self, folder_id: int) -> dict[str, str]:
+    async def get_chats(self, folder_id: int) -> list[dict]:
         """ Get a list of chat IDs of a speicifc folder_id. 
             Return type: <chat-title, chat-id> """
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
             await cur.execute(
-                    """ SELECT c.title, c.id FROM chat_folder_link AS l 
-                        JOIN chats as c ON c.id = l.chat_id 
-                        WHERE l.folder_id = %s """,
-                    (folder_id,)
-                )
-            rows = await cur.fetchall()
-
-        # parse the returned results
-        return {row["title"]: str(row["id"]) for row in rows}
+                """
+                SELECT c.id, c.title 
+                  FROM chat_folder_link AS l
+                  JOIN chats AS c ON c.id = l.chat_id
+                 WHERE l.folder_id = %s
+                """,
+                (folder_id,)
+            )
+            return await cur.fetchall()
 
 
     async def organize_chat(self, chat_id: str, folder_id: int) -> bool:

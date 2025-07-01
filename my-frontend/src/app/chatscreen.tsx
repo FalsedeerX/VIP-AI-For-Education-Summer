@@ -1,20 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, Fragment } from "react";
 import { useRouter } from "next/navigation";
-import { getJson } from "@/lib/api";
+import { getJson, postJson } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import {
   Sidebar,
+  SidebarProvider,
   SidebarHeader,
   SidebarContent,
   SidebarFooter,
+  SidebarMenu,
   SidebarMenuItem,
-  SidebarGroup,
-  SidebarProvider,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare } from "lucide-react";
+import { Plus, MessageSquare, FolderPlus } from "lucide-react";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface Course {
   course_id: number;
@@ -27,23 +39,26 @@ interface Folder {
 }
 
 export default function ChatScreen() {
-  const { userId, admin, loading } = useAuth();
+  const { userId, loading } = useAuth();
   const router = useRouter();
+
   const [courses, setCourses] = useState<Course[]>([]);
   const [foldersByCourse, setFoldersByCourse] = useState<
     Record<number, Folder[]>
   >({});
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
+  const [showAddCourse, setShowAddCourse] = useState(false);
+  const [newCourseCode, setNewCourseCode] = useState("");
 
-  // Auth guard
+  // Redirect if not authenticated
   if (loading) return null;
   if (!userId) {
     router.replace("/login");
     return null;
   }
 
-  // Load courses
+  // Fetch courses
   const loadCourses = useCallback(async () => {
     try {
       const data = await getJson<Course[]>("/users/getcourses", true);
@@ -53,7 +68,7 @@ export default function ChatScreen() {
     }
   }, []);
 
-  // Load folders for a course
+  // Fetch folders for a course
   const loadFolders = useCallback(
     async (courseId: number) => {
       if (foldersByCourse[courseId]) return;
@@ -74,7 +89,6 @@ export default function ChatScreen() {
     loadCourses();
   }, [loadCourses]);
 
-  // Handlers
   const handleSelectCourse = (courseId: number) => {
     setSelectedCourse(courseId);
     setSelectedFolder(null);
@@ -85,73 +99,120 @@ export default function ChatScreen() {
     setSelectedFolder(folderId);
   };
 
+  const handleJoinCourse = async () => {
+    if (!newCourseCode.trim()) return;
+    try {
+      await postJson<boolean>(
+        "/users/joincourse",
+        { course_code: newCourseCode },
+        true
+      );
+      setNewCourseCode("");
+      setShowAddCourse(false);
+      loadCourses();
+    } catch (err) {
+      console.error("Error joining course", err);
+    }
+  };
+
+  const handleNewChat = () => {
+    // TODO: navigate to or open a new chat under selectedFolder
+  };
+
   return (
     <SidebarProvider>
       <div className="flex h-screen">
-        <Sidebar className="w-64 border-r">
-          <SidebarHeader className="px-4 py-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full flex items-center justify-center"
-              onClick={() => {
-                /* open add course modal */
-              }}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              Add Course
-            </Button>
+        <Sidebar className="w-64 border-r bg-background">
+          <SidebarHeader>
+            <Dialog open={showAddCourse} onOpenChange={setShowAddCourse}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full flex items-center justify-center bg-[var(--color-purdue-gold)] hover:bg-[var(--color-purdue-black)] text-[var(--color-purdue-black)] font-semibold"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Join Course
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                <DialogHeader>
+                  <DialogTitle>Join a Course</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Course Code"
+                    value={newCourseCode}
+                    onChange={(e) => setNewCourseCode(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={handleJoinCourse}
+                    className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                  >
+                    <FolderPlus className="mr-2 h-4 w-4" />
+                    Join
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </SidebarHeader>
 
           <SidebarContent>
-            {courses.map((course) => (
-              <SidebarGroup
-                key={course.course_id}
-                title={course.title}
-                onToggle={() => handleSelectCourse(course.course_id)}
-              >
-                {(foldersByCourse[course.course_id] || []).map((folder) => (
+            <SidebarMenu>
+              {courses.map((course) => (
+                <Fragment key={course.course_id}>
                   <SidebarMenuItem
-                    key={folder.folder_id}
-                    onClick={() => handleSelectFolder(folder.folder_id)}
+                    onClick={() => handleSelectCourse(course.course_id)}
                     className={
-                      selectedFolder === folder.folder_id ? "bg-muted" : ""
+                      selectedCourse === course.course_id
+                        ? "bg-muted font-bold"
+                        : ""
                     }
                   >
-                    {folder.title}
+                    {course.title}
                   </SidebarMenuItem>
-                ))}
 
-                {selectedCourse === course.course_id && (
-                  <SidebarMenuItem
-                    className="mt-2"
-                    onClick={() => {
-                      /* open create chat modal */
-                    }}
-                  >
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    New Chat
-                  </SidebarMenuItem>
-                )}
-              </SidebarGroup>
-            ))}
+                  {selectedCourse === course.course_id && (
+                    <SidebarMenuSub>
+                      {(foldersByCourse[course.course_id] || []).map(
+                        (folder) => (
+                          <SidebarMenuSubItem key={folder.folder_id}>
+                            <SidebarMenuSubButton
+                              isActive={selectedFolder === folder.folder_id}
+                              onClick={() =>
+                                handleSelectFolder(folder.folder_id)
+                              }
+                            >
+                              {folder.title}
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        )
+                      )}
+
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton onClick={handleNewChat}>
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          New Chat
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  )}
+                </Fragment>
+              ))}
+            </SidebarMenu>
           </SidebarContent>
 
-          <SidebarFooter className="px-4 py-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full flex items-center justify-center"
-              onClick={() => {
-                /* open settings modal */
-              }}
-            >
-              Settings
-            </Button>
+          <SidebarFooter>
+            {/* add any footer items (settings, logout, etc.) here */}
           </SidebarFooter>
         </Sidebar>
 
-        <main className="flex-1 overflow-auto"></main>
+        <main className="flex-1 overflow-auto">
+          {/* Render chat window here, based on selectedFolder */}
+        </main>
       </div>
     </SidebarProvider>
   );
