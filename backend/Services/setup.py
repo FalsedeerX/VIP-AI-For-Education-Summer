@@ -14,6 +14,7 @@ setup(
     python_requires=">=3.7",
     install_requires=[
         "fastapi==0.115.12",
-        "uvicorn==0.34.3"
+        "uvicorn==0.34.3",
+        "websockets==15.0.1"
     ]
 )
