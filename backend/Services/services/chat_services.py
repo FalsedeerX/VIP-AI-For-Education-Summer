@@ -129,7 +129,7 @@ class ChatRouter:
 		if chat_owner_id == -1 or folder_owner_id == -1: raise HTTPException(404, "Target chat or folder doens't exist")
 
 		# verify if current user is the owner
-		if request.state.user_id != chat_owner_id or request.state.user_id != folder_owner_id: raise HTTPException(401, "Access denied.")
+		if request.state.user_id != chat_owner_id: raise HTTPException(401, "Access denied.")
 		status = await self.db.organize_chat(payload.chat_id, payload.folder_id)
 		if not status: raise HTTPException(404, "Failed assigning chat to folder.")
 		return True

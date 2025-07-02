@@ -22,6 +22,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
+:root {
+    --sidebar: oklch(10.973% 0.03556 25.227);
+    --sidebar-foreground: oklch(0.145 0 0);
+    --sidebar-primary: oklch(0.205 0 0);
+    --sidebar-primary-foreground: oklch(11.231% 0.03707 25.46);
+    --sidebar-accent: oklch(10.973% 0.03556 25.227);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border: oklch(12.787% 0.04555 26.556);
+    --sidebar-ring: oklch(12.268% 0.04281 26.241);
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     /*--background: #0a0a0a;
