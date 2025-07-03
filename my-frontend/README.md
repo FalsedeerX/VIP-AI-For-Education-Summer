@@ -55,10 +55,10 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 ## Project Structure
 
 ```txt
-├── public/ # Static assets (images, favicon, etc.)
+├── public/                                 # Static assets (images, favicon, etc.)
 ├── src/
-│ ├── app/ # Next.js App Router
-│ │ ├── (protected)/ # Protected routes wrapper
+│ ├── app/                                  # Next.js App Router
+│ │ ├── (protected)/                        # Protected routes wrapper
 │ │ ├── login/
 │ │ │ └── page.tsx
 │ │ ├── register/
@@ -74,7 +74,7 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 │ │ └── page.tsx
 │ │
 │ ├── components/
-│ │ ├── ui/ # Reusable UI primitives
+│ │ ├── ui/                                  # Reusable UI primitives
 │ │ │ ├── accordion.tsx
 │ │ │ ├── button.tsx
 │ │ │ ├── card.tsx
@@ -88,22 +88,22 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 │ │ └── header.tsx
 │ │
 │ ├── context/
-│ │ └── AuthContext.tsx # Authentication context/provider
+│ │ └── AuthContext.tsx                     # Authentication context/provider
 │ │
 │ ├── hooks/
-│ │ └── use-mobile.ts # Mobile detection hook
+│ │ └── use-mobile.ts                       # Mobile detection hook
 │ │
 │ └── lib/
-│ ├── api.ts # API client wrappers
-│ ├── config.ts # Runtime configuration
-│ └── utils.ts # Helpers (e.g. cn)
+│ ├── api.ts                                # API client wrappers
+│ ├── config.ts                             # Runtime configuration
+│ └── utils.ts                              # Helpers (e.g. cn)
 │
-├── .env.local # Environment variables
+├── .env.local                              # Environment variables
 ├── .gitignore
 ├── components.json
 ├── eslint.config.mjs
 ├── next-env.d.ts
-├── next-config.ts # Next.js config
+├── next-config.ts                          # Next.js config
 ├── package-lock.json
 ├── package.json
 ├── postcss.config.mjs
