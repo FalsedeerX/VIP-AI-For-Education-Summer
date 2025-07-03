@@ -24,7 +24,6 @@ export default function Home() {
         <AdminDashboard />
       </div>
     );
-    //return AdminDashboard();
   }
 
   if (name) {
@@ -33,16 +32,7 @@ export default function Home() {
       <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
         <Sidebar2 />
       </div>
-    ); /*
-    return (
-      <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
-        <h1 className="text-4xl font-bold text-[var(--color-purdue-white)]">
-          Welcome back, {name}!
-        </h1>
-      </div>
     );
-    */
-    //return MainScreen();
   }
 
   //return ChatScreen({ chatId: "2e7862c8-b538-4c82-994f-c1f8b535cb2b" });

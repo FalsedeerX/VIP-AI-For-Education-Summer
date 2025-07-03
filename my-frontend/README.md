@@ -36,13 +36,13 @@ A React/Next.js front-end for the AI for EDU Internship platform. Provides a res
 
 ## Getting Started
 
-'''bash
+```bash
 npm install
-'''
+```
 
-'''bash
+```bash
 npm run dev
-'''
+```
 
 ---
 
@@ -114,6 +114,25 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 ---
 
 ## Important Pages and Components
+
+- **login**
+  Under the login folder, the page.tsx handles the code for login page
+
+- **register**
+  Under the register folder, the page.tsx handles the code for register page
+
+- **terms**
+  Under the terms folder, the page.tsx handles the code for terms page
+
+- **Main Page**
+  The main page.tsx directly under the app folder handles the code for main dashboard
+  every user sees when they login. For admins it renders the Admin Dashboard, for normal users it renders a combination of the sidebar component and the messaging screen.
+
+- **Admin Dashboard**
+
+- **Sidebar**
+
+- **Chat Screene**
 
 ---
 
