@@ -12,6 +12,8 @@ import json
 import websockets
 from typing import Dict, Any
 
+
+
 async def send_action(websocket, action: str, data: Dict[str, Any] = None) -> Dict[str, Any]:
     """Send an action to the WebSocket server and return the response."""
     if data is None:
@@ -77,7 +79,7 @@ async def send_streaming_action(websocket, action: str, data: Dict[str, Any] = N
             break
 
 async def test_websocket_server():
-    """Test the WebSocket server with various actions."""
+    """ Local Tests """
     uri = "ws://localhost:6666"
     
     try:

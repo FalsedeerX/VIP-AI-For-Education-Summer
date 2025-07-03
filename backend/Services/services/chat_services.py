@@ -1,4 +1,5 @@
 from uuid import UUID
+from http.cookies import SimpleCookie
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
 from fastapi import APIRouter, WebSocket, HTTPException, Request, Response, WebSocketDisconnect
@@ -70,10 +71,11 @@ class ChatRouter:
 	# 	if not status: raise HTTPException(404, "Cannot add message to chat")
 	# 	return True
 
+
 	async def websocket_relay(self, websocket: WebSocket, chat_id: str):
 		""" Establish a connection from client to transmit data """
-		print(f"✅ WebSocket relay endpoint hit for chat_id: {chat_id}")
-		raw_cookie = websocket.headers.get("cookie")
+		cookies = SimpleCookie()
+		cookies.load(websocket.headers.get("cookie", ""))
 		await websocket.accept()
 
 		try:
@@ -91,7 +93,6 @@ class ChatRouter:
 
 		except WebSocketDisconnect:
 			return
-
 
 
 	async def delete_chat(self, chat_id: str, request: Request, response: Response) -> bool:
