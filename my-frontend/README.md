@@ -54,7 +54,7 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 
 ## Project Structure
 
-'''python
+```txt
 ├── public/ # Static assets (images, favicon, etc.)
 ├── src/
 │ ├── app/ # Next.js App Router
@@ -109,7 +109,7 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 ├── postcss.config.mjs
 ├── README.md
 └── tsconfig.json
-'''
+```
 
 ---
 
