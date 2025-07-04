@@ -14,6 +14,7 @@ class ChatRouter:
 
 		# register the endpoints
 		self.router.post("/create", status_code=201, response_model=str)(self.create_chat)
+		self.router.get("/random", status_code=200, response_model=str)(self.get_random_chat)
 		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_chat)
 		self.router.get("/{chat_id}", status_code=200, response_model=ChatMessages)(self.get_chat_message)
 		self.router.delete("/{chat_id}", status_code=200, response_model=bool)(self.delete_chat)
@@ -32,6 +33,21 @@ class ChatRouter:
 
 		id = await self.db.create_chat(request.state.user_id, payload.title)
 		return id
+
+
+	async def get_random_chat(self, request: Request, response: Response) -> str|None:
+		""" Retrieve random chat from the current user. """
+		# check if the user is logged in
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		# retrieve a random chat-id
+		chat_id = await self.db.get_random_chat(request.state.user_id)
+		return chat_id
 
 
 	async def get_chat_message(self, chat_id: str, request: Request, response: Response) -> ChatMessages:

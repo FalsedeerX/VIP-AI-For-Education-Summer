@@ -128,6 +128,21 @@ class DatabaseAgent:
             return await cur.fetchall()
 
 
+    async def get_random_chat(self, user_id: int) -> str|None:
+        """ Get a random chat owned by a certain user. """
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id FROM chats WHERE user_id = %s
+                ORDER BY random() LIMIT 1
+                """,
+                (user_id,)
+            )
+            row = await cur.fetchone()
+            return str(row["id"]) if row else None
+
+
     async def organize_chat(self, chat_id: str, folder_id: int) -> bool:
         """ Link a chat UUID to a folder label."""
         # Validate UUID
@@ -367,6 +382,7 @@ class DatabaseAgent:
         await conn.commit()
         return status is not None
     
+
     async def add_course(self, user_id: int, course_code: str) -> bool:
         """ Add a course to a user's list of courses. """
         conn = await get_connection()
@@ -390,7 +406,8 @@ class DatabaseAgent:
             )
         await conn.commit()
         return True
-    
+  
+
     async def delete_user_course(self, user_id: int, course_code: str) -> bool:
         """ Remove a course from a user's list of courses. """
         conn = await get_connection()
@@ -414,7 +431,8 @@ class DatabaseAgent:
             )
         await conn.commit()
         return True
-    
+ 
+
     async def get_user_courses(self, user_id: int) -> List[Dict[str, Any]]:
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
@@ -444,7 +462,8 @@ class DatabaseAgent:
                 (course_id,)
             )
             return await cur.fetchall()
-        
+
+
     async def get_admin(self, user_id: int) -> bool:
         """ Check if the user is an admin. """
         conn = await get_connection()
@@ -461,5 +480,5 @@ class DatabaseAgent:
 
 if __name__ == "__main__":
     agent = DatabaseAgent()
-    data = asyncio.run(agent.get_courses(6))
+    data = asyncio.run(agent.get_random_chat(9))
     print(data)
