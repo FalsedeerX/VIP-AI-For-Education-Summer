@@ -15,6 +15,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
+
   // send the user input message to backend
   const handleSend = () => {
     if (input.trim() === "") return;
@@ -27,9 +28,11 @@ export default function ChatScreen() {
     }, 500);
   };
 
+
   // Fetch previous chat log from backend upon page render
   useEffect(() => {
     async function fetchChatLog() {
+      // mimic endpoint response
       const rawMessages = [
         "Hello!",
         "Hi there! How can I help you today?",
