@@ -1,219 +1,96 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, Fragment } from "react";
-import { useRouter } from "next/navigation";
-import { getJson, postJson } from "@/lib/api";
-import { useAuth } from "@/context/AuthContext";
-import {
-  Sidebar,
-  SidebarProvider,
-  SidebarHeader,
-  SidebarContent,
-  SidebarFooter,
-  SidebarMenu,
-  SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
-  SidebarMenuSubButton,
-} from "@/components/ui/sidebar";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Plus, MessageSquare, FolderPlus } from "lucide-react";
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import TextareaAutosize from "react-textarea-autosize";
 
-interface Course {
-  course_id: number;
-  title: string;
-}
-
-interface Folder {
-  folder_id: number;
-  title: string;
-}
+// custom type for holding message
+type Message = {
+  role: "user" | "AI";
+  content: string;
+};
 
 
 export default function ChatScreen() {
-  const { userId, loading } = useAuth();
-  const router = useRouter();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [foldersByCourse, setFoldersByCourse] = useState<Record<number, Folder[]>>({});
-  const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
-  const [showAddCourse, setShowAddCourse] = useState(false);
-  const [newCourseCode, setNewCourseCode] = useState("");
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
 
-  // Redirect if not authenticated
-  if (loading) return null;
-  if (!userId) {
-    router.replace("/login");
-    return null;
-  }
 
-  // Fetch courses
-  const loadCourses = useCallback(async () => {
-    try {
-      const data = await getJson<Course[]>("/users/getcourses", true);
-      setCourses(data);
-    } catch (err) {
-      console.error("Failed to load courses", err);
-    }
-  }, []);
+  // send the user input message to backend
+  const handleSend = () => {
+    if (input.trim() === "") return;
+    setMessages((prev) => [...prev, { role: "user", content: input }]);
+    setInput("");
 
-  // Fetch folders for a course
-  const loadFolders = useCallback(
-    async (courseId: number) => {
-      if (foldersByCourse[courseId]) return;
-      try {
-        const data = await getJson<Folder[]>(
-          `/courses/${courseId}/folders`,
-          true
-        );
-        setFoldersByCourse((prev) => ({ ...prev, [courseId]: data }));
-      } catch (err) {
-        console.error(`Failed to load folders for course ${courseId}`, err);
-      }
-    },
-    [foldersByCourse]
-  );
+    // mimic AI generated response
+    setTimeout(() => {
+      setMessages((prev) => [...prev, { role: "AI", content: "Working on it..." }]);
+    }, 500);
+  };
 
-  // upon course load
+
+  // Fetch previous chat log from backend upon page render
   useEffect(() => {
-    loadCourses();
-  }, [loadCourses]);
+    async function fetchChatLog() {
+      // mimic endpoint response
+      const rawMessages = [
+        "Hello!",
+        "Hi there! How can I help you today?",
+        "What is AI?",
+        "AI stands for Artificial Intelligence..."
+      ];
 
-  const handleSelectCourse = (courseId: number) => {
-    setSelectedCourse(courseId);
-    setSelectedFolder(null);
-    loadFolders(courseId);
-  };
+      const formatted: Message[] = rawMessages.map((msg, i) => ({
+        role: i % 2 === 0 ? "user" : "assistant",
+        content: msg,
+      }));
 
-  const handleSelectFolder = (folderId: number) => {
-    setSelectedFolder(folderId);
-  };
-
-  const handleJoinCourse = async () => {
-    if (!newCourseCode.trim()) return;
-    try {
-      await postJson<boolean>(
-        "/users/joincourse",
-        { course_code: newCourseCode },
-        true
-      );
-      setNewCourseCode("");
-      setShowAddCourse(false);
-      loadCourses();
-    } catch (err) {
-      console.error("Error joining course", err);
+      setMessages(formatted);
     }
-  };
 
-  const handleNewChat = () => {
-    // TODO: navigate to or open a new chat under selectedFolder
-  };
+    fetchChatLog();
+  }, []);
 
 
   return (
-    <SidebarProvider>
-      <div className="flex h-screen">
-        <Sidebar className="w-64 border-r bg-background">
-          <SidebarHeader>
-            <Dialog open={showAddCourse} onOpenChange={setShowAddCourse}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full flex items-center justify-center bg-[var(--color-purdue-gold)] hover:bg-[var(--color-purdue-black)] text-[var(--color-purdue-black)] font-semibold"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Join Course
-                </Button>
-              </DialogTrigger>
+    <div className="flex flex-col flex-1 min-h-0">
 
-              <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
-                <DialogHeader>
-                  <DialogTitle>Join a Course</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <Input
-                    placeholder="Course Code"
-                    value={newCourseCode}
-                    onChange={(e) => setNewCourseCode(e.target.value)}
-                  />
-                </div>
-                <DialogFooter>
-                  <Button
-                    onClick={handleJoinCourse}
-                    className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    <FolderPlus className="mr-2 h-4 w-4" />
-                    Join
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </SidebarHeader>
-
-          <SidebarContent>
-            <SidebarMenu>
-              {courses.map((course) => (
-                <Fragment key={course.course_id}>
-                  <SidebarMenuItem
-                    onClick={() => handleSelectCourse(course.course_id)}
-                    className={
-                      selectedCourse === course.course_id
-                        ? "bg-muted font-bold"
-                        : ""
-                    }
-                  >
-                    {course.title}
-                  </SidebarMenuItem>
-
-                  {selectedCourse === course.course_id && (
-                    <SidebarMenuSub>
-                      {(foldersByCourse[course.course_id] || []).map(
-                        (folder) => (
-                          <SidebarMenuSubItem key={folder.folder_id}>
-                            <SidebarMenuSubButton
-                              isActive={selectedFolder === folder.folder_id}
-                              onClick={() =>
-                                handleSelectFolder(folder.folder_id)
-                              }
-                            >
-                              {folder.title}
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      )}
-
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton onClick={handleNewChat}>
-                          <MessageSquare className="mr-2 h-4 w-4" />
-                          New Chat
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  )}
-                </Fragment>
-              ))}
-            </SidebarMenu>
-          </SidebarContent>
-
-          <SidebarFooter>
-            {/* add any footer items (settings, logout, etc.) here */}
-          </SidebarFooter>
-        </Sidebar>
-
-        <main className="flex-1 overflow-auto">
-          {/* Render chat window here, based on selectedFolder */}
-        </main>
+      {/* Message Display area */}
+      <div className="flex-1 overflow-y-auto bg-[var(--color-chat-background)] p-4 space-y-6">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`max-w-[50%] p-3 rounded-lg whitespace-pre-wrap ${
+              msg.role === "user"
+                ? "ml-auto bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)]"
+                : "mr-auto bg-white text-black shadow"
+            }`}
+          >
+            {msg.content}
+          </div>
+        ))}
       </div>
-    </SidebarProvider>
+
+      {/* User Message Input Box */}
+      <div className="flex bg-[var(--color-chat-background)] p-4 justify-center">
+        <div className="w-full max-w-2xl flex gap-2 items-end">
+          <TextareaAutosize
+            placeholder="Ask Anything..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            minRows={1}
+            maxRows={8}
+            className="flex-1 resize-none p-3 rounded-lg text-white bg-[#2E2E38] placeholder-gray-400 border border-gray-600 focus:outline-none"
+          />
+
+          <Button
+            onClick={handleSend}
+            className="bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)] px-4 py-2 rounded-full"
+          >
+            Send
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -31,6 +31,7 @@ interface Chat {
 }
 
 export default function Sidebar2() {
+  const router = useRouter();
   const { userId, loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -270,10 +271,10 @@ export default function Sidebar2() {
                                 (chat) => (
                                   <li key={chat.chat_id}>
                                     <Button
-                                      //onClick={() => handleSelectFolder(folder.folder_id)}
+                                      // transfer to the chat page
                                       onClick = {() => {
-                                        console.log("chat is selected !!!")
-                                        console.log("chat id: ", chat.chat_id)
+                                        console.log("Chat ID:", chat.chat_id);
+                                        router.push(`/chat/${chat.chat_id}`);
                                       }}
                                       className={
                                         "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +

@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import MainScreen from "@/app/mainscreen";
-import ChatScreen from "@/app/chatscreen";
 import AdminDashboard from "./admindashboard";
 import Sidebar2 from "@/components/ui/sidebar-2";
 
@@ -38,15 +37,6 @@ export default function Home() {
     );
   }
 
-  //return ChatScreen({ chatId: "2e7862c8-b538-4c82-994f-c1f8b535cb2b" });
-  /*
-    <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
-      <h1 className="text-4xl font-bold text-[var(--color-purdue-white)]">
-        Welcome back, !
-      </h1>
-    </div>
-    */
-  //}
 
   return (
     <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
