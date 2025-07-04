@@ -31,17 +31,12 @@ interface Chat {
 }
 
 export default function Sidebar2() {
+  const { userId, loading } = useAuth();
+  const [courses, setCourses] = useState<Course[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const { userId, loading } = useAuth();
-  const router = useRouter();
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [foldersByCourse, setFoldersByCourse] = useState<{
-    [key: number]: Folder[];
-  }>({});
-  const [chatsByFolder, setChatsByFolder] = useState<Record<number, Chat[]>>(
-    {}
-  );
+  const [foldersByCourse, setFoldersByCourse] = useState<{[key: number]: Folder[]}>({});
+  const [chatsByFolder, setChatsByFolder] = useState<Record<number, Chat[]>>({});
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -80,6 +75,8 @@ export default function Sidebar2() {
       console.error(`Failed to load folders for course ${courseId}`, err);
     }
   };
+
+  // Fetch chats for a folder
   const loadChats = async (folderId: number) => {
     try {
       // Assuming your GET /folders POST returns e.g. Chat[]
@@ -97,6 +94,7 @@ export default function Sidebar2() {
     }
   };
 
+  // load course upon render
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
@@ -150,12 +148,13 @@ export default function Sidebar2() {
     }
   };
 
-  // Guard
+  // login guard
   if (loading) return null;
   if (!userId) {
     router.replace("/login");
     return null;
   }
+
 
   return (
     <div>
@@ -272,6 +271,10 @@ export default function Sidebar2() {
                                   <li key={chat.chat_id}>
                                     <Button
                                       //onClick={() => handleSelectFolder(folder.folder_id)}
+                                      onClick = {() => {
+                                        console.log("chat is selected !!!")
+                                        console.log("chat id: ", chat.chat_id)
+                                      }}
                                       className={
                                         "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
                                         (selectedChat === chat.chat_id

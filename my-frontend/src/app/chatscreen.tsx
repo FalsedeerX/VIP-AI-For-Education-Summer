@@ -38,14 +38,12 @@ interface Folder {
   title: string;
 }
 
+
 export default function ChatScreen() {
   const { userId, loading } = useAuth();
   const router = useRouter();
-
   const [courses, setCourses] = useState<Course[]>([]);
-  const [foldersByCourse, setFoldersByCourse] = useState<
-    Record<number, Folder[]>
-  >({});
+  const [foldersByCourse, setFoldersByCourse] = useState<Record<number, Folder[]>>({});
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [showAddCourse, setShowAddCourse] = useState(false);
@@ -85,6 +83,7 @@ export default function ChatScreen() {
     [foldersByCourse]
   );
 
+  // upon course load
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
@@ -118,6 +117,7 @@ export default function ChatScreen() {
   const handleNewChat = () => {
     // TODO: navigate to or open a new chat under selectedFolder
   };
+
 
   return (
     <SidebarProvider>
