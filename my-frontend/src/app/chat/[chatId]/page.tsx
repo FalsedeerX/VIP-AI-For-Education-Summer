@@ -13,7 +13,7 @@ export default function ChatPage() {
 		<div className="flex flex-row flex-1 min-h-0 overflow-hidden bg-[var(--background)]">
         	<Sidebar2 />
         	<div className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          		<ChatScreen />
+          		<ChatScreen chatId={chatId}/>
         	</div>
       	</div>
 	);

@@ -1,55 +1,71 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import { getJson, postJson } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { useEffect, useState, useRef } from "react";
 import TextareaAutosize from "react-textarea-autosize";
 
-// custom type for holding message
 type Message = {
-  role: "user" | "AI";
-  content: string;
+  user_id: number;
+  message: string;
+  created_at: number;
 };
 
+type UserInfo = {
+  id: number;
+  username: string;
+  admin: boolean;
+}
 
-export default function ChatScreen() {
+
+export default function ChatScreen( {chatId} : {chatId: string} ) {
+  const socketRef = useRef<WebSocket | null>(null);
+  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+
+
+  // auto setup upon initial render
+  useEffect(() => {
+    async function fetchChatLog() {
+      try {
+        const messages = await getJson<Message[]>(`/chats/${chatId}`, {}, true);
+        setMessages(messages);
+      } catch {}
+    }
+
+    async function fetchUserInfo() {
+      try {
+        const info = await getJson<UserInfo>("/users/me", {}, true);
+        setUserInfo(info);
+      } catch {}
+    }
+
+    // initial websocket connecttion & fetch previous chat logs
+    const socket = new WebSocket(`ws://localhost:8000/chats/relay/${chatId}`);
+    socketRef.current = socket;
+    fetchChatLog();
+    fetchUserInfo();
+
+    // websocket cleanup
+    return () => { socket.close() };
+  }, []);
 
 
   // send the user input message to backend
   const handleSend = () => {
     if (input.trim() === "") return;
-    setMessages((prev) => [...prev, { role: "user", content: input }]);
+    setMessages((prev) => [...prev, { user_id: userInfo.id, message: input, created_at: Date.now() }]);
     setInput("");
+
+    // send the user input message to AI Model
+    
+    // fetch for response
 
     // mimic AI generated response
     setTimeout(() => {
-      setMessages((prev) => [...prev, { role: "AI", content: "Working on it..." }]);
+      setMessages((prev) => [...prev, { user_id: -1, message: "Working on it...", created_at: Date.now() }]);
     }, 500);
   };
-
-
-  // Fetch previous chat log from backend upon page render
-  useEffect(() => {
-    async function fetchChatLog() {
-      // mimic endpoint response
-      const rawMessages = [
-        "Hello!",
-        "Hi there! How can I help you today?",
-        "What is AI?",
-        "AI stands for Artificial Intelligence..."
-      ];
-
-      const formatted: Message[] = rawMessages.map((msg, i) => ({
-        role: i % 2 === 0 ? "user" : "assistant",
-        content: msg,
-      }));
-
-      setMessages(formatted);
-    }
-
-    fetchChatLog();
-  }, []);
 
 
   return (
@@ -61,12 +77,12 @@ export default function ChatScreen() {
           <div
             key={i}
             className={`max-w-[50%] p-3 rounded-lg whitespace-pre-wrap ${
-              msg.role === "user"
+              msg.user_id !== -1
                 ? "ml-auto bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)]"
                 : "mr-auto bg-white text-black shadow"
             }`}
           >
-            {msg.content}
+            {msg.message}
           </div>
         ))}
       </div>

@@ -223,21 +223,17 @@ class DatabaseAgent:
         else: return -1
 
 
-    async def log_chat(self, chat_id: str, sender: str, message: str) -> bool:
+    async def log_chat(self, chat_id: str, sender: int, message: str) -> bool:
         """Append a message to a chat."""
         try:
             uid = uuid.UUID(chat_id)
-        except ValueError:
-            return False
-        try:
-            sid = int(sender)
         except ValueError:
             return False
         conn = await get_connection()
         async with conn.cursor() as cur:
             await cur.execute(
                 "INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s);",
-                (sid, uid, message)
+                (sender, uid, message)
             )
         await conn.commit()
         return True
@@ -480,5 +476,11 @@ class DatabaseAgent:
 
 if __name__ == "__main__":
     agent = DatabaseAgent()
-    data = asyncio.run(agent.get_random_chat(9))
-    print(data)
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "Hi there!"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "Hello! How can I help you today?"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "What's the weather like today?"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "It's sunny and 75°F in your area."))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "Nice. Can you remind me to study at 8 PM?"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "Reminder set for 8 PM: 'Study session.'"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "Thanks!"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "You're welcome"))

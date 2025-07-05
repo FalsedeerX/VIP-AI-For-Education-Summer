@@ -89,9 +89,9 @@ class ChatRouter:
 
 
 	async def websocket_relay(self, websocket: WebSocket, chat_id: str):
-		""" Establish a connection from client to transmit data """
-		cookies = SimpleCookie()
-		cookies.load(websocket.headers.get("cookie", ""))
+		""" Establish a connection from client to transmit data,
+			WARNING: authentication is disabled on this endpoint due to cross origin cookie problem. """
+		# establish websocket connection
 		await websocket.accept()
 
 		try:
@@ -100,10 +100,12 @@ class ChatRouter:
 				question = await websocket.receive_text()
 
 				# receive the response from AI
-				answer = question
+				answer = "AI Model Echo: " + question
 				await websocket.send_text(answer)
 
 				# log user's message into database
+				# status = await self.db.log_chat(chat_id, request.state.user_id, payload.message)
+				# if not status: raise HTTPException(404, "Cannot add message to chat")
 				
 				# log AI's response into database
 

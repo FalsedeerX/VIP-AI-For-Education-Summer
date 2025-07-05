@@ -273,7 +273,6 @@ export default function Sidebar2() {
                                     <Button
                                       // transfer to the chat page
                                       onClick = {() => {
-                                        console.log("Chat ID:", chat.chat_id);
                                         router.push(`/chat/${chat.chat_id}`);
                                       }}
                                       className={
