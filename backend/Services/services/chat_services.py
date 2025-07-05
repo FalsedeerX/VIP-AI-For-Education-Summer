@@ -98,16 +98,19 @@ class ChatRouter:
 			while True:
 				# receive the message from user
 				question = await websocket.receive_text()
+				print("Received:", question)
 
-				# receive the response from AI
+				# mimic the response from AI
 				answer = "AI Model Echo: " + question
 				await websocket.send_text(answer)
 
 				# log user's message into database
-				# status = await self.db.log_chat(chat_id, request.state.user_id, payload.message)
+				# status = await self.db.log_chat(chat_id, request.state.user_id, question)
 				# if not status: raise HTTPException(404, "Cannot add message to chat")
 				
 				# log AI's response into database
+				# status = await self.db.log_chat(chat_id, -1, answer)
+				# if not status: raise HTTPException(404, "Cannot add message to chat")
 
 		except WebSocketDisconnect:
 			return

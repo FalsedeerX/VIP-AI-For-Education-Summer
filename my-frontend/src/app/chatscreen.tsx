@@ -42,6 +42,7 @@ export default function ChatScreen( {chatId} : {chatId: string} ) {
 
     // initial websocket connecttion & fetch previous chat logs
     const socket = new WebSocket(`ws://localhost:8000/chats/relay/${chatId}`);
+    socket.onmessage = handleRecv;
     socketRef.current = socket;
     fetchChatLog();
     fetchUserInfo();
@@ -51,20 +52,19 @@ export default function ChatScreen( {chatId} : {chatId: string} ) {
   }, []);
 
 
-  // send the user input message to backend
+  // send message to backend's AI model
   const handleSend = () => {
     if (input.trim() === "") return;
     setMessages((prev) => [...prev, { user_id: userInfo.id, message: input, created_at: Date.now() }]);
+    socketRef.current?.send(input);
     setInput("");
+  };
 
-    // send the user input message to AI Model
-    
-    // fetch for response
 
-    // mimic AI generated response
-    setTimeout(() => {
-      setMessages((prev) => [...prev, { user_id: -1, message: "Working on it...", created_at: Date.now() }]);
-    }, 500);
+  // receive response from backend's AI model
+  const handleRecv = (event: MessageEvent) => {
+    const response = event.data;
+    setMessages((prev) => [...prev, { user_id: -1, message: response, created_at: Date.now() }]);
   };
 
 
