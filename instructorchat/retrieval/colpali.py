@@ -16,7 +16,11 @@ from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from colpali_engine.compression.token_pooling import HierarchicalTokenPooler
 from colpali_engine.utils.torch_utils import get_torch_device
 
+from rerankers import Reranker
+
 from fast_plaid.search.fast_plaid import FastPlaid
+
+from instructorchat.utils import images_to_base64
 
 class ColPali:
     """
@@ -110,20 +114,46 @@ class ColPali:
 
         return self.processor.get_topk_plaid(query_embeddings, plaid_index, k=top_k, device=self.device)[0] # Remove extra dimension
 
-    def embed_pdf(self, file_path: Path, batch_size: int = 1) -> Tuple[List[Image.Image], torch.Tensor]:
-        print(f"Embedding {file_path.name}...")
+    def embed_pdf(
+        self,
+        file_path: Path,
+        batch_size: int = 1,
+        img_max_width: int = 512,
+        img_max_height: int = 512
+    ) -> tuple[List[Image.Image], torch.Tensor]:
+        print(f"Converting {file_path.name} to images...")
         images = pdf2image.convert_from_path(file_path)
 
+        images = self.resize_images(images, max_width=img_max_width, max_height=img_max_height)
+
+        print(f"Embedding {file_path.name}...")
         return images, self.embed_images(images, batch_size=batch_size)
+
+    def resize_images(self, images: List[Image.Image], max_width: int = 512, max_height: int = 512) -> List[Image.Image]:
+        resized = []
+
+        for img in images:
+            img_resized = img.copy()
+            img_resized.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
+            resized.append(img_resized)
+
+        return resized
 
 
 class InMemoryColPali:
-    def __init__(self, docs_dir: str = "documents", use_fast_plaid: bool = True) -> None:
+    def __init__(self, docs_dir: str = "documents", use_fast_plaid: bool = True, reranking: bool = False) -> None:
         self.colpali = ColPali()
 
         if (use_fast_plaid and
             not (self.colpali.device == torch.cuda or (isinstance(self.colpali.device, str) and "cuda" in self.colpali.device))):
             warnings.warn(f"CUDA is recommended for FastPlaid. Current device is {self.colpali.device}")
+
+        if reranking:
+            self.reranker = Reranker(
+                "monovlm",
+                device=self.colpali.device,
+                attention_implementation="flash_attention_2" if is_flash_attn_2_available() else None
+            )
 
         self.use_fast_plaid = use_fast_plaid
         self.index(docs_dir)
@@ -166,3 +196,10 @@ class InMemoryColPali:
                 result_images.append(self.images[img_idx])
 
             return result_images
+
+    def rerank(self, query: str, images: List[Image.Image], top_k: int = 1) -> List[Image.Image]:
+        base64_list = images_to_base64(images)
+
+        results = self.reranker.rank(query, base64_list)
+
+        return [images[result.doc_id] for result in results.top_k(top_k)]
