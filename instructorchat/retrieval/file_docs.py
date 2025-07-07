@@ -14,6 +14,9 @@ from haystack.components.preprocessors.document_cleaner import DocumentCleaner
 from haystack.components.preprocessors.document_splitter import DocumentSplitter
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder
 
+from deprecated import deprecated
+
+@deprecated
 def add_docs_from_files(document_store, docs_dir: str = "documents") -> List[Document]:
     file_paths = [docs_dir / Path(name) for name in os.listdir(docs_dir)]
 

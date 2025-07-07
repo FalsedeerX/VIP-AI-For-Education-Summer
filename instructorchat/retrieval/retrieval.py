@@ -22,8 +22,9 @@ from haystack.components.retrievers.in_memory import InMemoryEmbeddingRetriever
 from haystack.components.builders import PromptBuilder
 from haystack_integrations.components.generators.ollama import OllamaGenerator
 
+from deprecated import deprecated
 
-
+@deprecated
 class Retrieval:
     def __init__(self):
         self.docs: List[Document] = imported_docs
