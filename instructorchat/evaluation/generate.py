@@ -64,121 +64,127 @@ def generate_from_pdfs_visual(pdfs_dir: str = "documents", save_dir: str="eval_d
 
     class Questions(BaseModel):
         class QAPair(BaseModel):
-            input: str
-            expected_output: str
+            factoid_question: str
+            answer: str
 
         questions: list[QAPair]
 
     QA_generation_prompt = """
-Given a hypothetical search result image, your task is to write a factoid question (input) that would cause that image to come up, and an answer (expected_output) to that question using the image.
-Your factoid questions should be answerable with a specific, concise piece of factual information from the image.
-Your factoid questions should be formulated in the same style as questions users could ask in a search engine.
-Your factoid questions should be questions someone could ask without seeing the image.
-This means that your factoid questions SHOULD NOT reference the image provided or any specific examples contained in it, rather,
-the image should be used as a knowledge base to answer the question.
+Your task is to write a factoid question and an answer given a context.
+Your factoid question should be answerable with a specific, concise piece of factual information from the context.
+Your factoid question should be formulated in the same style as questions users could ask in a search engine.
+This means that your factoid question MUST NOT mention something like "according to the image" or "context".
+
+Provide your answer as follows:
+
+Output:::
+Factoid question: (your factoid question)
+Answer: (your answer to the factoid question)
+
+The context will be provided as an image.
 """
-    # client = OpenAI()
+    client = OpenAI()
 
-    # def get_QA(image: Image.Image):
-    #     response = client.chat.completions.create(
-    #         model="gpt-4o-mini",
-    #         temperature=0.1,
-    #         # This is to enable JSON mode, making sure responses are valid json objects
-    #         response_format={
-    #             "type": "json_schema",
-    #             "json_schema": {
-    #                 "name": "FactoidQuestions",
-    #                 "schema": Questions.model_json_schema(),
-    #             }
-    #         },
-    #         messages=[
-    #             {
-    #                 "role": "system",
-    #                 "content": QA_generation_prompt
-    #             },
-    #             {
-    #                 "role": "user",
-    #                 "content": [
-    #                     {
-    #                         "type": "image_url",
-    #                         "image_url": {
-    #                             "url": f"data:image/jpeg;base64,{encode_image(image)}"
-    #                         },
-    #                     },
-    #                 ]
-    #             }
-    #         ],
-    #     )
-
-    #     return response.choices[0].message.content
-
-    # results = []
-    # for idx, image in enumerate(images[:4]):
-    #     output = get_QA(image)
-    #     assert output
-    #     qa = json.loads(output)["questions"]
-    #     page_index, file = image_sources[idx]
-    #     qa = [{"page_index": page_index, "source_file": file, **pair} for pair in qa]
-
-    #     results.extend(qa)
-
-    # os.makedirs(save_dir, exist_ok=True)
-    # with open(os.path.join(save_dir, "image_eval_data.json"), "w") as f:
-    #     json.dump(results, f, indent=4)
-
-    tasks = []
-    sources = []
-
-    for idx, image in enumerate(images):
-        task = {
-            "custom_id": f"task-{idx}",
-            "method": "POST",
-            "url": "/v1/chat/completions",
-            "body": {
-                "model": "gpt-4o-mini",
-                "temperature": 0.1,
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "FactoidQuestions",
-                        "schema": Questions.model_json_schema(),
-                    }
+    def get_QA(image: Image.Image):
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            temperature=0.1,
+            # This is to enable JSON mode, making sure responses are valid json objects
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "FactoidQuestions",
+                    "schema": Questions.model_json_schema(),
+                }
+            },
+            messages=[
+                {
+                    "role": "system",
+                    "content": QA_generation_prompt
                 },
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": QA_generation_prompt
-                    },
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/jpeg;base64,{encode_image(image)}"
-                                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{encode_image(image)}"
                             },
-                        ]
-                    }
-                ],
-            }
-        }
+                        },
+                    ]
+                }
+            ],
+        )
 
+        return response.choices[0].message.content
+
+    results = []
+    for idx, image in enumerate(images[:4]):
+        output = get_QA(image)
+        assert output
+        qa = json.loads(output)["questions"]
         page_index, file = image_sources[idx]
-        tasks.append(task)
-        sources.append({
-            "source_file": file,
-            "page_index": page_index
-        })
+        qa = [{"page_index": page_index, "source_file": file, **pair} for pair in qa]
 
-    file_name = "eval_data/batch_tasks_question_generation.jsonl"
-    with open(file_name, 'w') as file:
-        for obj in tasks:
-            file.write(json.dumps(obj) + '\n')
+        results.extend(qa)
 
-    sources_file_name = "eval_data/batch_tasks_question_generation_sources.json"
-    with open(sources_file_name, 'w') as file:
-        json.dump(sources, file, indent=4)
+    os.makedirs(save_dir, exist_ok=True)
+    with open(os.path.join(save_dir, "image_eval_data.json"), "w") as f:
+        json.dump(results, f, indent=4)
+
+    # tasks = []
+    # sources = []
+
+    # for idx, image in enumerate(images):
+    #     task = {
+    #         "custom_id": f"task-{idx}",
+    #         "method": "POST",
+    #         "url": "/v1/chat/completions",
+    #         "body": {
+    #             "model": "gpt-4o-mini",
+    #             "temperature": 0.1,
+    #             "response_format": {
+    #                 "type": "json_schema",
+    #                 "json_schema": {
+    #                     "name": "FactoidQuestions",
+    #                     "schema": Questions.model_json_schema(),
+    #                 }
+    #             },
+    #             "messages": [
+    #                 {
+    #                     "role": "system",
+    #                     "content": QA_generation_prompt
+    #                 },
+    #                 {
+    #                     "role": "user",
+    #                     "content": [
+    #                         {
+    #                             "type": "image_url",
+    #                             "image_url": {
+    #                                 "url": f"data:image/jpeg;base64,{encode_image(image)}"
+    #                             },
+    #                         },
+    #                     ]
+    #                 }
+    #             ],
+    #         }
+    #     }
+
+    #     page_index, file = image_sources[idx]
+    #     tasks.append(task)
+    #     sources.append({
+    #         "source_file": file,
+    #         "page_index": page_index
+    #     })
+
+    # file_name = "eval_data/batch_tasks_question_generation.jsonl"
+    # with open(file_name, 'w') as file:
+    #     for obj in tasks:
+    #         file.write(json.dumps(obj) + '\n')
+
+    # sources_file_name = "eval_data/batch_tasks_question_generation_sources.json"
+    # with open(sources_file_name, 'w') as file:
+    #     json.dump(sources, file, indent=4)
 
 def main():
     parser = argparse.ArgumentParser()

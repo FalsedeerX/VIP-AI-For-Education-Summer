@@ -45,13 +45,13 @@ async def ping(data = None, websocket = None):
 async def initialize_model(model_path: str, api_key: str, temperature: float):
     """Initialize the global model and conversation."""
     global global_conv, global_api_key, global_temperature
-    
+
     global_api_key = api_key
     global_temperature = temperature
-    
+
     # Set API key
     openai.api_key = api_key
-    
+
     # Load model
     adapter = get_model_adapter(model_path)
     load_model(model_path, api_key)
@@ -60,12 +60,12 @@ async def initialize_model(model_path: str, api_key: str, temperature: float):
 async def return_conversation(data: Dict, websocket = None) -> Dict:
     """Action: Return the current conversation."""
     global global_conv
-    
+
     if global_conv is None:
         if websocket:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
-    
+
     convo = global_conv.get_message()
 
     if websocket:
@@ -80,21 +80,21 @@ async def return_conversation(data: Dict, websocket = None) -> Dict:
 async def store_documents_action(data: Dict, websocket = None) -> Dict:
     """Action: Store documents from file path."""
     global global_api_key
-    
+
     if global_api_key is None:
         if websocket:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
-    
+
     try:
         file_path = data.get("file_path", "")
         if not file_path.endswith('.py'):
             if websocket:
                 await websocket.send_message(json.dumps({"error": "Only .py files are supported", "status": "error"}))
             return {"error": "Only .py files are supported"}
-        
+
         from instructorchat.retrieval.store_with_mongodb import store_documents
-        
+
         success, message = store_documents(file_path)
 
         if websocket:
@@ -108,7 +108,7 @@ async def store_documents_action(data: Dict, websocket = None) -> Dict:
             return {"message": message, "status": "success"}
         else:
             return {"error": message, "status": "error"}
-            
+
     except ImportError as e:
         error_msg = f"Error importing store module: {str(e)}"
         if websocket:
@@ -123,28 +123,28 @@ async def store_documents_action(data: Dict, websocket = None) -> Dict:
 async def generate_answer_action(data: Dict, websocket=None):
     """Action: Generate answer for a question with streaming output."""
     global global_conv, global_api_key, global_temperature
-    
+
     if global_conv is None or global_api_key is None:
         if websocket:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
-    
+
     try:
         question = data.get("question", "")
         if not question:
             if websocket:
                 await websocket.send_message(json.dumps({"error": "Question is required", "status": "error"}))
             return {"error": "Question is required", "status": "error"}
-        
+
         # Get relevant context for the query
         contexts = await retrieve_relevant_context(question, global_api_key)
-        
+
         # Prepare the prompt with context
         context_text = "\n\n".join([
             f"Title: {ctx['title']}\n{ctx['content']}"
             for ctx in contexts
         ])
-        
+
         # Format the message with context and question
         formatted_message = f"""
             Here is the question: <QUESTION> {question} </QUESTION>
@@ -153,26 +153,26 @@ async def generate_answer_action(data: Dict, websocket=None):
             <CONTEXT>
             {context_text}
             </CONTEXT>"""
-        
+
         # Add messages to conversation
         global_conv.append_message(global_conv.roles[0], formatted_message)
-        
+
         # Create the final prompt with context
         messages = global_conv.to_openai_api_messages()
-        
+
         gen_params = {
             "messages": messages,
             "temperature": global_temperature
         }
-        
+
         # Generate streaming response
         stream = await generate_response_stream(gen_params)
-        
+
         if stream is None:
             if websocket:
                 await websocket.send_message(json.dumps({"error": "Failed to generate stream", "status": "error"}))
             return {"error": "Failed to generate stream", "status": "error"}
-        
+
         # Stream the response
         full_response = ""
         async for chunk in stream:
@@ -186,11 +186,11 @@ async def generate_answer_action(data: Dict, websocket=None):
                         "content": delta,
                         "status": "streaming"
                     }))
-                    
-        
+
+
         # Add complete response to conversation
         global_conv.append_message(global_conv.roles[1], full_response.strip())
-        
+
         # Send completion signal
         if websocket:
             await websocket.send_message(json.dumps({
@@ -199,13 +199,13 @@ async def generate_answer_action(data: Dict, websocket=None):
                 "contexts": [f"Title: {ctx['title']}\n{ctx['content']}" for ctx in contexts],
                 "status": "success"
             }))
-        
+
         return {
             "answer": full_response,
             "contexts": [f"Title: {ctx['title']}\n{ctx['content']}" for ctx in contexts],
             "status": "success"
         }
-        
+
     except Exception as e:
         error_msg = f"Error generating answer: {str(e)}"
         if websocket:
@@ -347,6 +347,8 @@ async def chat_loop(
                 }
 
                 idx += 1
+
+                conv = adapter.get_default_conv_template(model_path) # Reset conversation
 
                 if idx >= len(evaluation_test_cases):
                     break

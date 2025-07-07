@@ -19,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define available folders for classification
-AVAILABLE_FOLDERS = ['project', 'logistics', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5',
+AVAILABLE_FOLDERS = ['project', 'logistics', 'course_content', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5',
                     'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
 
 embedder = SentenceTransformer("thenlper/gte-large")
@@ -44,6 +44,7 @@ async def classify_query(query: str, api_key: str) -> str:
         system_prompt = f"""You are a query classifier. Your task is to classify the user's query into one of these folders: {', '.join(AVAILABLE_FOLDERS)}.
         Choose the most relevant folder based on the query content. If the query is about homework, choose the specific homework folder (hw1-hw10).
         If the query is about exams, use 'exam'. If it's about course logistics, use 'logistics'. If it's about the project, use 'project'.
+        If it's about course material, such as questions about data science, Python, probability, statistics or other relevant topics, use 'course_content'.
         For anything else, use 'other'. Respond with ONLY the folder name, nothing else."""
 
         response = await client.chat.completions.create(

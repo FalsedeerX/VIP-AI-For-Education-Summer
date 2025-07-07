@@ -29,7 +29,7 @@ def clean_text(md_text):
 
     while i < len(lines):
         current = lines[i].strip()
-        
+
         # Look for break between blocks
         if current == "" and i > 0 and i < len(lines) - 1:
             prev = lines[i - 1].strip()
@@ -39,10 +39,10 @@ def clean_text(md_text):
             if re.search(r'[a-zA-Z]$', prev) and re.match(r'^[a-z]', next_):
                 # Merge prev + next
                 combined = prev + " " + next_
-                fixed_lines[-1] = combined  
+                fixed_lines[-1] = combined
                 i += 2
                 continue
-        
+
         fixed_lines.append(current)
         i += 1
 
@@ -53,7 +53,7 @@ def chunk_text(text, min_length=300, max_length=1000):
 
     delimiter_pattern = r'(?:\n{2,}|#+\s|(?<=\n)\*\*[^\n]+\*\*(?=\n))'
     raw_chunks = re.split(delimiter_pattern, text)
-    
+
     matches = list(re.finditer(delimiter_pattern, text))
     for i in range(len(matches)):
         delimiter = text[matches[i].start():matches[i].end()]
@@ -61,7 +61,7 @@ def chunk_text(text, min_length=300, max_length=1000):
 
     final_chunks = []
     buffer = ""
-    
+
     def split_long_chunk(chunk):
         # Try to split by sentence ends if possible
         sentences = re.split(r'(?<=[.?!])\s+', chunk)
@@ -103,17 +103,17 @@ def chunk_text(text, min_length=300, max_length=1000):
             final_chunks.extend(split_long_chunk(chunk))
         else:
             final_chunks.append(chunk)
-    
+
     return final_chunks
 
 def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[bool, str]:
     """
     Store documents from a file into MongoDB.
-    
+
     Args:
         file_path (str): Path to the file to store (must be in KnowledgeBase directory)
         collection_name (str): Name of the MongoDB collection to store in (default: "ece20875")
-    
+
     Returns:
         tuple[bool, str]: (success status, message)
     """
@@ -149,7 +149,7 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
         file = file_path.split(".")
         if len(file) != 2:
             return False, "Invalid file path format"
-            
+
         module_name = file[0]
         ext = file[-1]
 
@@ -163,7 +163,7 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
                 module = importlib.import_module(f"KnowledgeBase.{module_name}")
             except ImportError as e:
                 return False, f"Failed to import module: {str(e)}"
-                
+
             logger.info(f"Beginning the storing of {module_name}...")
 
             if not hasattr(module, 'docs'):
@@ -173,7 +173,7 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
                 logger.info(f"Processing document: {doc.meta['title']}")
                 chunks = [doc.content]  # chunking not necessary for QA posts
                 mongo_chunk_list = []
-                
+
                 for ch in chunks:
                     embedding = embed_text(ch, doc.meta)
                     mongo_chunk = {
@@ -198,10 +198,10 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
 
         elif ext == 'pdf':
             try:
-                md_text = pymupdf4llm.to_markdown(f"{module_name}.pdf")
+                md_text = pymupdf4llm.to_markdown(Path(__file__).parent / "KnowledgeBase" / f"{module_name}.pdf")
             except Exception as e:
                 return False, f"Failed to process PDF: {str(e)}"
-                
+
             meta = {
                 "title": module_name,
                 "folders": ['FOO', 'BAR'],
@@ -250,7 +250,7 @@ if __name__ == '__main__':
     if len(sys.argv) != 2:
         print("Usage: python store_with_mongodb.py <file>")
         sys.exit(1)
-        
+
     success, message = store_documents(sys.argv[1])
     if not success:
         print(f"Error: {message}")

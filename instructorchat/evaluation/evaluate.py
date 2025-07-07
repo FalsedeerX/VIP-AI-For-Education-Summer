@@ -46,9 +46,7 @@ async def get_responses(
 
     return responses_file
 
-def run_evaluations(
-    responses_file: str
-):
+def run_evaluations(responses_file: str, use_cache: bool = False):
     with open(responses_file, 'r') as f:
         test_cases = json.load(f)
 
@@ -63,7 +61,7 @@ def run_evaluations(
     ]
 
     metrics = [
-        AnswerRelevancyMetric(threshold=0.7, model="gpt-4.1-mini"),
+        AnswerRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
         GEval(
             name="Correctness",
             evaluation_steps=[
@@ -74,17 +72,17 @@ def run_evaluations(
                 "actual output's having different writing style and grammar from the expected output's is OK"
             ],
             #criteria="Determine if the 'actual output' is factually correct based on the 'expected output'. Do not penalize for different format, structure, wording or unnecessary information as long as the fact provided is correct"
-            model="gpt-4.1-mini",
+            model="gpt-4o-mini",
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
             threshold=0.7
         ),
-        ContextualPrecisionMetric(threshold=0.7, model="gpt-4.1-mini"),
-        ContextualRecallMetric(threshold=0.7, model="gpt-4.1-mini"),
-        ContextualRelevancyMetric(threshold=0.7, model="gpt-4.1-mini"),
+        ContextualPrecisionMetric(threshold=0.7, model="gpt-4o-mini"),
+        ContextualRecallMetric(threshold=0.7, model="gpt-4o-mini"),
+        ContextualRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
     ]
 
     # Run evaluations
-    test_result = evaluate(test_cases, metrics=metrics).test_results
+    test_result = evaluate(test_cases, metrics=metrics, throttle_value=3, max_concurrent=5, use_cache=use_cache, ignore_errors=True).test_results
 
     data = []
     for result in test_result:
@@ -120,7 +118,8 @@ def main() -> None:
     parser.add_argument("input_file", type=str) # Specify test cases or responses file
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
-    parser.add_argument("--judge-only", type=str, default=argparse.SUPPRESS) # Evaluate existing responses file
+    parser.add_argument("--judge-only", action="store_true", default=argparse.SUPPRESS) # Evaluate existing responses file
+    parser.add_argument("--cache", action="store_true", default=False)
     args = parser.parse_args()
 
     # Use API key from environment variable if not provided
@@ -135,7 +134,7 @@ def main() -> None:
     else:
         responses_file = args.input_file
 
-    run_evaluations(responses_file)
+    run_evaluations(responses_file, use_cache=args.cache)
 
 if __name__ == "__main__":
     main()
