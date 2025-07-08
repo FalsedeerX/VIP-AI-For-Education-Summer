@@ -23,16 +23,18 @@ const MessageBubble = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
   });
   return (
     <div
-      className={`max-w-[60%] p-3 rounded-lg whitespace-pre-wrap relative ${
+      className={`max-w-xs p-3 rounded-lg whitespace-pre-wrap relative ${
         isOwn
           ? "ml-auto bg-[var(--color-purdue-black)] text-[var(--color-purdue-gold)]"
           : "mr-auto bg-white text-black shadow"
       }`}
     >
       <div>{msg.message}</div>
-      <span className="absolute bottom-1 right-2 text-xs opacity-60">
-        {time}
-      </span>
+      <div className="m-2">
+        <span className="absolute bottom-1 right-2 text-xs opacity-60">
+          {time}
+        </span>
+      </div>
     </div>
   );
 };
@@ -90,11 +92,7 @@ export default function ChatScreen({ chatId }: { chatId: string }) {
   }, [chatId]);
 
   const handleSend = useCallback(() => {
-    console.log("Sending message:", !input.trim());
-    console.log("isConnected:", !isConnected);
-    console.log("userInfo:", !userInfo);
     if (!input.trim() || !isConnected || !userInfo) return;
-    console.log("Sending message:", input.trim());
     const outgoing: Message = {
       user_id: userInfo.id,
       message: input.trim(),
@@ -115,9 +113,9 @@ export default function ChatScreen({ chatId }: { chatId: string }) {
   };
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
+    <div className="flex flex-col h-full min-h-0 bg-[var(--color-chat-background)]">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto bg-[var(--color-chat-background)] p-4 space-y-4">
+      <div className="overflow-y-auto bg-[var(--color-chat-background)] p-4 space-y-6">
         {messages.map((msg, i) => (
           <MessageBubble
             key={i}
@@ -128,7 +126,7 @@ export default function ChatScreen({ chatId }: { chatId: string }) {
         <div ref={bottomRef} />
       </div>
 
-      <Separator className="bg-[var(--color-purdue-gold)]" />
+      <Separator className="bg-[var(--color-purdue-gold)] mt-auto" />
 
       {/* Input & Send */}
       <div className="flex bg-[var(--color-chat-background)] p-4 justify-center">

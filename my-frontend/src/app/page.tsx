@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainScreen from "@/app/mainscreen";
 import AdminDashboard from "./admindashboard";
@@ -25,18 +26,22 @@ export default function Home() {
     );
   }
 
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
   if (name) {
     // User is logged in, show main screen
     return (
       <div className="flex flex-row flex-1 min-h-0 overflow-hidden bg-[var(--background)]">
-        <Sidebar2 />
+        <Sidebar2
+          isDrawerOpen={isDrawerOpen}
+          setIsDrawerOpen={setIsDrawerOpen}
+        />
         <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
           <MainScreen />
         </div>
       </div>
     );
   }
-
 
   return (
     <div className="flex flex-1 items-center justify-center bg-[var(--background)] p-4">
