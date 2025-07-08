@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { getJson, postJson } from "@/lib/api";
+import { getJson, postJson, deleteJson } from "@/lib/api";
 import { useEffect, useCallback, Fragment } from "react";
 import {
   Dialog,
@@ -13,7 +13,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, FolderPlus, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  Plus,
+  FolderPlus,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Trash2,
+  BookA,
+  Folder,
+  MessageSquare,
+} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface Course {
   course_id: number;
@@ -36,8 +46,12 @@ export default function Sidebar2() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [foldersByCourse, setFoldersByCourse] = useState<{[key: number]: Folder[]}>({});
-  const [chatsByFolder, setChatsByFolder] = useState<Record<number, Chat[]>>({});
+  const [foldersByCourse, setFoldersByCourse] = useState<{
+    [key: number]: Folder[];
+  }>({});
+  const [chatsByFolder, setChatsByFolder] = useState<Record<number, Chat[]>>(
+    {}
+  );
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -47,11 +61,13 @@ export default function Sidebar2() {
   const [newChatName, setNewChatName] = useState("");
 
   // Redirect if not authenticated
+  /*
   if (loading) return null;
   if (!userId) {
     router.replace("/login");
     return null;
   }
+  */
 
   // Fetch courses
   const loadCourses = useCallback(async () => {
@@ -149,13 +165,22 @@ export default function Sidebar2() {
     }
   };
 
+  const handleDeleteChat = async (chatId: string) => {
+    if (!confirm("Really delete this chat?")) return;
+    try {
+      await deleteJson<boolean>(`/chats/delete/${chatId}`, {}, true);
+      loadChats(selectedFolder!);
+    } catch (err) {
+      console.error(`Failed to delete chat ${chatId}`, err);
+    }
+  };
+
   // login guard
   if (loading) return null;
   if (!userId) {
     router.replace("/login");
     return null;
   }
-
 
   return (
     <div>
@@ -234,6 +259,17 @@ export default function Sidebar2() {
           </Dialog>
         </div>
 
+        <Separator
+          className="my-4 text-[var(--color-purdue-black)]"
+          style={{ height: "4px" }}
+        />
+        {/* Course List Header */}
+        <div className="flex items-center justify-between ">
+          <h2 className="text-[var(--color-purdue-black)] uppercase text-lg font-bold tracking-wider">
+            Courses
+          </h2>
+        </div>
+
         {/* Course List */}
         <div className="py-4 overflow-y-auto">
           <ul className="space-y-2 font-medium">
@@ -246,11 +282,17 @@ export default function Sidebar2() {
                     (selectedCourse === course.course_id ? "" : "")
                   }
                 >
+                  <BookA className="mr-2 h-4 w-4" />
                   {course.title}
                 </Button>
 
                 {selectedCourse === course.course_id && (
                   <ul className="pl-4 space-y-2">
+                    {/* <Separator
+                      className="my-2 text-[var(--color-purdue-black)]"
+                      style={{ height: "2px" }}
+                    />
+                    */}
                     {/* Folders for selected course */}
                     {(foldersByCourse[course.course_id] || []).map((folder) => (
                       <li key={folder.folder_id}>
@@ -261,28 +303,47 @@ export default function Sidebar2() {
                             (selectedFolder === folder.folder_id ? "" : "")
                           }
                         >
+                          <Folder className="mr-2 h-4 w-4" />
                           {folder.folder_label}
                         </Button>
                         {/* Chats for selected folder */}
                         {selectedCourse === course.course_id &&
                           selectedFolder == folder.folder_id && (
                             <ul className="pl-4 space-y-2 pt-2">
+                              {/* <Separator
+                                className="my-2 text-[var(--color-purdue-black)]"
+                                style={{ height: "2px" }}
+                              /> */}
                               {(chatsByFolder[folder.folder_id] || []).map(
                                 (chat) => (
                                   <li key={chat.chat_id}>
                                     <Button
-                                      // transfer to the chat page
-                                      onClick = {() => {
-                                        router.push(`/chat/${chat.chat_id}`);
-                                      }}
-                                      className={
-                                        "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
-                                        (selectedChat === chat.chat_id
-                                          ? ""
-                                          : "")
+                                      onClick={() =>
+                                        router.push(`/chat/${chat.chat_id}`)
                                       }
+                                      className="relative w-full p-2 flex items-center rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
                                     >
-                                      {chat.title}
+                                      {/* 1) Centered icon + title */}
+                                      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                        <MessageSquare className="mr-2 h-4 w-4" />
+                                        <span>{chat.title}</span>
+                                      </div>
+
+                                      {/* 2) Trash icon at far right */}
+                                      <Button
+                                        asChild
+                                        size="icon"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteChat(chat.chat_id);
+                                        }}
+                                        className=" ml-auto bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] "
+                                      >
+                                        <Trash2
+                                          className="h-4 w-4"
+                                          strokeWidth={2.5}
+                                        />
+                                      </Button>
                                     </Button>
                                   </li>
                                 )
@@ -345,63 +406,6 @@ export default function Sidebar2() {
                 )}
               </Fragment>
             ))}
-          </ul>
-        </div>
-
-        {/* Navigation links */}
-        <div className="py-4 overflow-y-auto">
-          <ul className="space-y-2 font-medium">
-            <li>
-              <a
-                href="#"
-                className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-              >
-                {/* Dashboard Icon */}
-                <span className="ml-3">Dashboard</span>
-              </a>
-            </li>
-
-            {/* E-commerce with dropdown */}
-            <li>
-              <Button
-                className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                aria-expanded={isDropdownOpen}
-                onClick={() => setIsDropdownOpen((o) => !o)}
-              >
-                <span className="">E-commerce</span>
-              </Button>
-              <ul
-                id="dropdown-example"
-                className={`pl-11 space-y-2 py-2 ${
-                  isDropdownOpen ? "block" : "hidden"
-                }`}
-              >
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    Products
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    Billing
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    Invoice
-                  </a>
-                </li>
-              </ul>
-            </li>
           </ul>
         </div>
       </div>

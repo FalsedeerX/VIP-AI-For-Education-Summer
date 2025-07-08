@@ -165,10 +165,14 @@ class DatabaseAgent:
         try:
             uid = uuid.UUID(chat_id)
         except ValueError:
-            return []
+            return None  # Invalid UUID format
 
         conn = await get_connection()
         async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute("SELECT id FROM chats WHERE id = %s;", (uid,))
+            if not await cur.fetchone():
+                return None  # Chat doesn't exist
+            
             await cur.execute(
                 "SELECT user_id, message, created_at FROM chat_messages WHERE chat_id = %s ORDER BY created_at;",
                 (uid,)
