@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple
 
 import pdf2image
 from pathlib import Path
@@ -10,7 +10,7 @@ import warnings
 import torch
 from torch.utils.data import DataLoader
 from transformers.utils.import_utils import is_flash_attn_2_available
-from transformers import BitsAndBytesConfig
+from transformers.utils.quantization_config import BitsAndBytesConfig
 
 from colpali_engine.models import ColQwen2_5, ColQwen2_5_Processor
 from colpali_engine.compression.token_pooling import HierarchicalTokenPooler
@@ -22,6 +22,7 @@ from fast_plaid.search.fast_plaid import FastPlaid
 
 from instructorchat.utils import images_to_base64
 
+
 class ColPali:
     """
     Initialize the ColPali model for document retrieval and processing.
@@ -32,8 +33,8 @@ class ColPali:
             If None, automatically detects the best available device. Defaults to None.
     """
 
-    def __init__(self, pool_factor: Optional[int] = 3, device: Optional[Union[str, torch.device]] = None, quantized: bool = False):
-        self.device = device or get_torch_device()
+    def __init__(self, pool_factor: Optional[int] = 3, device: Optional[str] = None, quantized: bool = False):
+        self.device = torch.device(device) if device is not None else torch.device(get_torch_device())
 
         if quantized:
             bnb_config = BitsAndBytesConfig(
@@ -63,7 +64,13 @@ class ColPali:
         self.pooler = HierarchicalTokenPooler() if pool_factor is not None else None
         self.pool_factor = pool_factor
 
-    def embed_images(self, images: List[Image.Image], context_prompts: Optional[List[str]] = None, batch_size: int = 1) -> List[torch.Tensor]:
+    def embed_images(
+            self,
+            images: List[Image.Image],
+            context_prompts: Optional[List[str]] = None,
+            batch_size: int = 1
+        ) -> List[torch.Tensor]:
+
         embeddings: List[torch.Tensor] = []
 
         dataloader = DataLoader(
@@ -83,6 +90,48 @@ class ColPali:
 
             embeddings.extend(list(torch.unbind(image_embeddings.cpu())))
 
+        if self.pooler is not None:
+            return self.pooler.pool_embeddings(embeddings, pool_factor=self.pool_factor)
+        else:
+            return embeddings
+
+    def embed_texts(self, texts: List[str], batch_size: int = 4) -> List[torch.Tensor]:
+        embeddings = []
+
+        dataloader = DataLoader(
+            dataset=texts,
+            batch_size=batch_size,
+            shuffle=False,
+            collate_fn=lambda batch_texts: self.processor(
+                text=batch_texts,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+            )
+        )
+
+        for batch_inputs in tqdm(dataloader):
+            try:
+                torch.cuda.reset_peak_memory_stats()
+                with torch.inference_mode():
+                    batch_inputs = {k: v.to(self.device) for k, v in batch_inputs.items()}
+                    text_embeddings = self.model(**batch_inputs)  # shape: [batch, seq_len, dim]
+                    attention_mask = batch_inputs["attention_mask"]  # shape: [batch, seq_len]
+
+                peak = torch.cuda.max_memory_allocated() / 1e6
+                print(f"Peak GPU memory: {peak:.2f} MB")
+
+                # Trim padded tokens per sample
+                for emb, mask in zip(text_embeddings, attention_mask):
+                    num_tokens = mask.sum().item()
+                    trimmed = emb[-num_tokens:].cpu()  # shape: [num_tokens, dim]
+                    embeddings.append(trimmed)
+
+            except torch.cuda.OutOfMemoryError:
+                print("OOM on batch — skipping text batch.")
+                continue
+
+        # After full loop
         if self.pooler is not None:
             return self.pooler.pool_embeddings(embeddings, pool_factor=self.pool_factor)
         else:
@@ -145,7 +194,7 @@ class InMemoryColPali:
         self.colpali = ColPali()
 
         if (use_fast_plaid and
-            not (self.colpali.device == torch.cuda or (isinstance(self.colpali.device, str) and "cuda" in self.colpali.device))):
+                not (self.colpali.device == torch.cuda or (isinstance(self.colpali.device, str) and "cuda" in self.colpali.device))):
             warnings.warn(f"CUDA is recommended for FastPlaid. Current device is {self.colpali.device}")
 
         if reranking:

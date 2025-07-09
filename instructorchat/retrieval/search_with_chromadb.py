@@ -1,14 +1,13 @@
 from pymongo import MongoClient
-from chromadb import Client
-from chromadb.config import Settings
-from sentence_transformers import SentenceTransformer
-import numpy as np
-import argparse
 from urllib.parse import quote_plus
+from typing import List, Dict, Final
+import argparse
 import time
 import openai
 import logging
-from typing import List, Dict, Optional
+import torch
+
+from instructorchat.retrieval.colpali import ColPali
 
 # Set up logging
 logging.basicConfig(
@@ -19,10 +18,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define available folders for classification
-AVAILABLE_FOLDERS = ['project', 'logistics', 'course_content', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5',
-                    'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
-
-embedder = SentenceTransformer("thenlper/gte-large")
+AVAILABLE_FOLDERS: Final[List[str]] = ['project', 'logistics', 'course_content', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5',
+                                       'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
+INCLUDE: Final[int] = 1
 
 # Connect to MongoDB Atlas
 username = quote_plus("voquangtri2021")
@@ -31,9 +29,8 @@ mongo = MongoClient(f"mongodb+srv://{username}:{password}@test.funii81.mongodb.n
 db = mongo["rag_database"]
 collection = db["ece20875"]
 
-# Set up Chroma client
-chroma_client = Client(Settings(anonymized_telemetry=False))
-chroma_collect = chroma_client.get_or_create_collection("retrieved_chunks")
+# Set up ColPali class
+colpali = ColPali(device="cuda:0", quantized=True)
 
 async def classify_query(query: str, api_key: str) -> str:
     """Classify the query into one of the available folders using GPT-4-mini."""
@@ -93,10 +90,10 @@ async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
         logger.error(f"Error in context retrieval: {str(e)}")
         return []
 
-def vector_search(folder, query, top_k=5):
-    query_embedding = embedder.encode(query).astype(np.float32).tolist()
 
-    # explain
+def vector_search(folder, query, top_k=3):
+
+    # explain, add pdf later
     filtered_docs = collection.find({"folders": folder})
 
     docs_for_chroma = []
@@ -104,36 +101,37 @@ def vector_search(folder, query, top_k=5):
         for chunk in doc['chunks']:
             docs_for_chroma.append({
                 "id": chunk['chunk_id'],
-                "title": doc['metadata']['title'],
-                "embedding": chunk['embedding']
+                "title": doc['filename'],
+                "embedding": chunk['embedding'] if doc['file_type'] == "txt" else doc['embedding']
             })
 
     ids = [d["id"] for d in docs_for_chroma]
-    embeddings = [d["embedding"] for d in docs_for_chroma]
-    metadata = [{"title":d["title"]} for d in docs_for_chroma]
-    chroma_collect.upsert(embeddings=embeddings, ids=ids, metadatas=metadata)
+    embeddings = [torch.tensor(d["embedding"]).to(dtype=torch.bfloat16) for d in docs_for_chroma]
+    top_k = colpali.search([query], embeddings, top_k=3)
+    scores, indices = top_k.values, top_k.indices
+    matching_ids = [ids[int(i)] for i in indices[0]]
+    matching_scores = [float(s) for s in scores[0]]
 
-    results = chroma_collect.query(query_embeddings=[query_embedding], n_results=top_k)
-
-    matching_ids = results["ids"][0]
     found_chunks = []
-    for chunk_id in matching_ids:
+    for chunk_id, score in zip(matching_ids, matching_scores):
         doc = collection.find_one(
             {"chunks.chunk_id": chunk_id},
-            {"chunks.$": 1, "filename": 1, "metadata": 1}
+            {"chunks.$": INCLUDE, "filename": INCLUDE, "metadata": INCLUDE, "file_type": INCLUDE, "image_path": INCLUDE}
         )
         if doc and "chunks" in doc:
             found_chunks.append({
                 "chunk_id": chunk_id,
-                "filename": doc.get("filename"),
-                "metadata": doc.get("metadata"),
-                "chunk": doc["chunks"][0]
+                "score": score,
+                "filename": doc["filename"],
+                "metadata": doc["metadata"],
+                "chunk": doc["chunks"][0],
+                "image_dir": doc["image_path"] if doc['file_type'] == "pdf" else None
             })
 
     return found_chunks
 
 
-#Run this for demo
+# Run this for demo
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("folder", type=str, help="Folder to search")

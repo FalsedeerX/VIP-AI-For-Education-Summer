@@ -1,25 +1,21 @@
 from pymongo import MongoClient
-from sentence_transformers import SentenceTransformer
 from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import quote_plus
+import certifi
 import pymupdf4llm
 import re
 import uuid
 import sys
 import importlib
 import logging
-from urllib.parse import quote_plus
-import certifi
-from pathlib import Path
-from haystack.dataclasses import Document  # Updated import for Haystack 2.x
 
-# Initialize the embedder globally
-chunk_embedder = SentenceTransformer("thenlper/gte-large")
+from instructorchat.retrieval.colpali import ColPali
 
-def embed_text(text, meta):
+
+def format_meta(text: str, meta: dict) -> str:
     meta_text = " ".join(str(meta.get(key, "")) for key in ['folders', 'title', 'tags', 'timestamp'])
-    embedding_input = f"{text} {meta_text}"
-    embedding = chunk_embedder.encode(embedding_input).tolist()
-    return embedding
+    return f"{meta_text} {text}"
 
 
 def clean_text(md_text):
@@ -99,12 +95,10 @@ def chunk_text(text, min_length=300, max_length=1000):
 
     if buffer.strip():
         chunk = buffer.strip()
-        if len(chunk) > max_length:
-            final_chunks.extend(split_long_chunk(chunk))
-        else:
-            final_chunks.append(chunk)
+        final_chunks.extend(split_long_chunk(chunk) if len(chunk) > max_length else [chunk])
 
     return final_chunks
+
 
 def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[bool, str]:
     """
@@ -141,9 +135,11 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
         # Test the connection
         mongo.admin.command('ping')
         db = mongo["rag_database"]
+
         collection = db[collection_name]
         logger.info("Successfully connected to MongoDB Atlas")
-        logger.info(f"Embedding model loaded: thenlper/gte-large")
+
+        colpali = ColPali(device="cuda:0", quantized=True)
 
         # Process file
         file = file_path.split(".")
@@ -169,13 +165,66 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
             if not hasattr(module, 'docs'):
                 return False, "Module must contain a 'docs' variable with Haystack Documents"
 
-            for doc in module.docs:
+            all_texts = [format_meta(doc.content, doc.meta) for doc in module.docs]
+            colpali.pool_factor = 5
+            all_embeddings = colpali.embed_texts(all_texts, batch_size=8)
+
+            for i, doc in enumerate(module.docs):
                 logger.info(f"Processing document: {doc.meta['title']}")
                 chunks = [doc.content]  # chunking not necessary for QA posts
                 mongo_chunk_list = []
 
+                mongo_chunk_list = [{
+                    "chunk_id": str(uuid.uuid4()),
+                    "chunk_text": all_texts[i],
+                    "embedding": all_embeddings[i].tolist(),
+                }]
+
+                mongo_doc = {
+                    "_id": str(uuid.uuid4()),
+                    "filename": doc.meta['title'],
+                    "file_type": "txt",
+                    "file_path": f"KnowledgeBase/{sys.argv[1]}",
+                    "folders": doc.meta['folders'],
+                    "chunks": mongo_chunk_list,
+                    "created_at": datetime.now(timezone.utc),
+                    "metadata": doc.meta
+                }
+                collection.insert_one(mongo_doc)
+                logger.info(f"Storing document with ID: {mongo_doc['_id']} and {len(mongo_chunk_list)} chunk(s) in collection '{collection.name}'")
+
+        elif ext == 'pdf':
+            img_save_dir = Path(f"KnowledgeBase/pdf2img/{module_name}")
+            img_save_dir.mkdir(parents=True, exist_ok=True)
+
+            md_pages = pymupdf4llm.to_markdown(f"KnowledgeBase/{module_name}.pdf", page_chunks=True)
+            docs_dir = "./KnowledgeBase"
+            path = Path(docs_dir) / f"{module_name}.pdf"
+            images, embeddings = colpali.embed_pdf(path)
+            infos = [{'text': p1['text'], 'image': p2, 'embed': p3} for p1, p2, p3 in zip(md_pages, images, embeddings)]
+
+            for page_num, info in enumerate(infos, start=1):
+
+                meta = {
+                    "title": f"{module_name}_{page_num}",
+                    "folders": ['FOO', 'BAR'],
+                    "timestamp": datetime.now(timezone.utc),
+                    "tags": ['FOO', 'BAR']
+                }  # TODO: Make user give meta
+
+                image_path = img_save_dir / f"{meta['title']}.png"
+                info['image'].save(image_path)
+
+                logger.info(f"Processing document: {meta['title']}")
+
+                doc = clean_text(info['text'])
+                chunks = chunk_text(doc)
+                mongo_chunk_list = []
+
                 for ch in chunks:
-                    embedding = embed_text(ch, doc.meta)
+                    # embedding = embed_text(ch, meta)
+                    embedding = None
+
                     mongo_chunk = {
                         "chunk_id": str(uuid.uuid4()),
                         "chunk_text": ch,
@@ -185,56 +234,19 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
 
                 mongo_doc = {
                     "_id": str(uuid.uuid4()),
-                    "filename": doc.meta['title'],
-                    "file_type": "txt",
-                    "file_path": f"KnowledgeBase/{file_path}",
-                    "folders": doc.meta['folders'],
+                    "filename": f"{module_name}",
+                    "file_type": "pdf",
+                    "file_path": f"KnowledgeBase/{module_name}.pdf",
+                    "image_name": meta['title'],
+                    "image_path": str(image_path),
+                    "embedding": info['embed'].tolist(),
+                    "folders": meta['folders'],
                     "chunks": mongo_chunk_list,
                     "created_at": datetime.now(timezone.utc),
-                    "metadata": doc.meta
+                    "metadata": meta
                 }
                 collection.insert_one(mongo_doc)
-                logger.info(f"Stored document with ID: {mongo_doc['_id']} and {len(mongo_chunk_list)} chunk(s) in collection '{collection.name}'")
-
-        elif ext == 'pdf':
-            try:
-                md_text = pymupdf4llm.to_markdown(Path(__file__).parent / "KnowledgeBase" / f"{module_name}.pdf")
-            except Exception as e:
-                return False, f"Failed to process PDF: {str(e)}"
-
-            meta = {
-                "title": module_name,
-                "folders": ['FOO', 'BAR'],
-                "timestamp": datetime.now(timezone.utc),
-                "tags": ['FOO', 'BAR']
-            }
-
-            logger.info(f"Processing document: {meta['title']}")
-            doc = clean_text(md_text)
-            chunks = chunk_text(doc)
-            mongo_chunk_list = []
-
-            for ch in chunks:
-                embedding = embed_text(ch, meta)
-                mongo_chunk = {
-                    "chunk_id": str(uuid.uuid4()),
-                    "chunk_text": ch,
-                    "embedding": embedding,
-                }
-                mongo_chunk_list.append(mongo_chunk)
-
-            mongo_doc = {
-                "_id": str(uuid.uuid4()),
-                "filename": meta['title'],
-                "file_type": "pdf",
-                "file_path": f"KnowledgeBase/{file_path}",
-                "folders": meta['folders'],
-                "chunks": mongo_chunk_list,
-                "created_at": datetime.now(timezone.utc),
-                "metadata": meta
-            }
-            collection.insert_one(mongo_doc)
-            logger.info(f"Stored document with ID: {mongo_doc['_id']} and {len(mongo_chunk_list)} chunk(s) in collection '{collection.name}'")
+                logger.info(f"Storing document with ID: {mongo_doc['_id']} and {len(mongo_chunk_list)} chunk(s) in collection '{collection.name}'")
 
         else:
             return False, f"Unsupported file type '.{ext}'"
@@ -245,6 +257,7 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
         error_msg = f"Error during document storage: {str(e)}"
         logger.error(error_msg)
         return False, error_msg
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 2:

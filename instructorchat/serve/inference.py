@@ -1,23 +1,20 @@
 """Inference for GPT-4-mini model."""
-import abc
-import openai
 from openai import AsyncStream
 from openai.types.chat import ChatCompletionChunk
-from typing import Dict, Optional, List, Any, Union, Union
+from typing import Dict, Optional, List, Any
+import abc
+import openai
 import logging
-import uuid
-from datetime import datetime, timezone
 import json
-import asyncio
 
 from instructorchat.model.model_adapter import load_model, get_model_adapter
-from instructorchat.conversation import get_conv_template
 from instructorchat.retrieval.search_with_chromadb import retrieve_relevant_context
 
 # Global conversation object for action-based dispatch
 global_conv = None
 global_api_key = None
 global_temperature = 0.7
+
 
 class ChatIO(abc.ABC):
     @abc.abstractmethod
@@ -36,11 +33,13 @@ class ChatIO(abc.ABC):
     async def stream_output(self, output_stream: AsyncStream[ChatCompletionChunk]) -> str:
         pass
 
+
 async def ping(data = None, websocket = None):
     if websocket:
-        await websocket.send_message(json.dumps({"result" : "pong", "status": "success"}))
+        await websocket.send_message(json.dumps({"result": "pong", "status": "success"}))
     else:
         return {"result": "pong", "status": "success"}
+
 
 async def initialize_model(model_path: str, api_key: str, temperature: float):
     """Initialize the global model and conversation."""
@@ -56,6 +55,7 @@ async def initialize_model(model_path: str, api_key: str, temperature: float):
     adapter = get_model_adapter(model_path)
     load_model(model_path, api_key)
     global_conv = adapter.get_default_conv_template(model_path)
+
 
 async def return_conversation(data: Dict, websocket = None) -> Dict:
     """Action: Return the current conversation."""
@@ -76,6 +76,7 @@ async def return_conversation(data: Dict, websocket = None) -> Dict:
         "conversation": convo,
         "status": "success"
     }
+
 
 async def store_documents_action(data: Dict, websocket = None) -> Dict:
     """Action: Store documents from file path."""
@@ -119,6 +120,7 @@ async def store_documents_action(data: Dict, websocket = None) -> Dict:
         if websocket:
             await websocket.send_message(json.dumps({"error": error_msg, "status": "error"}))
         return {"error": error_msg, "status": "error"}
+
 
 async def generate_answer_action(data: Dict, websocket=None):
     """Action: Generate answer for a question with streaming output."""
@@ -212,6 +214,7 @@ async def generate_answer_action(data: Dict, websocket=None):
             await websocket.send_message(json.dumps({"error": error_msg, "status": "error"}))
         return {"error": error_msg, "status": "error"}
 
+
 async def generate_response_stream(params: Dict):
     """Stream response using OpenAI API."""
     try:
@@ -234,10 +237,11 @@ async def generate_response_stream(params: Dict):
         print(f"Error: {str(e)}")
         return None
 
+
 async def chat_loop(
     model_path: str,
     temperature: float,
-    chatio: ChatIO, #chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
+    chatio: ChatIO,  # chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
     api_key: Optional[str] = None,
     evaluation_test_cases: Optional[List[Dict[str, Any]]] = None
 ):
@@ -332,7 +336,7 @@ async def chat_loop(
 
         if stream is not None:
             response = await chatio.stream_output(stream)
-            #Add response to complete a question-response pair
+            # Add response to complete a question-response pair
 
             conv.append_message(conv.roles[1], response.strip())
 
