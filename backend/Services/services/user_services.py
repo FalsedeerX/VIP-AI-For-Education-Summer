@@ -37,7 +37,7 @@ class UserRouter:
 		# authentication success, assign token and set cookie
 		user_id = await self.db.get_user_id(payload.username)
 		token = self.session.assign_token(user_id, request.state.ip_address)
-		response.set_cookie(key="purduegpt-token", value=str(token), httponly=False, samesite="none", secure=True, max_age=10800, path="/") 
+		response.set_cookie(key="purduegpt-token", value=str(token), httponly=False, samesite="lax", secure=False, max_age=10800, path="/") 
 		return True
 
 
