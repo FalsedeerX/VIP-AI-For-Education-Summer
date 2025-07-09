@@ -80,7 +80,7 @@ async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
         for doc in results:
             context.append({
                 "title": doc["filename"],
-                "content": doc["chunk_text"],
+                "content": doc["chunk"]["chunk_text"],
                 "metadata": doc["metadata"]
             })
 
