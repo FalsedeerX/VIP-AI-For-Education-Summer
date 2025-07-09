@@ -73,18 +73,7 @@ async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
         logger.info(f"Query classified into folder: {folder}")
 
         # Then use vector search to get relevant content
-        results = vector_search(folder, query, top_k=5)
-
-        # Format the results for context
-        context = []
-        for doc in results:
-            context.append({
-                "title": doc["filename"],
-                "content": doc["chunk"]["chunk_text"],
-                "metadata": doc["metadata"]
-            })
-
-        return context
+        return vector_search(folder, query, top_k=5)
 
     except Exception as e:
         logger.error(f"Error in context retrieval: {str(e)}")
