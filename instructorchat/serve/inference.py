@@ -143,7 +143,7 @@ async def generate_answer_action(data: Dict, websocket=None):
 
         # Prepare the prompt with context
         context_text = "\n\n".join([
-            f"Title: {ctx['filename']}\n{ctx['content']}"
+            f"Title: {ctx['filename']}\n{ctx['chunk']}"
             for ctx in contexts
         ])
 
@@ -198,13 +198,13 @@ async def generate_answer_action(data: Dict, websocket=None):
             await websocket.send_message(json.dumps({
                 "type": "stream_complete",
                 "answer": full_response,
-                "contexts": [f"Title: {ctx['filename']}\n{ctx['content']}" for ctx in contexts],
+                "contexts": [f"Title: {ctx['filename']}\n{ctx['chunk']}" for ctx in contexts],
                 "status": "success"
             }))
 
         return {
             "answer": full_response,
-            "contexts": [f"Title: {ctx['filename']}\n{ctx['content']}" for ctx in contexts],
+            "contexts": [f"Title: {ctx['filename']}\n{ctx['chunk']}" for ctx in contexts],
             "status": "success"
         }
 
@@ -308,7 +308,7 @@ async def chat_loop(
 
         # Prepare the prompt with context
         context_text = "\n\n".join([
-            f"Title: {ctx['filename']}\n{ctx['content']}"
+            f"Title: {ctx['filename']}\n{ctx['chunk']}"
             for ctx in contexts
         ])
 
@@ -345,7 +345,7 @@ async def chat_loop(
                     "idx": idx,
                     "input": inp,
                     "actual_output": response,
-                    "retrieval_context": [f"Title: {ctx['filename']}\n{ctx['content']}" for ctx in contexts],
+                    "retrieval_context": [f"Title: {ctx['filename']}\n{ctx['chunk']}" for ctx in contexts],
                     "expected_output": evaluation_test_cases[idx]["expected_output"],
                     "context": evaluation_test_cases[idx]["context"] if "context" in evaluation_test_cases[idx] else None,
                 }
