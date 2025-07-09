@@ -1,15 +1,15 @@
 import os
 import argparse
 import trio
-from trio_websocket import serve_websocket, ConnectionClosed, WebSocketConnection, WebSocketRequest
+from trio_websocket import serve_websocket, ConnectionClosed, WebSocketRequest
 from typing import Final
 import traceback
 import json
 
 from instructorchat.serve.inference import (
-    initialize_model, 
-    return_conversation, 
-    store_documents_action, 
+    initialize_model,
+    return_conversation,
+    store_documents_action,
     generate_answer_action,
     ping
 )
@@ -29,11 +29,12 @@ STREAMING_ACTIONS = {
     "generate_answer": generate_answer_action
 }
 
+
 async def handle_websocket(request: WebSocketRequest):
     """Handle WebSocket connections with action-based dispatch."""
     ws = await request.accept()
-    print(f"New WebSocket connection established")
-    
+    print("New WebSocket connection established")
+
     try:
         while True:
             message = await ws.get_message()
@@ -59,7 +60,7 @@ async def handle_websocket(request: WebSocketRequest):
 
                 # Call the corresponding function for regular actions
                 result = await ACTION_DISPATCH[action](data, websocket=ws)
-                
+
                 # Only send result if the function didn't already send a message
                 if result is not None:
                     await ws.send_message(json.dumps(result))
@@ -78,12 +79,13 @@ async def handle_websocket(request: WebSocketRequest):
     except ConnectionClosed:
         print("WebSocket connection closed")
 
+
 async def main() -> None:
     # Initialize the model before starting the server
     await initialize_model("gpt-4o-mini", api_key, args.temperature)
-    print(f"Model initialized successfully")
+    print("Model initialized successfully")
     print(f"Starting WebSocket server on {HOST}:{PORT}")
-    
+
     await serve_websocket(handle_websocket, HOST, PORT, ssl_context=None)
 
 if __name__ == "__main__":

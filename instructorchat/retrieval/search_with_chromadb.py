@@ -19,8 +19,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Define available folders for classification
-AVAILABLE_FOLDERS: Final[List[str]] = ['project', 'logistics', 'course_content', 'exam', 'hw1', 'hw2', 'hw3', 'hw4', 'hw5',
-                                       'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
+AVAILABLE_FOLDERS: Final[List[str]] = ['project', 'logistics', 'course_content', 'exam', 'hw1', 'hw2', 'hw3', 'hw4',
+                                       'hw5', 'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
 INCLUDE: Final[int] = 1
 
 # Connect to MongoDB Atlas
@@ -32,6 +32,7 @@ collection = db["ece20875"]
 
 # Set up ColPali class
 colpali = ColPali(device="cuda:0", quantized=True)
+
 
 async def classify_query(query: str, api_key: str) -> str:
     """Classify the query into one of the available folders using GPT-4-mini."""
@@ -65,6 +66,7 @@ async def classify_query(query: str, api_key: str) -> str:
     except Exception as e:
         logger.error(f"Error in query classification: {str(e)}")
         return 'other'
+
 
 async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
     """Retrieve relevant context for the query using classification and vector search."""

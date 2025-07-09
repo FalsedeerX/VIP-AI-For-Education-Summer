@@ -12,6 +12,7 @@ from openai import OpenAI
 import pdf2image
 from pydantic import BaseModel
 
+
 def generate_from_docs(docs_dir: str = "documents", save_dir: str = "eval_data") -> None:
     """
     Generates an evaluation set from the RAG documents.
@@ -42,12 +43,14 @@ def generate_from_docs(docs_dir: str = "documents", save_dir: str = "eval_data")
 
     synthesizer.save_as(file_type="json", directory=save_dir)
 
+
 def encode_image(image: Image.Image) -> str:
     buffer = BytesIO()
     image.save(buffer, format="JPEG")
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
-def generate_from_pdfs_visual(pdfs_dir: str = "documents", save_dir: str="eval_data") -> None:
+
+def generate_from_pdfs_visual(pdfs_dir: str = "documents", save_dir: str = "eval_data") -> None:
     images: List[Image.Image] = []
     image_sources: List[Tuple[int, str]] = []
 
@@ -60,7 +63,6 @@ def generate_from_pdfs_visual(pdfs_dir: str = "documents", save_dir: str="eval_d
             image_sources.extend(enumerate([str(file_path)] * len(pdf_images)))
 
     print("Converted PDFs")
-
 
     class Questions(BaseModel):
         class QAPair(BaseModel):
@@ -186,6 +188,7 @@ The context will be provided as an image.
     # with open(sources_file_name, 'w') as file:
     #     json.dump(sources, file, indent=4)
 
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input-dir", type=str, default="documents")
@@ -193,6 +196,7 @@ def main():
     args = parser.parse_args()
 
     generate_from_pdfs_visual(args.input_dir, args.output_dir)
+
 
 if __name__ == "__main__":
     main()

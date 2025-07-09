@@ -1,89 +1,95 @@
-import base64
 from enum import IntEnum, auto
-from io import BytesIO
-from typing import List, Tuple, Union, Dict, TypeAlias
-import json
+from typing import List, Tuple, Literal
 from PIL import Image
+from openai.types.chat import ChatCompletionMessageParam, ChatCompletionContentPartParam
 
-class SeparatorStyle(IntEnum):
-    """Separator styles."""
-    DEFAULT = auto()
-    GPT = auto()
+from instructorchat.utils import image_to_base64
+
+
+Role = Literal["user", "assistant"]
+
 
 class ContentType(IntEnum):
     TEXT = auto()
     IMAGE = auto()
 
-MessageType: TypeAlias = Union[str, List[Tuple[ContentType, Union[str, Image.Image]]]]
-OpenAIContentListType: TypeAlias = List[Dict[str, Union[str, Dict[str, str]]]]
 
-def encode_image(image: Image.Image) -> str:
-    buffer = BytesIO()
-    image.save(buffer, format="JPEG")
-    return base64.b64encode(buffer.getvalue()).decode("utf-8")
+class Message:
+    def __init__(self, role: Role) -> None:
+        self.role: Role = role
+        self.content: List[Tuple[ContentType, str]] = []
+
+    def add_text(self, text: str) -> 'Message':
+        self.content.append((ContentType.TEXT, text))
+        return self
+
+    def add_image(self, image: Image.Image) -> 'Message':
+        self.content.append((ContentType.IMAGE, image_to_base64(image)))
+        return self
+
+    def to_openai_message(self) -> ChatCompletionMessageParam:
+        openai_content: List[ChatCompletionContentPartParam] = []
+
+        for content_part in self.content:
+            if content_part[0] == ContentType.TEXT:
+                openai_content.append({
+                    "type": "text",
+                    "text": content_part[1]
+                })
+            else:
+                openai_content.append({
+                    "type": "image_url",
+                    "image_url": {"url": content_part[1]}
+                })
+
+        return {
+            "role": self.role,  # type: ignore
+            "content": openai_content
+        }
+
+    def __repr__(self) -> str:
+        content_str = ""
+
+        for content_type, content_value in self.content:
+            if content_type == ContentType.TEXT:
+                content_str += content_value
+            elif content_type == ContentType.IMAGE:
+                content_str += "[Image]"
+
+        return f"{self.role}: {content_str}"
+
 
 class Conversation:
     """A class that manages conversation history."""
 
     def __init__(self):
-        self.name = "gpt4_mini"
-        self.system_message = "You are a helpful AI assistant." #change prompt for instructor AI
-        self.roles = ("user", "assistant")
-        # this variable goes into the database
-        # might need to consider having multimodel's url with the text | Each message is either a string or a tuple of (string, List[image_url]).
-        self.messages: List[Tuple[str, MessageType]] = []
-        self.offset = 0 #zero-shot
-        self.sep_style = SeparatorStyle.GPT
-        self.sep = "\n"
-        self.stop_str = None
-
-    # def get_prompt(self) -> str:
-    #     """Get the prompt for generation."""
-    #     return self.messages[-1][1] if self.messages else ""
+        # self.name = "gpt4_mini"
+        self.system_message = "You are a helpful AI assistant."
+        self.messages: List[Message] = []
 
     def set_system_message(self, system_message: str):
         """Set the system message."""
         self.system_message = system_message
 
-    def append_message(self, role: str, message: MessageType):
+    def append_message(self, message: Message):
         """Append a new message."""
-        self.messages.append((role, message))
-
-    # def update_last_message(self, message: str):
-    #     """Update the last message."""
-    #     if self.messages:
-    #         self.messages[-1][1] = message
+        self.messages.append(message)
 
     def to_openai_api_messages(self):
         """Convert the conversation to OpenAI API format."""
-        messages: List[Dict[str, Union[str, OpenAIContentListType]]] = [{"role": "system", "content": self.system_message}]
-        for role, message in self.messages:
-            if isinstance(message, str):
-                messages.append({"role": role, "content": message})
-            else:
-                if isinstance(message, str):
-                    messages.append({"role": role, "content": message})
-                else:
-                    content_items: OpenAIContentListType = []
-                    for content_type, item in message:
-                        if content_type == ContentType.TEXT:
-                            assert isinstance(item, str), f"Received {content_type, item} but 'ContentType.TEXT' must be paired with a string."
-                            content_items.append({"text": item})
-                        else:
-                            if isinstance(item, str):
-                                content_items.append({"image_url": {"url": item}})
-                            else:
-                                content_items.append({"image_url": {"url": encode_image(item)}})
+        messages: List[ChatCompletionMessageParam] = [{
+            "role": "system",
+            "content": self.system_message
+        }]
 
-                    messages.append({"role": role, "content": content_items})
+        for message in self.messages:
+            messages.append(message.to_openai_message())
+
         return messages
 
-    def get_message(self):
+    def get_messages(self):
         return self.messages
 
-    def save_conversation(self, file_path: str):
-        with open(file_path, "w") as f:
-            json.dump(self.messages, f, indent=4)
 
 def get_conv_template(name: str) -> Conversation:
     """Get a new conversation template."""

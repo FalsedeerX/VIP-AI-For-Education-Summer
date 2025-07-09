@@ -16,3 +16,7 @@ def images_to_base64(images: List[Image.Image]) -> List[str]:
         base64_images.append(img_base64)
 
     return base64_images
+
+
+def image_to_base64(image: Image.Image) -> str:
+    return images_to_base64([image])[0]

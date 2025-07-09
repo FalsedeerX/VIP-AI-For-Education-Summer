@@ -6,7 +6,10 @@ import os
 import trio
 
 from deepeval import evaluate
-from deepeval.metrics import AnswerRelevancyMetric, GEval, ContextualPrecisionMetric, ContextualRecallMetric, ContextualRelevancyMetric
+from deepeval.metrics import (
+    AnswerRelevancyMetric, GEval, ContextualPrecisionMetric,
+    ContextualRecallMetric, ContextualRelevancyMetric
+)
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
 from instructorchat.serve.inference import ChatIO, chat_loop
@@ -14,10 +17,11 @@ from instructorchat.serve.cli import SimpleChatIO
 
 import pandas as pd
 
+
 async def get_responses(
     model_path: str,
     temperature: float,
-    chatio: ChatIO, #chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
+    chatio: ChatIO,  # chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
     api_key: Optional[str] = None,
     input_file: str = "tests.json",
     save_responses_freq: Optional[int] = 10,
@@ -46,6 +50,7 @@ async def get_responses(
 
     return responses_file
 
+
 def run_evaluations(responses_file: str, use_cache: bool = False):
     with open(responses_file, 'r') as f:
         test_cases = json.load(f)
@@ -71,7 +76,6 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
                 "do not penalize the omission of insignificant words and relevant information",
                 "actual output's having different writing style and grammar from the expected output's is OK"
             ],
-            #criteria="Determine if the 'actual output' is factually correct based on the 'expected output'. Do not penalize for different format, structure, wording or unnecessary information as long as the fact provided is correct"
             model="gpt-4o-mini",
             evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
             threshold=0.7
@@ -113,12 +117,13 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
     print(f"Results saved to {output_csv_file}")
     print("\nEvaluation Complete!")
 
+
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_file", type=str) # Specify test cases or responses file
+    parser.add_argument("input_file", type=str)  # Specify test cases or responses file
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
-    parser.add_argument("--judge-only", action="store_true", default=argparse.SUPPRESS) # Evaluate existing responses file
+    parser.add_argument("--judge-only", action="store_true", default=argparse.SUPPRESS)  # Evaluate existing responses file
     parser.add_argument("--cache", action="store_true", default=False)
     args = parser.parse_args()
 
@@ -135,6 +140,7 @@ def main() -> None:
         responses_file = args.input_file
 
     run_evaluations(responses_file, use_cache=args.cache)
+
 
 if __name__ == "__main__":
     main()

@@ -9,6 +9,7 @@ import json
 
 from instructorchat.model.model_adapter import load_model, get_model_adapter
 from instructorchat.retrieval.search_with_chromadb import retrieve_relevant_context
+from instructorchat.conversation import Message
 
 # Global conversation object for action-based dispatch
 global_conv = None
@@ -66,7 +67,7 @@ async def return_conversation(data: Dict, websocket = None) -> Dict:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
 
-    convo = global_conv.get_message()
+    convo = global_conv.get_messages()
 
     if websocket:
         await websocket.send_message(json.dumps({"conversation": convo, "status": "success"}))
@@ -157,7 +158,7 @@ async def generate_answer_action(data: Dict, websocket=None):
             </CONTEXT>"""
 
         # Add messages to conversation
-        global_conv.append_message(global_conv.roles[0], formatted_message)
+        global_conv.append_message(Message("user").add_text(formatted_message))
 
         # Create the final prompt with context
         messages = global_conv.to_openai_api_messages()
@@ -189,9 +190,8 @@ async def generate_answer_action(data: Dict, websocket=None):
                         "status": "streaming"
                     }))
 
-
         # Add complete response to conversation
-        global_conv.append_message(global_conv.roles[1], full_response.strip())
+        global_conv.append_message(Message("assistant").add_text(full_response.strip()))
 
         # Send completion signal
         if websocket:
@@ -275,7 +275,7 @@ async def chat_loop(
 
         # Handle commands
         if inp == "return conv":
-            print(conv.get_message())
+            print(conv.get_messages())
             continue
 
         if inp.startswith("store "):
@@ -322,7 +322,7 @@ async def chat_loop(
             </CONTEXT>"""
 
         # Add messages to conversation
-        conv.append_message(conv.roles[0], formatted_message)
+        conv.append_message(Message("user").add_text(formatted_message))
 
         # Create the final prompt with context
         messages = conv.to_openai_api_messages()
@@ -338,7 +338,7 @@ async def chat_loop(
             response = await chatio.stream_output(stream)
             # Add response to complete a question-response pair
 
-            conv.append_message(conv.roles[1], response.strip())
+            conv.append_message(Message("assistant").add_text(response.strip()))
 
             if evaluation_test_cases:
                 yield {
@@ -352,7 +352,7 @@ async def chat_loop(
 
                 idx += 1
 
-                conv = adapter.get_default_conv_template(model_path) # Reset conversation
+                conv = adapter.get_default_conv_template(model_path)  # Reset conversation
 
                 if idx >= len(evaluation_test_cases):
                     break

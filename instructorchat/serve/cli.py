@@ -13,6 +13,7 @@ import trio
 
 from instructorchat.serve.inference import ChatIO, chat_loop
 
+
 class SimpleChatIO(ChatIO):
     def __init__(self):
         self.prompt = "User: "
@@ -22,11 +23,11 @@ class SimpleChatIO(ChatIO):
         """Get input from user."""
         prompt_data = []
         line = input(f"{role} : ")
-        while True: # helps collect multi-line inputs.
+        while True:  # helps collect multi-line inputs.
             prompt_data.append(line.strip())
             try:
                 line = input()
-            except EOFError as e: # only ends loop when user signals end of input | Ctrl+Z on Windows
+            except EOFError:  # only ends loop when user signals end of input | Ctrl+Z on Windows
                 break
         return "\n".join(prompt_data)
 
@@ -36,7 +37,7 @@ class SimpleChatIO(ChatIO):
 
     async def display_output(self, output: str):
         """Display output to user."""
-        print(f"assistant :", output)
+        print("assistant :", output)
 
     async def stream_output(self, output_stream: AsyncStream[ChatCompletionChunk]) -> str:
         output = ""
@@ -48,6 +49,7 @@ class SimpleChatIO(ChatIO):
         print()
 
         return output
+
 
 async def main():
     parser = argparse.ArgumentParser()
