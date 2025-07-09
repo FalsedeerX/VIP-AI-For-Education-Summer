@@ -124,10 +124,10 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
 
     try:
         # Connect to MongoDB
-        username = quote_plus("voquangtri2021")
-        password = quote_plus("Voquangtri123@")
+        # username = quote_plus("voquangtri2021")
+        # password = quote_plus("Voquangtri123@")
         mongo = MongoClient(
-            f"mongodb+srv://{username}:{password}@test.funii81.mongodb.net/?retryWrites=true&w=majority&appName=Test",
+            "mongodb+srv://rag:pass@test-aie.dadfdhw.mongodb.net/?retryWrites=true&w=majority&appName=test-aie",
             tls=True,
             tlsCAFile=certifi.where(),
             serverSelectionTimeoutMS=5000

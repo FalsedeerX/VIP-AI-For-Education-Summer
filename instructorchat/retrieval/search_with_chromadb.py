@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from urllib.parse import quote_plus
+# from urllib.parse import quote_plus
 from typing import List, Dict, Final
 import argparse
 import time
@@ -23,9 +23,9 @@ AVAILABLE_FOLDERS: Final[List[str]] = ['project', 'logistics', 'course_content',
 INCLUDE: Final[int] = 1
 
 # Connect to MongoDB Atlas
-username = quote_plus("voquangtri2021")
-password = quote_plus("Voquangtri123@")
-mongo = MongoClient(f"mongodb+srv://{username}:{password}@test.funii81.mongodb.net/?retryWrites=true&w=majority&appName=Test")
+# username = quote_plus("voquangtri2021")
+# password = quote_plus("Voquangtri123@")
+mongo = MongoClient("mongodb+srv://rag:pass@test-aie.dadfdhw.mongodb.net/?retryWrites=true&w=majority&appName=test-aie")
 db = mongo["rag_database"]
 collection = db["ece20875"]
 
