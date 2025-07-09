@@ -1,7 +1,6 @@
 from pymongo import MongoClient
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import quote_plus
 import certifi
 import pymupdf4llm
 import re
@@ -9,6 +8,7 @@ import uuid
 import sys
 import importlib
 import logging
+import os
 
 from instructorchat.retrieval.colpali import ColPali
 
@@ -127,7 +127,7 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
         # username = quote_plus("voquangtri2021")
         # password = quote_plus("Voquangtri123@")
         mongo = MongoClient(
-            "mongodb+srv://rag:pass@test-aie.dadfdhw.mongodb.net/?retryWrites=true&w=majority&appName=test-aie",
+            os.environ["MONGO_URL"],
             tls=True,
             tlsCAFile=certifi.where(),
             serverSelectionTimeoutMS=5000

@@ -6,6 +6,7 @@ import time
 import openai
 import logging
 import torch
+import os
 
 from instructorchat.retrieval.colpali import ColPali
 
@@ -25,7 +26,7 @@ INCLUDE: Final[int] = 1
 # Connect to MongoDB Atlas
 # username = quote_plus("voquangtri2021")
 # password = quote_plus("Voquangtri123@")
-mongo = MongoClient("mongodb+srv://rag:pass@test-aie.dadfdhw.mongodb.net/?retryWrites=true&w=majority&appName=test-aie")
+mongo = MongoClient(os.environ["MONGO_URL"])
 db = mongo["rag_database"]
 collection = db["ece20875"]
 
