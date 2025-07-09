@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+import { Label } from "@/components/ui/label";
 
 export default function RegisterPage() {
   const [username, setUsername] = useState("");
@@ -76,9 +77,16 @@ export default function RegisterPage() {
 
           {/** Email */}
           <label className="block">
-            <span className="text-[var(--color-purdue-black)]">Email</span>
+            {/*<span className="text-[var(--color-purdue-black)]">Email</span>*/}
+            <Label
+              className="text-[var(--color-purdue-black)] text-md"
+              htmlFor="email"
+            >
+              Email
+            </Label>
             <Input
               type="email"
+              id="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -89,8 +97,14 @@ export default function RegisterPage() {
 
           {/** Password */}
           <label className="block">
-            <span className="text-[var(--color-purdue-black)]">Password</span>
+            <Label
+              className="text-[var(--color-purdue-black)] text-md"
+              htmlFor="password"
+            >
+              Password
+            </Label>
             <Input
+              id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

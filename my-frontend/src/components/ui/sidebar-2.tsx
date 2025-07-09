@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { getJson, postJson } from "@/lib/api";
+import { getJson, postJson, deleteJson } from "@/lib/api";
 import { useEffect, useCallback, Fragment } from "react";
 import {
   Dialog,
@@ -13,7 +13,17 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Plus, FolderPlus, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  Plus,
+  FolderPlus,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Trash2,
+  BookA,
+  Folder,
+  MessageSquare,
+} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 interface Course {
   course_id: number;
@@ -30,14 +40,23 @@ interface Chat {
   title: string;
 }
 
-export default function Sidebar2() {
+export default function Sidebar2({
+  isDrawerOpen,
+  setIsDrawerOpen,
+}: {
+  isDrawerOpen: boolean;
+  setIsDrawerOpen: (open: boolean) => void;
+}) {
   const router = useRouter();
   const { userId, loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [foldersByCourse, setFoldersByCourse] = useState<{[key: number]: Folder[]}>({});
-  const [chatsByFolder, setChatsByFolder] = useState<Record<number, Chat[]>>({});
+  const [foldersByCourse, setFoldersByCourse] = useState<{
+    [key: number]: Folder[];
+  }>({});
+  const [chatsByFolder, setChatsByFolder] = useState<Record<number, Chat[]>>(
+    {}
+  );
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
@@ -47,11 +66,13 @@ export default function Sidebar2() {
   const [newChatName, setNewChatName] = useState("");
 
   // Redirect if not authenticated
+  /*
   if (loading) return null;
   if (!userId) {
     router.replace("/login");
     return null;
   }
+  */
 
   // Fetch courses
   const loadCourses = useCallback(async () => {
@@ -149,262 +170,243 @@ export default function Sidebar2() {
     }
   };
 
+  const handleDeleteChat = async (chatId: string) => {
+    if (!confirm("Really delete this chat?")) return;
+    try {
+      await deleteJson<boolean>(`/chats/delete/${chatId}`, {}, true);
+      loadChats(selectedFolder!);
+    } catch (err) {
+      console.error(`Failed to delete chat ${chatId}`, err);
+    }
+  };
+
   // login guard
   if (loading) return null;
   if (!userId) {
     router.replace("/login");
     return null;
   }
-
-
   return (
-    <div>
-      {/* Trigger Button */}
-      {isDrawerOpen || (
-        <div className="top-38 left-5 fixed">
-          <Button
-            className="w-full bg-[var(--color-purdue-gold)] hover:opacity-90 text-[var(--color-purdue-black)] font-semibold"
-            onClick={() => setIsDrawerOpen(true)}
-          >
-            <PanelLeftOpen className="h-4 w-4" />
-          </Button>
-        </div>
-      )}
-      {/* Drawer */}
-      <div
-        id="drawer-navigation"
-        className={`
-        fixed top-32.5 left-0 h-screen p-4 overflow-y-auto transition-transform
+    <aside
+      className={`
+        flex-shrink-0
+        h-full
         bg-[var(--color-purdue-brown)]
-        w-80
-        ${isDrawerOpen ? "translate-x-0" : "-translate-x-full"}
+        transition-all duration-200
+        ${isDrawerOpen ? "w-80" : "w-16"}
       `}
-        tabIndex={-1}
-        aria-labelledby="drawer-navigation-label"
-      >
-        <div className="flex items-center justify-between pb-4 bg-[var(--color-purdue-brown)]">
-          <h5
-            id="drawer-navigation-label"
-            className="text-[var(--color-purdue-black)] uppercase text-xl font-bold tracking-wider"
-          >
-            Menu
-          </h5>
-          <Button
-            onClick={() => setIsDrawerOpen(false)}
-            className="rounded-lg items-center justify-center bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-          >
-            <PanelLeftClose className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div>
-          <Dialog open={showAddCourse} onOpenChange={setShowAddCourse}>
-            <DialogTrigger asChild>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full flex items-center justify-center bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Join Course
-              </Button>
-            </DialogTrigger>
-
-            <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
-              <DialogHeader>
-                <DialogTitle>Join a Course</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <Input
-                  placeholder="Course Code"
-                  value={newCourseCode}
-                  onChange={(e) => setNewCourseCode(e.target.value)}
-                />
-              </div>
-              <DialogFooter>
-                <Button
-                  onClick={handleJoinCourse}
-                  className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-                >
-                  <FolderPlus className="mr-2 h-4 w-4" />
-                  Join
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
-
-        {/* Course List */}
-        <div className="py-4 overflow-y-auto">
-          <ul className="space-y-2 font-medium">
-            {courses.map((course) => (
-              <Fragment key={course.course_id}>
-                <Button
-                  onClick={() => handleSelectCourse(course.course_id)}
-                  className={
-                    "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
-                    (selectedCourse === course.course_id ? "" : "")
-                  }
-                >
-                  {course.title}
-                </Button>
-
-                {selectedCourse === course.course_id && (
-                  <ul className="pl-4 space-y-2">
-                    {/* Folders for selected course */}
-                    {(foldersByCourse[course.course_id] || []).map((folder) => (
-                      <li key={folder.folder_id}>
-                        <Button
-                          onClick={() => handleSelectFolder(folder.folder_id)}
-                          className={
-                            "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
-                            (selectedFolder === folder.folder_id ? "" : "")
-                          }
-                        >
-                          {folder.folder_label}
-                        </Button>
-                        {/* Chats for selected folder */}
-                        {selectedCourse === course.course_id &&
-                          selectedFolder == folder.folder_id && (
-                            <ul className="pl-4 space-y-2 pt-2">
-                              {(chatsByFolder[folder.folder_id] || []).map(
-                                (chat) => (
-                                  <li key={chat.chat_id}>
-                                    <Button
-                                      // transfer to the chat page
-                                      onClick = {() => {
-                                        router.push(`/chat/${chat.chat_id}`);
-                                      }}
-                                      className={
-                                        "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
-                                        (selectedChat === chat.chat_id
-                                          ? ""
-                                          : "")
-                                      }
-                                    >
-                                      {chat.title}
-                                    </Button>
-                                  </li>
-                                )
-                              )}
-                              <li>
-                                <div>
-                                  <Dialog
-                                    open={showAddChat}
-                                    onOpenChange={setShowAddChat}
-                                  >
-                                    <DialogTrigger asChild>
-                                      <Button
-                                        onClick={() => setShowAddChat(true)}
-                                        className="w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
-                                      >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        New Chat
-                                      </Button>
-                                    </DialogTrigger>
-
-                                    <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
-                                      <DialogHeader>
-                                        <DialogTitle>
-                                          Start a New Chat
-                                        </DialogTitle>
-                                      </DialogHeader>
-
-                                      <div className="space-y-4">
-                                        <Input
-                                          placeholder="Chat Name"
-                                          value={newChatName}
-                                          onChange={(e) =>
-                                            setNewChatName(e.target.value)
-                                          }
-                                        />
-                                      </div>
-
-                                      <DialogFooter>
-                                        <Button
-                                          onClick={async () => {
-                                            await handleNewChat();
-                                            setShowAddChat(false); // close dialog after creation
-                                            setNewChatName(""); // clear input for next time
-                                          }}
-                                          className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-                                        >
-                                          <FolderPlus className="mr-2 h-4 w-4" />
-                                          Create
-                                        </Button>
-                                      </DialogFooter>
-                                    </DialogContent>
-                                  </Dialog>
-                                </div>
-                              </li>
-                            </ul>
-                          )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </Fragment>
-            ))}
-          </ul>
-        </div>
-
-        {/* Navigation links */}
-        <div className="py-4 overflow-y-auto">
-          <ul className="space-y-2 font-medium">
-            <li>
-              <a
-                href="#"
-                className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-              >
-                {/* Dashboard Icon */}
-                <span className="ml-3">Dashboard</span>
-              </a>
-            </li>
-
-            {/* E-commerce with dropdown */}
-            <li>
-              <Button
-                className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                aria-expanded={isDropdownOpen}
-                onClick={() => setIsDropdownOpen((o) => !o)}
-              >
-                <span className="">E-commerce</span>
-              </Button>
-              <ul
-                id="dropdown-example"
-                className={`pl-11 space-y-2 py-2 ${
-                  isDropdownOpen ? "block" : "hidden"
-                }`}
-              >
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    Products
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    Billing
-                  </a>
-                </li>
-                <li>
-                  <a
-                    href="#"
-                    className="flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-80 text-[var(--color-purdue-gold)] font-semibold"
-                  >
-                    Invoice
-                  </a>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </div>
+    >
+      {/* trigger and content all in here, no `fixed` */}
+      <div className="flex items-center justify-between p-4">
+        <button onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
+          {isDrawerOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+        </button>
       </div>
-    </div>
+      {isDrawerOpen && (
+        <nav className="p-4 overflow-y-auto space-y-4">
+          {/* Drawer */}
+
+          <div className="flex items-center justify-between pb-4 bg-[var(--color-purdue-brown)]">
+            <h5
+              id="drawer-navigation-label"
+              className="text-[var(--color-purdue-black)] uppercase text-xl font-bold tracking-wider"
+            >
+              Menu
+            </h5>
+          </div>
+
+          <div>
+            <Dialog open={showAddCourse} onOpenChange={setShowAddCourse}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full flex items-center justify-center bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Join Course
+                </Button>
+              </DialogTrigger>
+
+              <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                <DialogHeader>
+                  <DialogTitle>Join a Course</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Course Code"
+                    value={newCourseCode}
+                    onChange={(e) => setNewCourseCode(e.target.value)}
+                  />
+                </div>
+                <DialogFooter>
+                  <Button
+                    onClick={handleJoinCourse}
+                    className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                  >
+                    <FolderPlus className="mr-2 h-4 w-4" />
+                    Join
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </div>
+
+          <Separator
+            className="my-4 text-[var(--color-purdue-black)]"
+            style={{ height: "4px" }}
+          />
+          {/* Course List Header */}
+          <div className="flex items-center justify-between ">
+            <h2 className="text-[var(--color-purdue-black)] uppercase text-lg font-bold tracking-wider">
+              Courses
+            </h2>
+          </div>
+
+          {/* Course List */}
+          <div className="py-4 overflow-y-auto">
+            <ul className="space-y-2 font-medium">
+              {courses.map((course) => (
+                <Fragment key={course.course_id}>
+                  <Button
+                    onClick={() => handleSelectCourse(course.course_id)}
+                    className={
+                      "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
+                      (selectedCourse === course.course_id ? "" : "")
+                    }
+                  >
+                    <BookA className="mr-2 h-4 w-4" />
+                    {course.title}
+                  </Button>
+
+                  {selectedCourse === course.course_id && (
+                    <ul className="pl-4 space-y-2">
+                      {/* <Separator
+                      className="my-2 text-[var(--color-purdue-black)]"
+                      style={{ height: "2px" }}
+                    />
+                    */}
+                      {/* Folders for selected course */}
+                      {(foldersByCourse[course.course_id] || []).map(
+                        (folder) => (
+                          <li key={folder.folder_id}>
+                            <Button
+                              onClick={() =>
+                                handleSelectFolder(folder.folder_id)
+                              }
+                              className={
+                                "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
+                                (selectedFolder === folder.folder_id ? "" : "")
+                              }
+                            >
+                              <Folder className="mr-2 h-4 w-4" />
+                              {folder.folder_label}
+                            </Button>
+                            {/* Chats for selected folder */}
+                            {selectedCourse === course.course_id &&
+                              selectedFolder == folder.folder_id && (
+                                <ul className="pl-4 space-y-2 pt-2">
+                                  {/* <Separator
+                                className="my-2 text-[var(--color-purdue-black)]"
+                                style={{ height: "2px" }}
+                              /> */}
+                                  {(chatsByFolder[folder.folder_id] || []).map(
+                                    (chat) => (
+                                      <li key={chat.chat_id}>
+                                        <Button
+                                          onClick={() =>
+                                            router.push(`/chat/${chat.chat_id}`)
+                                          }
+                                          className="relative w-full p-2 flex items-center rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
+                                        >
+                                          {/* 1) Centered icon + title */}
+                                          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                            <MessageSquare className="mr-2 h-4 w-4" />
+                                            <span>{chat.title}</span>
+                                          </div>
+
+                                          {/* 2) Trash icon at far right */}
+                                          <Button
+                                            asChild
+                                            size="icon"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDeleteChat(chat.chat_id);
+                                            }}
+                                            className=" ml-auto bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] "
+                                          >
+                                            <Trash2
+                                              className="h-4 w-4"
+                                              strokeWidth={2.5}
+                                            />
+                                          </Button>
+                                        </Button>
+                                      </li>
+                                    )
+                                  )}
+                                  <li>
+                                    <div>
+                                      <Dialog
+                                        open={showAddChat}
+                                        onOpenChange={setShowAddChat}
+                                      >
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            onClick={() => setShowAddChat(true)}
+                                            className="w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
+                                          >
+                                            <Plus className="mr-2 h-4 w-4" />
+                                            New Chat
+                                          </Button>
+                                        </DialogTrigger>
+
+                                        <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                                          <DialogHeader>
+                                            <DialogTitle>
+                                              Start a New Chat
+                                            </DialogTitle>
+                                          </DialogHeader>
+
+                                          <div className="space-y-4">
+                                            <Input
+                                              placeholder="Chat Name"
+                                              value={newChatName}
+                                              onChange={(e) =>
+                                                setNewChatName(e.target.value)
+                                              }
+                                            />
+                                          </div>
+
+                                          <DialogFooter>
+                                            <Button
+                                              onClick={async () => {
+                                                await handleNewChat();
+                                                setShowAddChat(false); // close dialog after creation
+                                                setNewChatName(""); // clear input for next time
+                                              }}
+                                              className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                                            >
+                                              <FolderPlus className="mr-2 h-4 w-4" />
+                                              Create
+                                            </Button>
+                                          </DialogFooter>
+                                        </DialogContent>
+                                      </Dialog>
+                                    </div>
+                                  </li>
+                                </ul>
+                              )}
+                          </li>
+                        )
+                      )}
+                    </ul>
+                  )}
+                </Fragment>
+              ))}
+            </ul>
+          </div>
+        </nav>
+      )}
+    </aside>
   );
 }

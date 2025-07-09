@@ -17,7 +17,7 @@ class ChatRouter:
 		self.router.get("/random", status_code=200, response_model=str)(self.get_random_chat)
 		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_chat)
 		self.router.get("/{chat_id}", status_code=200, response_model=ChatMessages)(self.get_chat_message)
-		self.router.delete("/{chat_id}", status_code=200, response_model=bool)(self.delete_chat)
+		self.router.delete("/delete/{chat_id}", status_code=200, response_model=bool)(self.delete_chat)
 		self.router.add_api_websocket_route("/relay/{chat_id}", self.websocket_relay)
 
 
@@ -61,7 +61,7 @@ class ChatRouter:
 			raise HTTPException(401, "Malformed session token.")
 
 		chat_history = await self.db.get_chat_history(chat_id)
-		if not chat_history: raise HTTPException(404, "Invalid chatID or empty chat history.")
+		if chat_history is None: raise HTTPException(404, "Invalid id or chat does not exist.")
 		return chat_history
 
 
