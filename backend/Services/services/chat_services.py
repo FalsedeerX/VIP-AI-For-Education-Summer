@@ -65,29 +65,6 @@ class ChatRouter:
 		return chat_history
 
 
-	# async def log_chat_message(self, chat_id: str, payload: NewChatMessage, request: Request, response: Response) -> bool:
-	# 	""" Log a new message entry into a speciifed chat by UUID. """
-	# 	# check if the user is logged in 
-	# 	if not request.state.token: raise HTTPException(401, "User not logged in.")
-
-	# 	# verify the session token
-	# 	if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
-	# 		response.delete_cookie("purduegpt-token")
-	# 		raise HTTPException(401, "Malformed session token.")
-		
-	# 	# redirect the message to chatbot via websokcet
-		
-	# 	# fetch response from AI model
-		
-	# 	# log the user request into database
-		
-	# 	# log the model respone into database
-
-	# 	status = await self.db.log_chat(chat_id, request.state.user_id, payload.message)
-	# 	if not status: raise HTTPException(404, "Cannot add message to chat")
-	# 	return True
-
-
 	async def websocket_relay(self, websocket: WebSocket, chat_id: str):
 		""" Establish a connection from client to transmit data,
 			WARNING: authentication is disabled on this endpoint due to cross origin cookie problem. """
