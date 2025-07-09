@@ -40,7 +40,7 @@ interface Chat {
   title: string;
 }
 
-export default function Sidebar2({
+export default function Sidebar({
   isDrawerOpen,
   setIsDrawerOpen,
 }: {

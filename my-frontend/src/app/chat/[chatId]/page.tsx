@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import ChatScreen from "@/app/chatscreen";
-import Sidebar2 from "@/components/ui/sidebar-2";
+import Sidebar from "@/components/ui/sidebar";
 
 export default function ChatPage() {
   const params = useParams();
@@ -14,7 +14,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-full min-h-0 bg-[var(--background)] overflow-hidden">
-      <Sidebar2 isDrawerOpen={isDrawerOpen} setIsDrawerOpen={setIsDrawerOpen} />
+      <Sidebar isDrawerOpen={isDrawerOpen} setIsDrawerOpen={setIsDrawerOpen} />
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden">
         <ChatScreen chatId={chatId} />
       </div>

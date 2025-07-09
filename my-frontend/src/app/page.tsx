@@ -8,7 +8,7 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainScreen from "@/app/mainscreen";
 import AdminDashboard from "./admindashboard";
-import Sidebar2 from "@/components/ui/sidebar-2";
+import Sidebar from "@/components/ui/sidebar";
 
 export default function Home() {
   const { name, loading, admin } = useAuth();
@@ -32,7 +32,7 @@ export default function Home() {
     // User is logged in, show main screen
     return (
       <div className="flex flex-row flex-1 min-h-0 overflow-hidden bg-[var(--background)]">
-        <Sidebar2
+        <Sidebar
           isDrawerOpen={isDrawerOpen}
           setIsDrawerOpen={setIsDrawerOpen}
         />
