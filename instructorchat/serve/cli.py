@@ -55,6 +55,7 @@ async def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
+    parser.add_argument("--folder", type=str, default=None)
     args = parser.parse_args()
 
     # Use API key from environment variable if not provided
@@ -70,6 +71,7 @@ async def main():
             temperature=args.temperature,
             chatio=chatio,
             api_key=api_key,
+            folder=args.folder
         ):
             pass
 

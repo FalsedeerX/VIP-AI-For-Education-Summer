@@ -141,7 +141,7 @@ async def generate_answer_action(data: Dict, websocket=None):
             return {"error": "Question is required", "status": "error"}
 
         # Get relevant context for the query
-        contexts = await retrieve_relevant_context(question, global_api_key)
+        contexts = await retrieve_relevant_context(question, global_api_key, folder=data.get("folder", None))
 
         # Prepare the prompt with context
         context_text = "\n\n".join([
@@ -244,7 +244,8 @@ async def chat_loop(
     temperature: float,
     chatio: ChatIO,  # chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
     api_key: Optional[str] = None,
-    evaluation_test_cases: Optional[List[Dict[str, Any]]] = None
+    evaluation_test_cases: Optional[List[Dict[str, Any]]] = None,
+    folder: Optional[str] = None
 ):
     """Main chat loop."""
     # Set API key
@@ -303,7 +304,7 @@ async def chat_loop(
             break
 
         # Get relevant context for the query
-        contexts = await retrieve_relevant_context(inp, api_key)
+        contexts = await retrieve_relevant_context(inp, api_key, folder=folder)
 
         # Prepare the prompt with context
         context_text = "\n\n".join([

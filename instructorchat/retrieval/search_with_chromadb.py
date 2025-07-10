@@ -1,6 +1,6 @@
 from pymongo import MongoClient
 # from urllib.parse import quote_plus
-from typing import List, Dict, Final
+from typing import List, Dict, Final, Optional
 import argparse
 import time
 import openai
@@ -69,12 +69,13 @@ async def classify_query(query: str, api_key: str) -> str:
         return 'other'
 
 
-async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
+async def retrieve_relevant_context(query: str, api_key: str, folder: Optional[str]) -> List[Dict]:
     """Retrieve relevant context for the query using classification and vector search."""
     try:
-        # First classify the query
-        folder = await classify_query(query, api_key)
-        logger.info(f"Query classified into folder: {folder}")
+        if folder is None:
+            # First classify the query
+            folder = await classify_query(query, api_key)
+            logger.info(f"Query classified into folder: {folder}")
 
         # Then use vector search to get relevant content
         results = vector_search(folder, query, top_k=5)
