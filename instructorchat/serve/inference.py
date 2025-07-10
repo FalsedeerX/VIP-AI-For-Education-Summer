@@ -2,6 +2,7 @@
 from openai import AsyncStream
 from openai.types.chat import ChatCompletionChunk
 from typing import Dict, Optional, List, Any
+import traceback
 import abc
 import openai
 import logging
@@ -293,10 +294,8 @@ async def chat_loop(
                     logger.info(message)
                 else:
                     logger.error(message)
-            except ImportError as e:
-                logger.error(f"Error importing store module: {str(e)}")
-            except Exception as e:
-                logger.error(f"Error storing file: {str(e)}")
+            except Exception:
+                logger.error(traceback.format_exc())
             continue
 
         if not inp:

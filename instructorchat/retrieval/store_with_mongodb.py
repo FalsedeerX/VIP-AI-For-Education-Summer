@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from datetime import datetime, timezone
 from pathlib import Path
+import traceback
 import certifi
 import pymupdf4llm
 import re
@@ -254,8 +255,8 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
         return True, "Successfully stored all documents"
 
     except Exception as e:
+        logger.error(traceback.format_exc())
         error_msg = f"Error during document storage: {str(e)}"
-        logger.error(error_msg)
         return False, error_msg
 
 
