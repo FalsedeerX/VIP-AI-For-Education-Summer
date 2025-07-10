@@ -1,6 +1,7 @@
 from pymongo import MongoClient
 from datetime import datetime, timezone
 from pathlib import Path
+from dotenv import load_dotenv
 import traceback
 import certifi
 import pymupdf4llm
@@ -124,6 +125,8 @@ def store_documents(file_path: str, collection_name: str = "ece20875") -> tuple[
     logger = logging.getLogger(__name__)
 
     try:
+        load_dotenv()
+
         # Connect to MongoDB
         # username = quote_plus("voquangtri2021")
         # password = quote_plus("Voquangtri123@")

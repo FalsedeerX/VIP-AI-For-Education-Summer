@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from typing import List, Dict, Final, Optional
 from PIL import Image
 from pathlib import Path
+from dotenv import load_dotenv
 import argparse
 import time
 import openai
@@ -26,6 +27,7 @@ AVAILABLE_FOLDERS: Final[List[str]] = ['project', 'logistics', 'course_content',
                                        'hw5', 'hw6', 'hw7', 'hw8', 'hw9', 'hw10', 'other']
 INCLUDE: Final[int] = 1
 
+load_dotenv()
 # Connect to MongoDB Atlas
 # username = quote_plus("voquangtri2021")
 # password = quote_plus("Voquangtri123@")
