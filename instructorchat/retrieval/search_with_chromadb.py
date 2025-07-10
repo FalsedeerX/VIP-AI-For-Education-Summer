@@ -91,7 +91,7 @@ async def retrieve_relevant_context(query: str, api_key: str, folder: Optional[s
             context.append({
                 "title": doc["filename"],
                 "text": doc["chunk"]["chunk_text"],
-                "image": Image.open(doc["image_dir"]),
+                "image": Image.open(doc["image_dir"]) if doc["image_dir"] is not None else None,
                 "metadata": doc["metadata"]
             })
 

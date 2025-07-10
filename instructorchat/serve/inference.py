@@ -307,22 +307,34 @@ async def chat_loop(
         contexts = await retrieve_relevant_context(inp, api_key, folder=folder)
 
         # Prepare the prompt with context
-        context_text = "\n\n".join([
-            f"Title: {ctx['title']}\n{ctx['text']}"
-            for ctx in contexts
-        ])
+        # context_text = "\n\n".join([
+        #     f"Title: {ctx['title']}\n{ctx['text']}"
+        #     for ctx in contexts
+        # ])
 
         # Format the message with context and question
-        formatted_message = f"""
-            Here is the question: <QUESTION> {inp} </QUESTION>
+        # formatted_message = f"""
+        #     Here is the question: <QUESTION> {inp} </QUESTION>
 
-            The following are the contexts:
-            <CONTEXT>
-            {context_text}
-            </CONTEXT>"""
+        #     The following are the contexts:
+        #     <CONTEXT>
+        #     {context_text}
+        #     </CONTEXT>"""
+
+        message = Message("user").add_text(f"Here is the question: <question>{inp}</question>\n\nThe following are contexts:\n")
+
+        for context in contexts:
+            message.add_text("<context>\n")
+
+            message.add_text(f"Title: {context["title"]}\n")
+
+            if context["image"] is not None:
+                message.add_image(context["image"])
+
+            message.add_text(f"{context["text"]}\n</context>\n")
 
         # Add messages to conversation
-        conv.append_message(Message("user").add_text(formatted_message))
+        conv.append_message(message)
 
         # Create the final prompt with context
         messages = conv.to_openai_api_messages()
