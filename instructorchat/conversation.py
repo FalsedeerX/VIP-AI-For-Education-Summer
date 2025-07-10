@@ -56,7 +56,7 @@ class Message:
             elif content_type == ContentType.IMAGE:
                 content_str += "[Image]"
 
-        return f'Message(role={self.role}, content="{content_str}"'
+        return f'Message(role={self.role}, content="{content_str})"'
 
 
 class Conversation:

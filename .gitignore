@@ -1,3 +1,5 @@
+.conda/
+
 eval_data/
 
 .deepeval_telemetry.txt

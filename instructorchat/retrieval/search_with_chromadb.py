@@ -1,6 +1,8 @@
 from pymongo import MongoClient
 # from urllib.parse import quote_plus
 from typing import List, Dict, Final, Optional
+from PIL import Image
+from pathlib import Path
 import argparse
 import time
 import openai
@@ -83,9 +85,11 @@ async def retrieve_relevant_context(query: str, api_key: str, folder: Optional[s
         # Format the results for context
         context = []
         for doc in results:
+            print(doc["image_dir"])
             context.append({
                 "title": doc["filename"],
-                "content": doc["chunk"]["chunk_text"],
+                "text": doc["chunk"]["chunk_text"],
+                "image": Image.open(Path(__file__).parent / doc["image_dir"]),
                 "metadata": doc["metadata"]
             })
 
