@@ -9,7 +9,7 @@ import json
 
 from instructorchat.model.model_adapter import load_model, get_model_adapter
 from instructorchat.retrieval.search_with_chromadb import retrieve_relevant_context
-from instructorchat.conversation import Message
+from instructorchat.conversation import Message, Role
 
 # Global conversation object for action-based dispatch
 global_conv = None
@@ -19,11 +19,11 @@ global_temperature = 0.7
 
 class ChatIO(abc.ABC):
     @abc.abstractmethod
-    async def prompt_for_input(self, role: str) -> str:
+    async def prompt_for_input(self, role: Role) -> str:
         """Prompt for input from a role."""
 
     @abc.abstractmethod
-    async def prompt_for_output(self, role: str) -> None:
+    async def prompt_for_output(self, role: Role) -> None:
         """Prompt for output from a role."""
 
     @abc.abstractmethod
@@ -271,7 +271,7 @@ async def chat_loop(
     idx = 0
 
     while True:
-        inp = evaluation_test_cases[idx]["input"] if evaluation_test_cases else await chatio.prompt_for_input(conv.roles[0])
+        inp = evaluation_test_cases[idx]["input"] if evaluation_test_cases else await chatio.prompt_for_input("user")
 
         # Handle commands
         if inp == "return conv":
