@@ -9,6 +9,7 @@ import torch
 import os
 
 from instructorchat.retrieval.colpali import ColPali
+import traceback
 
 # Set up logging
 logging.basicConfig(
@@ -64,7 +65,8 @@ async def classify_query(query: str, api_key: str) -> str:
         return folder
 
     except Exception as e:
-        logger.error(f"Error in query classification: {str(e)}")
+        logger.error(f"Error in query classification: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stacktrace: {traceback.format_exc()}")
         return 'other'
 
 
@@ -90,7 +92,8 @@ async def retrieve_relevant_context(query: str, api_key: str) -> List[Dict]:
         return context
 
     except Exception as e:
-        logger.error(f"Error in context retrieval: {str(e)}")
+        logger.error(f"Error in context retrieval: {type(e).__name__}: {str(e)}")
+        logger.error(f"Stacktrace: {traceback.format_exc()}")
         return []
 
 
