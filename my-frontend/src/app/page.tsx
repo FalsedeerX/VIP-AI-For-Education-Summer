@@ -12,6 +12,7 @@ import Sidebar from "@/components/ui/sidebar";
 
 export default function Home() {
   const { name, loading, admin } = useAuth();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   if (loading) {
     return null;
@@ -25,8 +26,6 @@ export default function Home() {
       </div>
     );
   }
-
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   if (name) {
     // User is logged in, show main screen
@@ -51,8 +50,8 @@ export default function Home() {
         </h2>
 
         <Image
-          src="/purdue_boilermakers_logo_mascot_2023_sportslogosnet-2378.png"
-          alt="PurdueGPT Logo"
+          src="/PurduePete.png"
+          alt="Purdue Pete"
           width={150}
           height={150}
           className="mx-auto mb-4"

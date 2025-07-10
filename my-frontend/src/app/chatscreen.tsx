@@ -4,6 +4,7 @@ import { getJson, postJson } from "@/lib/api";
 import TextareaAutosize from "react-textarea-autosize";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 type Message = {
   user_id: number;
@@ -42,9 +43,10 @@ const MessageBubble = ({ msg, isOwn }: { msg: Message; isOwn: boolean }) => {
 export default function ChatScreen({ chatId }: { chatId: string }) {
   const socketRef = useRef<WebSocket | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-
+  const router = useRouter();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+
   const [input, setInput] = useState("");
   const [isConnected, setIsConnected] = useState(false);
 
@@ -59,12 +61,15 @@ export default function ChatScreen({ chatId }: { chatId: string }) {
 
     async function init() {
       try {
-        const [msgs, info] = await Promise.all([
+        const [msgs, info, owner] = await Promise.all([
           getJson<Message[]>(`/chats/${chatId}`, true),
           getJson<UserInfo>("/users/me", true),
+          getJson<{ owner_id: number }>(`/chats/owner/${chatId}`, true),
         ]);
-        console.log("Fetched messages:", msgs);
-        console.log("Fetched user info:", info);
+        if (info.id !== owner.owner_id) {
+          console.error("User ID mismatch");
+          router.replace("/login");
+        }
         setMessages(msgs);
         setUserInfo(info);
       } catch (err) {

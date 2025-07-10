@@ -27,8 +27,8 @@ export function Header() {
       <div className="flex items-center space-x-4">
         <Link href="/">
           <Image
-            src="/Purdue_Boilermakers_logo.png"
-            alt="Boilermakers logo"
+            src="/PurdueLogo.png"
+            alt="Purdue Logo"
             width={180}
             height={38}
             priority

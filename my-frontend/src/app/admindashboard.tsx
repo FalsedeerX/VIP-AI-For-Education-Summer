@@ -10,6 +10,14 @@ import {
   AccordionTrigger,
   AccordionContent,
 } from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -49,6 +57,8 @@ export default function AdminDashboard() {
   }>({});
   const [newCourseCode, setNewCourseCode] = useState("");
   const [newCourseTitle, setNewCourseTitle] = useState("");
+  const [deleteCourseId, setDeleteCourseId] = useState<number | null>(null);
+  const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
 
   // Load courses
   const loadCourses = useCallback(async () => {
@@ -112,7 +122,7 @@ export default function AdminDashboard() {
 
   // Delete handlers
   const handleDeleteCourse = async (courseId: number) => {
-    if (!confirm("Really delete this course?")) return;
+    setDeleteCourseId(null);
     try {
       await deleteJson("/courses/delete", { course_id: courseId }, true);
       loadCourses();
@@ -122,7 +132,7 @@ export default function AdminDashboard() {
   };
 
   const handleDeleteFolder = async (courseId: number, folderId: number) => {
-    if (!confirm("Really delete this folder?")) return;
+    setDeleteFolderId(null);
     try {
       await deleteJson("/folders/delete", { folder_id: folderId }, true);
       loadFolders(courseId);
@@ -172,19 +182,46 @@ export default function AdminDashboard() {
                   <span className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
                     {c.title}
                   </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCourse(c.course_id);
-                    }}
+                  <Dialog
+                    open={deleteCourseId === c.course_id}
+                    onOpenChange={(open) =>
+                      setDeleteCourseId(open ? c.course_id : null)
+                    }
                   >
-                    <Trash2
-                      className="h-4 w-4 text-[var(--color-purdue-black)] mb-2"
-                      strokeWidth={2.5}
-                    />
-                  </Button>
+                    <DialogTrigger asChild>
+                      <Button size="icon" variant="ghost">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                      <DialogHeader>
+                        <DialogTitle className="font-semibold">
+                          Delete Course
+                        </DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p>
+                          Are you sure you want to delete the course
+                          <strong> {c.title}</strong>?
+                        </p>
+                        <p className="text-red-600 font-semibold">
+                          This action cannot be undone.
+                        </p>
+                      </div>
+                      <DialogFooter>
+                        <Button
+                          onClick={() => {
+                            handleDeleteCourse(c.course_id);
+                            setDeleteCourseId(null); // close after deleting
+                          }}
+                          className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4">
                   <ul className="space-y-2">
@@ -194,18 +231,52 @@ export default function AdminDashboard() {
                           key={f.folder_id}
                           className="flex justify-between items-center"
                         >
-                          <text className="text-[var(--color-purdue-black)] ml-3">
+                          <span className="text-[var(--color-purdue-black)] ml-3">
                             {f.folder_label}
-                          </text>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() =>
-                              handleDeleteFolder(c.course_id, f.folder_id)
+                          </span>
+                          <Dialog
+                            open={deleteFolderId === f.folder_id}
+                            onOpenChange={(open) =>
+                              setDeleteFolderId(open ? f.folder_id : null)
                             }
                           >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                            <DialogTrigger asChild>
+                              <Button size="icon" variant="ghost">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                              <DialogHeader>
+                                <DialogTitle className="font-semibold">
+                                  Delete Folder
+                                </DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <p>
+                                  Are you sure you want to delete the folder
+                                  <strong> {f.folder_label}</strong>?
+                                </p>
+                                <p className="text-red-600 font-semibold">
+                                  This action cannot be undone.
+                                </p>
+                              </div>
+                              <DialogFooter>
+                                <Button
+                                  onClick={() => {
+                                    handleDeleteFolder(
+                                      c.course_id,
+                                      f.folder_id
+                                    );
+                                    setDeleteFolderId(null); // close after deleting
+                                  }}
+                                  className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Delete
+                                </Button>
+                              </DialogFooter>
+                            </DialogContent>
+                          </Dialog>
                         </li>
                       ))
                     ) : (

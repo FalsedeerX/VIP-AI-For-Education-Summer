@@ -3,7 +3,7 @@ from http.cookies import SimpleCookie
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
 from fastapi import APIRouter, WebSocket, HTTPException, Request, Response, WebSocketDisconnect
-from services.schemas.chat import NewChat, ChatMessages, NewChatMessage, ChatOrganize
+from services.schemas.chat import NewChat, ChatMessages, ChatOrganize, ChatOwner
 
 
 class ChatRouter:
@@ -19,6 +19,7 @@ class ChatRouter:
 		self.router.get("/{chat_id}", status_code=200, response_model=ChatMessages)(self.get_chat_message)
 		self.router.delete("/delete/{chat_id}", status_code=200, response_model=bool)(self.delete_chat)
 		self.router.add_api_websocket_route("/relay/{chat_id}", self.websocket_relay)
+		self.router.get("/owner/{chat_id}", status_code=200, response_model=ChatOwner)(self.get_chat_owner)
 
 
 	async def create_chat(self, payload: NewChat, request: Request, response: Response) -> str:
@@ -63,6 +64,20 @@ class ChatRouter:
 		chat_history = await self.db.get_chat_history(chat_id)
 		if chat_history is None: raise HTTPException(404, "Invalid id or chat does not exist.")
 		return chat_history
+
+	async def get_chat_owner(self, chat_id: str, request: Request, response: Response) -> ChatOwner:
+		""" Receive the chat owner in a dictionary """
+		# check if the user is logged in 
+		if not request.state.token: raise HTTPException(401, "User not logged in.")
+
+		# verify the session token
+		if not self.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(401, "Malformed session token.")
+
+		chat_owner = await self.db.get_chat_owner(chat_id)
+		if chat_owner is None: raise HTTPException(404, "Invalid id or chat does not exist.")
+		return {"owner_id": chat_owner}
 
 
 	async def websocket_relay(self, websocket: WebSocket, chat_id: str):
