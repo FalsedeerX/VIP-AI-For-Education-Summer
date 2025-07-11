@@ -73,7 +73,7 @@ Refer to the SQL definitions in the `/schemas` section above for how to initiali
 
 - **users** — stores secure user accounts
 
-- **courses** — allows chats/folders to be organized by course
+- **courses** — allows chats and folders to be organized by course
 
 - **folders** — user defined containers for chat threads
 
@@ -106,7 +106,7 @@ this system supports multi-session tracking, secure IP validation, and idle clea
 
 ### UserRouter
 
-/users/me
+#### /users/me
 
 Action: GET
 Behavior: Returns the currently authenticated user’s ID, username, and admin status.
@@ -124,7 +124,7 @@ Sample Response:
 }
 ```
 
-/users/auth
+#### /users/auth
 
 Action: POST
 Behavior: Verify user credentials and assign a session token via cookie.
@@ -144,7 +144,7 @@ Sample Response:
 true
 ```
 
-/users/register
+#### /users/register
 
 Action: POST
 Behavior: Register a new user with a username, email, and password.
@@ -166,7 +166,7 @@ Sample Response:
 true
 ```txt
 
-/users/delete
+#### /users/delete
 
 Action: DELETE
 Behavior: Delete a user from the database (requires session verification).
@@ -184,7 +184,7 @@ Sample Response:
 true
 ```
 
-/users/logout
+#### /users/logout
 
 Action: POST
 Behavior: Logout the user by invalidating the session token and removing the cookie.
@@ -198,7 +198,7 @@ Sample Response:
 true
 ```
 
-/users/joincourse
+#### /users/joincourse
 
 Action: POST
 Behavior: Add a course to the current user’s list using the course code.
@@ -217,7 +217,7 @@ Sample Response:
 true
 ```
 
-/users/deletecourse
+#### /users/deletecourse
 
 Action: POST
 Behavior: Remove a course from the current user’s course list.
@@ -236,7 +236,7 @@ Sample Response:
 true
 ```
 
-/users/getcourses
+#### /users/getcourses
 
 Action: GET
 Behavior: Retrieve the list of course codes the current user is enrolled in.
@@ -259,7 +259,7 @@ Sample Response:
 
 ### FolderRouter
 
-/folders
+#### /folders
 
 Action: POST
 Behavior: Retrieve a list of chats inside a specific folder by folder_id.
@@ -283,7 +283,7 @@ Sample Response:
 ]
 ```
 
-/folders/create
+#### /folders/create
 
 Action: POST
 Behavior: Create a folder within a course (admin only). Returns newly created folder ID.
@@ -303,7 +303,7 @@ Sample Response:
 12
 ```
 
-/folders/delete
+#### /folders/delete
 
 Action: DELETE
 Behavior: Delete a folder and associated chats. Requires session verification.
@@ -322,7 +322,7 @@ Sample Response:
 true
 ```
 
-/folders/organize
+#### /folders/organize
 
 Action: POST
 Behavior: Organize a folder into a course using course_id.
@@ -344,7 +344,7 @@ true
 
 ### CourseRouter
 
-/courses
+#### /courses
 
 Action: GET
 Behavior: Retrieve courses and folder IDs for the current user.
@@ -361,7 +361,7 @@ Sample Response:
 }
 ```
 
-/courses/create
+#### /courses/create
 
 Action: POST
 Behavior: Create a new course with course code and title. Returns course ID.
@@ -381,7 +381,7 @@ Sample Response:
 7
 ```
 
-/courses/delete
+#### /courses/delete
 
 Action: DELETE
 Behavior: Delete a course and all related folders and chats.
@@ -400,7 +400,7 @@ Sample Response:
 true
 ```
 
-/courses/get
+#### /courses/get
 
 Action: POST
 Behavior: Retrieve all folders associated with a specific course.
@@ -426,7 +426,7 @@ Sample Response:
 
 ### ChatRouter
 
-/chats/create
+#### /chats/create
 
 Action: POST
 Behavior: Create a new chat for the current logged in user. Returns the newly created chat ID.
@@ -445,7 +445,7 @@ Sample Response:
 "27b540c7-3e47-4c3c-b28f-b3c33b45b4f3"
 ```
 
-/chats/random
+#### /chats/random
 
 Action: GET
 Behavior: Retrieve a random chat ID belonging to the current user.
@@ -459,7 +459,7 @@ Sample Response:
 "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
 ```
 
-/chats/organize
+#### /chats/organize
 
 Action: POST
 Behavior: Organize a chat into a folder. Verifies ownership of both chat and folder.
@@ -478,7 +478,7 @@ Sample Response:
 true
 ````
 
-/chats/{chat_id}
+#### /chats/{chat_id}
 
 Action: GET
 Behavior: Retrieve all messages associated with a specific chat.
@@ -498,7 +498,7 @@ Sample Response:
 ]
 ```txt
 
-/chats/delete/{chat_id}
+#### /chats/delete/{chat_id}
 
 Action: DELETE
 Behavior: Delete a specific chat, after verifying user owns it.
@@ -511,7 +511,7 @@ Sample Response:
 true
 ````
 
-/chats/owner/{chat_id}
+#### /chats/owner/{chat_id}
 
 Action: GET
 Behavior: Return the owner_id of the specified chat.
@@ -527,7 +527,7 @@ Sample Response:
 }
 ```
 
-/chats/relay/{chat_id}
+#### /chats/relay/{chat_id}
 
 Action: WebSocket
 Behavior: Relay real-time user messages and AI-generated responses via a WebSocket stream.
