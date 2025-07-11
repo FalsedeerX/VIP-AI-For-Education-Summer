@@ -69,9 +69,9 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
                 retrieval_contexts.append(f"Title: {ctx["title"]}\n{ctx["text"]}\n\n")
 
         test_cases.append(MLLMTestCase(
-            input=tc["input"],
-            actual_output=tc["actual_output"],
-            expected_output=tc["expected_output"],
+            input=[tc["input"]],
+            actual_output=[tc["actual_output"]],
+            expected_output=[tc["expected_output"]],
             context=tc["context"] if "context" in tc else None,
             retrieval_context=retrieval_contexts
         ))
