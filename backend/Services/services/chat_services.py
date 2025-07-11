@@ -5,7 +5,6 @@ from databaseagent.database_async import DatabaseAgent
 from fastapi import APIRouter, WebSocket, HTTPException, Request, Response, WebSocketDisconnect
 from services.schemas.chat import NewChat, ChatMessages, ChatOrganize, ChatOwner
 
-
 class ChatRouter:
 	def __init__(self, database: DatabaseAgent, session: SessionManager):
 		self.router = APIRouter(prefix="/chats", tags=["chats"])
