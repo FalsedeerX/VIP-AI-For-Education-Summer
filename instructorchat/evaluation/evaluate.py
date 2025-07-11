@@ -5,8 +5,8 @@ import argparse
 import os
 import trio
 
-from deepeval.evaluate.configs import AsyncConfig, CacheConfig, ErrorConfig
-from deepeval.evaluate.evaluate import evaluate
+from deepeval.evaluate import AsyncConfig, CacheConfig, ErrorConfig
+from deepeval import evaluate
 from deepeval.metrics import (
     MultimodalAnswerRelevancyMetric, MultimodalGEval, MultimodalContextualPrecisionMetric,
     MultimodalContextualRecallMetric, MultimodalContextualRelevancyMetric
