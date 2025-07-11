@@ -10,7 +10,7 @@ import logging
 import json
 
 from instructorchat.model.model_adapter import load_model, get_model_adapter
-from instructorchat.retrieval.search_with_chromadb import retrieve_relevant_context
+from instructorchat.retrieval.search import retrieve_relevant_context
 from instructorchat.conversation import Message, Role
 
 # Global conversation object for action-based dispatch
@@ -97,7 +97,7 @@ async def store_documents_action(data: Dict, websocket = None) -> Dict:
                 await websocket.send_message(json.dumps({"error": "Only .py files are supported", "status": "error"}))
             return {"error": "Only .py files are supported"}
 
-        from instructorchat.retrieval.store_with_mongodb import store_documents
+        from instructorchat.retrieval.store import store_documents
 
         success, message = store_documents(file_path)
 
@@ -289,7 +289,7 @@ async def chat_loop(
                     continue
 
                 logger.info(f"Storing file: {file_path}")
-                from instructorchat.retrieval.store_with_mongodb import store_documents
+                from instructorchat.retrieval.store import store_documents
 
                 success, message = store_documents(file_path)
                 if success:
