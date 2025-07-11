@@ -54,32 +54,27 @@ async def get_responses(
 
 def run_evaluations(responses_file: str, use_cache: bool = False):
     with open(responses_file, 'r') as f:
-        test_cases = json.load(f)
+        test_cases_from_json = json.load(f)
 
-    multimodal_contexts: List[List[Union[str, MLLMImage]]] = []
+    test_cases: List[MLLMTestCase] = []
 
-    for tc in test_cases:
-        ctx = tc["retrieval_context"]
-        if ctx["image_dir"] is not None:
-            multimodal_contexts.append([
-                f"Title: {ctx["title"]}\n",
-                MLLMImage(ctx["image_dir"]),
-                f"\nText parsed from image:\n{ctx["text"]}"
-            ])
-        else:
-            multimodal_contexts.append([
-                f"Title: {ctx["title"]}\n{ctx["text"]}"
-            ])
+    for tc in test_cases_from_json:
+        retrieval_contexts: List[Union[str, MLLMImage]] = []
 
-    test_cases = [
-        MLLMTestCase(
+        for ctx in tc["retrieval_context"]:
+            if ctx["image_dir"] is not None:
+                # ! This is a temporary solution that doesn't include title or parsed text
+                retrieval_contexts.append(MLLMImage(ctx["image_dir"]))
+            else:
+                retrieval_contexts.append(f"Title: {ctx["title"]}\n{ctx["text"]}\n\n")
+
+        test_cases.append(MLLMTestCase(
             input=tc["input"],
             actual_output=tc["actual_output"],
             expected_output=tc["expected_output"],
             context=tc["context"] if "context" in tc else None,
-            retrieval_context=[tc["retrieval_context"]]
-        ) for tc in test_cases
-    ]
+            retrieval_context=retrieval_contexts
+        ))
 
     metrics = [
         MultimodalAnswerRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
