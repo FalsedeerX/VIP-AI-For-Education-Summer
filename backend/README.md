@@ -14,7 +14,7 @@ backend/
 │   └── test_database_agent.py
 ├── services/
 │   ├── chat_services.py     # Logic for chat handling
-|   ├── course_services.py   # Course creation, deletion and retrieval
+│   ├── course_services.py   # Course creation, deletion and retrieval
 │   ├── folder_services.py   # Folder creation, update, linking
 │   ├── user_services.py     # User auth, registration, validation
 │   ├── websocket.py
