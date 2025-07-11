@@ -257,7 +257,8 @@ Sample Response:
 ]
 ```
 
-FolderRouter
+### FolderRouter
+
 /folders
 
 Action: POST
@@ -341,7 +342,8 @@ Sample Response:
 true
 ```
 
-CourseRouter
+### CourseRouter
+
 /courses
 
 Action: GET
@@ -421,6 +423,115 @@ Sample Response:
     }
 ]
 ```
+
+### ChatRouter
+
+/chats/create
+
+Action: POST
+Behavior: Create a new chat for the current logged in user. Returns the newly created chat ID.
+
+Sample Request Body:
+
+```txt
+{
+"title": "Preparing for midterm"
+}
+```
+
+Sample Response:
+
+```txt
+"27b540c7-3e47-4c3c-b28f-b3c33b45b4f3"
+```
+
+/chats/random
+
+Action: GET
+Behavior: Retrieve a random chat ID belonging to the current user.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
+"da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
+```
+
+/chats/organize
+
+Action: POST
+Behavior: Organize a chat into a folder. Verifies ownership of both chat and folder.
+
+Sample Request Body:
+
+````txt
+{
+"chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d",
+"folder_id": 12
+}
+```txt
+
+Sample Response:
+```txt
+true
+````
+
+/chats/{chat_id}
+
+Action: GET
+Behavior: Retrieve all messages associated with a specific chat.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+````txt
+[
+{
+"user_id": 9,
+"message": "What topics are covered in the exam?",
+"created_at": "2025-07-11T10:23:00.000000"
+}
+]
+```txt
+
+/chats/delete/{chat_id}
+
+Action: DELETE
+Behavior: Delete a specific chat, after verifying user owns it.
+
+Sample Request Body:
+None
+
+Sample Response:
+```txt
+true
+````
+
+/chats/owner/{chat_id}
+
+Action: GET
+Behavior: Return the owner_id of the specified chat.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
+{
+"owner_id": 6
+}
+```
+
+/chats/relay/{chat_id}
+
+Action: WebSocket
+Behavior: Relay real-time user messages and AI-generated responses via a WebSocket stream.
+Authentication is disabled on this endpoint due to cross-origin cookie issues.
 
 ## Running Tests
 
