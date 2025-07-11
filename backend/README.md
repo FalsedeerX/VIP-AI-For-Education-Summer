@@ -26,7 +26,6 @@ backend/
 │   └── session.py           # Session-based data management
 ├── Utils/
 │   ├── mods/
-│   │   ├── __init__.py
 │   │   └── hd.py            # HexDump module for connection debugging.
 │   └── echo_server.py
 ├── backend.py               # FastAPI app entry point
