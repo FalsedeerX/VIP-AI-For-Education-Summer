@@ -542,5 +542,5 @@ pytest -q
 
 ## Authors
 
-Shrey Agarwal
+Shrey Agarwal  
 Yu-Kuang Chen
