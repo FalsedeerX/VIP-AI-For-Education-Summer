@@ -323,18 +323,18 @@ async def chat_loop(
         #     </CONTEXT>"""
 
         message = Message("user").add_text(f"Here is the question: <question>{inp}</question>\n\nThe following are contexts:\n")
-        images = set()
+        images = dict()
 
-        for context in contexts:
+        for i, context in enumerate(contexts):
             message.add_text("<context>\n")
 
             message.add_text(f"Title: {context["title"]}\n")
 
             if context["image_dir"] is not None and context["image_dir"] not in images:
-                images.add(context["image_dir"])
+                images[context["image_dir"]] = i  # Mark this context as containing an image
 
                 message.add_image(Image.open(context["image_dir"]))
-                message.add_text("\nText parsed from image: ")
+                message.add_text("\nText parsed from image:\n")
 
             message.add_text(f"{context["text"]}\n</context>\n")
 
@@ -362,7 +362,11 @@ async def chat_loop(
                     "idx": idx,
                     "input": inp,
                     "actual_output": response,
-                    "retrieval_context": [f"Title: {ctx['title']}\n{ctx['text']}" for ctx in contexts],
+                    "retrieval_context": [{
+                        "title": ctx["title"],
+                        "text": ctx["text"],
+                        "image_dir": ctx["image_dir"] if i in images.values() else None
+                    } for i, ctx in enumerate(contexts)],
                     "expected_output": evaluation_test_cases[idx]["expected_output"],
                     "context": evaluation_test_cases[idx]["context"] if "context" in evaluation_test_cases[idx] else None,
                 }

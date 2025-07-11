@@ -1,16 +1,17 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Union
 from datetime import datetime
 import json
 import argparse
 import os
 import trio
 
-from deepeval import evaluate
+from deepeval.evaluate.configs import AsyncConfig, CacheConfig, ErrorConfig
+from deepeval.evaluate.evaluate import evaluate
 from deepeval.metrics import (
-    AnswerRelevancyMetric, GEval, ContextualPrecisionMetric,
-    ContextualRecallMetric, ContextualRelevancyMetric
+    MultimodalAnswerRelevancyMetric, MultimodalGEval, MultimodalContextualPrecisionMetric,
+    MultimodalContextualRecallMetric, MultimodalContextualRelevancyMetric
 )
-from deepeval.test_case import LLMTestCase, LLMTestCaseParams
+from deepeval.test_case import MLLMTestCase, MLLMTestCaseParams, MLLMImage
 
 from instructorchat.serve.inference import ChatIO, chat_loop
 from instructorchat.serve.cli import SimpleChatIO
@@ -55,19 +56,34 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
     with open(responses_file, 'r') as f:
         test_cases = json.load(f)
 
+    multimodal_contexts: List[List[Union[str, MLLMImage]]] = []
+
+    for tc in test_cases:
+        ctx = tc["retrieval_context"]
+        if ctx["image_dir"] is not None:
+            multimodal_contexts.append([
+                f"Title: {ctx["title"]}\n",
+                MLLMImage(ctx["image_dir"]),
+                f"\nText parsed from image:\n{ctx["text"]}"
+            ])
+        else:
+            multimodal_contexts.append([
+                f"Title: {ctx["title"]}\n{ctx["text"]}"
+            ])
+
     test_cases = [
-        LLMTestCase(
+        MLLMTestCase(
             input=tc["input"],
             actual_output=tc["actual_output"],
             expected_output=tc["expected_output"],
             context=tc["context"] if "context" in tc else None,
-            retrieval_context=tc["retrieval_context"]
+            retrieval_context=[tc["retrieval_context"]]
         ) for tc in test_cases
     ]
 
     metrics = [
-        AnswerRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
-        GEval(
+        MultimodalAnswerRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
+        MultimodalGEval(
             name="Correctness",
             evaluation_steps=[
                 "If 'actual output' sufficiently answer the 'query' then it's a good output. 'Actual output' doesn't need to strictly repeat the information from 'expected output'"
@@ -77,16 +93,26 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
                 "actual output's having different writing style and grammar from the expected output's is OK"
             ],
             model="gpt-4o-mini",
-            evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT, LLMTestCaseParams.EXPECTED_OUTPUT],
+            evaluation_params=[
+                MLLMTestCaseParams.INPUT,
+                MLLMTestCaseParams.ACTUAL_OUTPUT,
+                MLLMTestCaseParams.EXPECTED_OUTPUT
+            ],
             threshold=0.7
         ),
-        ContextualPrecisionMetric(threshold=0.7, model="gpt-4o-mini"),
-        ContextualRecallMetric(threshold=0.7, model="gpt-4o-mini"),
-        ContextualRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
+        MultimodalContextualPrecisionMetric(threshold=0.7, model="gpt-4o-mini"),
+        MultimodalContextualRecallMetric(threshold=0.7, model="gpt-4o-mini"),
+        MultimodalContextualRelevancyMetric(threshold=0.7, model="gpt-4o-mini"),
     ]
 
     # Run evaluations
-    test_result = evaluate(test_cases, metrics=metrics, throttle_value=3, max_concurrent=5, use_cache=use_cache, ignore_errors=True).test_results
+    test_result = evaluate(
+        test_cases,
+        metrics=metrics,
+        async_config=AsyncConfig(throttle_value=3, max_concurrent=5),
+        cache_config=CacheConfig(use_cache=use_cache),
+        error_config=ErrorConfig(ignore_errors=True)
+    ).test_results
 
     data = []
     for result in test_result:
