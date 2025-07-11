@@ -2,6 +2,7 @@
 from openai import AsyncStream
 from openai.types.chat import ChatCompletionChunk
 from typing import Dict, Optional, List, Any
+from PIL import Image
 import traceback
 import abc
 import openai
@@ -322,14 +323,18 @@ async def chat_loop(
         #     </CONTEXT>"""
 
         message = Message("user").add_text(f"Here is the question: <question>{inp}</question>\n\nThe following are contexts:\n")
+        images = set()
 
         for context in contexts:
             message.add_text("<context>\n")
 
             message.add_text(f"Title: {context["title"]}\n")
 
-            if context["image"] is not None:
-                message.add_image(context["image"])
+            if context["image_dir"] is not None and context["image_dir"] not in images:
+                images.add(context["image_dir"])
+
+                message.add_image(Image.open(context["image_dir"]))
+                message.add_text("\nText parsed from image: ")
 
             message.add_text(f"{context["text"]}\n</context>\n")
 

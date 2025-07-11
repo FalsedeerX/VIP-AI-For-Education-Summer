@@ -1,8 +1,6 @@
 from pymongo import MongoClient
 # from urllib.parse import quote_plus
 from typing import List, Dict, Final, Optional
-from PIL import Image
-from pathlib import Path
 from dotenv import load_dotenv
 import argparse
 import time
@@ -87,11 +85,10 @@ async def retrieve_relevant_context(query: str, api_key: str, folder: Optional[s
         # Format the results for context
         context = []
         for doc in results:
-            print(doc["image_dir"])
             context.append({
                 "title": doc["filename"],
                 "text": doc["chunk"]["chunk_text"],
-                "image": Image.open(doc["image_dir"]) if doc["image_dir"] is not None else None,
+                "image_dir": doc["image_dir"],
                 "metadata": doc["metadata"]
             })
 
