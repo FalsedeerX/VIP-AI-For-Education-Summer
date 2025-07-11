@@ -104,7 +104,7 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
     test_result = evaluate(
         test_cases,
         metrics=metrics,
-        async_config=AsyncConfig(throttle_value=4, max_concurrent=4),
+        async_config=AsyncConfig(throttle_value=3, max_concurrent=5),
         cache_config=CacheConfig(use_cache=use_cache),
         error_config=ErrorConfig(ignore_errors=True)
     ).test_results
@@ -146,6 +146,8 @@ def main() -> None:
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--judge-only", action="store_true", default=argparse.SUPPRESS)  # Evaluate existing responses file
     parser.add_argument("--cache", action="store_true", default=False)
+    parser.add_argument("--throttle", type=int, default=3)
+    parser.add_argument("--concurrent", type=int, default=5)
     args = parser.parse_args()
 
     # Use API key from environment variable if not provided
