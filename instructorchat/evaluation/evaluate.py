@@ -104,7 +104,7 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
     test_result = evaluate(
         test_cases,
         metrics=metrics,
-        async_config=AsyncConfig(throttle_value=3, max_concurrent=5),
+        async_config=AsyncConfig(throttle_value=4, max_concurrent=4),
         cache_config=CacheConfig(use_cache=use_cache),
         error_config=ErrorConfig(ignore_errors=True)
     ).test_results
