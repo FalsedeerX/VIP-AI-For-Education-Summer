@@ -61,8 +61,10 @@ backend/
    - DB_USER=yourdbuser
    - DB_PASSWD=yourdbpass
 
-4. Run the Server
-   ???
+4. Run the Server  
+   ```txt
+   python backend.py
+   ```
 
 ---
 
