@@ -5,6 +5,7 @@ Codebase for our AI Teaching Assistant - VIP Team AI for Education
 This file contains the latest REST API documentation for the endpoints.  
 Including the accepted methods and the expected returning data.
 
+
 ---
 
 ## Backend Internal Endpoints
