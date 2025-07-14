@@ -16,7 +16,6 @@ rerankers==0.10.0
 tiktoken==0.9.0
 torch==2.7.1
 tqdm==4.67.1
-transformers==4.51.3
 trio==0.30.0
 trio_websocket==0.12.2
 websockets==15.0.1
