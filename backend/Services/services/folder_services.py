@@ -73,7 +73,7 @@ class FolderRouter:
 		if not status: raise HTTPException(404, "Target folder couldn't be found.")
 		return True
 	
-	async def upload_file(
+	async def upload_file(self,
 		*,
 		folder_id: int = Form(...),
 		file: UploadFile = File(...),
