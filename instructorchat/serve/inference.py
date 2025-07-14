@@ -171,7 +171,7 @@ async def generate_answer_action(data: Dict, websocket=None):
         }
 
         # Generate streaming response
-        stream = await generate_response_stream(gen_params)
+        stream = await LLM_generate_stream(gen_params)
 
         if stream is None:
             if websocket:
@@ -217,7 +217,7 @@ async def generate_answer_action(data: Dict, websocket=None):
         return {"error": error_msg, "status": "error"}
 
 
-async def generate_response_stream(params: Dict):
+async def LLM_generate_stream(params: Dict):
     """Stream response using OpenAI API."""
     try:
         client = openai.AsyncOpenAI(api_key=global_api_key)
@@ -349,7 +349,7 @@ async def chat_loop(
             "temperature": temperature
         }
 
-        stream = await generate_response_stream(gen_params)
+        stream = await LLM_generate_stream(gen_params)
 
         if stream is not None:
             response = await chatio.stream_output(stream)

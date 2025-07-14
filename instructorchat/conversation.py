@@ -2,6 +2,21 @@ from enum import IntEnum, auto
 from typing import List, Tuple, Literal
 from PIL import Image
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionContentPartParam
+import math
+import tiktoken
+import openai
+import os
+from dotenv import load_dotenv
+load_dotenv()
+api_key = os.environ.get("OPENAI_API_KEY") 
+
+GPT4O_MINI_MAX_TOKENS = 128000
+ENCODING_NAME = "gpt-4o"
+MAX_TOKEN_RATIO = 0.7
+
+def count_tokens_tiktoken(text: str, encoding_name: str = ENCODING_NAME) -> int:
+    encoding = tiktoken.encoding_for_model(encoding_name)
+    return len(encoding.encode(text))
 
 from instructorchat.utils import image_to_base64
 
@@ -87,10 +102,101 @@ class Conversation:
 
         return messages
 
-    def get_messages(self):
+    async def get_messages(self): 
+        """
+        Return the conversation messages, ensuring they are under the token threshold.
+        If the token count exceeds the threshold, trim and summarize as needed.
+        The OpenAI API key is taken from the argument or from the OPENAI_API_KEY environment variable.
+        """
+        max_tokens = int(GPT4O_MINI_MAX_TOKENS * MAX_TOKEN_RATIO)
+        print(self.estimate_token_count())
+        if self.estimate_token_count() > max_tokens:
+            await self.trim_and_summarize_if_needed()
+            print("trimmed")
+            # Double-check after summarization
+            if self.estimate_token_count() > max_tokens:
+                raise ValueError("Conversation still exceeds token limit after summarization.")
         return self.messages
+
+    def estimate_token_count(self):
+        """Estimate the total token count of the conversation using tiktoken."""
+        total_tokens = 0
+        for msg in self.messages:
+            for ctype, content in msg.content:
+                total_tokens += count_tokens_tiktoken(content)
+        return total_tokens
+
+    async def summarize_messages_llm(self, messages):
+        """Summarize a list of messages into a single message using gpt-4o-mini."""
+        # Concatenate all text content
+        conversation_text = "\n".join(
+            content for msg in messages for ctype, content in msg.content if ctype == ContentType.TEXT
+        )
+        prompt = (
+            "Summarize the following conversation history in a concise way, preserving important facts, context, and user intent. "
+            "The summary should be clear and useful for continuing the conversation.\n\n"
+            f"Conversation:\n{conversation_text}\n\nSummary:"
+        )
+        client = openai.AsyncOpenAI(api_key=api_key)
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant that summarizes conversations."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        summary_text = response.choices[0].message.content.strip()
+        summary_msg = Message(role="user")
+        summary_msg.add_text(f"[Summary of earlier conversation]: {summary_text}")
+        return summary_msg
+
+    async def trim_and_summarize_if_needed(self):
+        """If token count exceeds 0.7 * max, summarize earlier messages and keep only the most recent ones."""
+        max_tokens = int(GPT4O_MINI_MAX_TOKENS * MAX_TOKEN_RATIO)
+        if self.estimate_token_count() > max_tokens:
+            # Keep the most recent messages that fit under the limit
+            running_tokens = 0
+            kept_messages = []
+            # Iterate from the end (most recent)
+            for msg in reversed(self.messages):
+                msg_tokens = sum(count_tokens_tiktoken(content) for ctype, content in msg.content)
+                if running_tokens + msg_tokens > max_tokens * 0.5:
+                    break
+                kept_messages.insert(0, msg)
+                running_tokens += msg_tokens
+            # Summarize the earlier messages
+            num_to_summarize = len(self.messages) - len(kept_messages)
+            if num_to_summarize > 0:
+                summary_msg = await self.summarize_messages_llm(self.messages[:num_to_summarize])
+                self.messages = [summary_msg] + kept_messages
+            else:
+                raise ValueError("Number of messages to summarize must be greater than 0. Check max_token_ratio")
 
 
 def get_conv_template(name: str) -> Conversation:
     """Get a new conversation template."""
     return Conversation()
+
+
+import time
+if __name__ == "__main__":
+    import asyncio
+
+
+    # Simulate a conversation
+    conv = Conversation()
+    print(conv.get_messages())
+    for i in range(1000):
+        msg = Message(role="user" if i % 2 == 0 else "assistant")
+        msg.add_text(f"This is message number {i}. " + ("Extra text. " * 50))
+        conv.append_message(msg)
+
+    async def test_conversation():
+        messages = await conv.get_messages()
+        print(f"Number of messages after summarization/trim: {len(messages)}")
+        for idx, msg in enumerate(messages):
+            print(f"Message {idx} (role={msg.role}):")
+            for ctype, content in msg.content:
+                print(f"  - {content[:100]}{'...' if len(content) > 100 else ''}")
+
+    asyncio.run(test_conversation())
