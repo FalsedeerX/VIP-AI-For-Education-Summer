@@ -20,8 +20,15 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Trash2, FolderPlus } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
+import { Trash2, FolderPlus, Plus, Upload } from "lucide-react";
 
 interface Course {
   course_id: number;
@@ -59,6 +66,8 @@ export default function AdminDashboard() {
   const [newCourseTitle, setNewCourseTitle] = useState("");
   const [deleteCourseId, setDeleteCourseId] = useState<number | null>(null);
   const [deleteFolderId, setDeleteFolderId] = useState<number | null>(null);
+  const [addFileFolderId, setAddFileFolderId] = useState<number | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   // Load courses
   const loadCourses = useCallback(async () => {
@@ -158,6 +167,35 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] ?? null;
+    setSelectedFile(file);
+  };
+
+  // Handler for upload form submit
+  const handleUploadSubmit = async (
+    e: React.FormEvent<HTMLFormElement>,
+    folderId: number
+  ) => {
+    e.preventDefault();
+    if (!selectedFile) return;
+
+    const formData = new FormData();
+    formData.append("file", selectedFile);
+    formData.append("folder_id", folderId.toString());
+
+    const res = await fetch("/folders/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Upload failed");
+
+    setSelectedFile(null);
+    setAddFileFolderId(null);
+    await loadFolders(folderId);
+  };
+
   return (
     <div className="p-8 space-y-8">
       <h1 className="text-4xl font-bold text-[var(--color-purdue-gold)]">
@@ -234,49 +272,164 @@ export default function AdminDashboard() {
                           <span className="text-[var(--color-purdue-black)] ml-3">
                             {f.folder_label}
                           </span>
-                          <Dialog
-                            open={deleteFolderId === f.folder_id}
-                            onOpenChange={(open) =>
-                              setDeleteFolderId(open ? f.folder_id : null)
-                            }
-                          >
-                            <DialogTrigger asChild>
-                              <Button size="icon" variant="ghost">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
-                              <DialogHeader>
-                                <DialogTitle className="font-semibold">
-                                  Delete Folder
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <p>
-                                  Are you sure you want to delete the folder
-                                  <strong> {f.folder_label}</strong>?
-                                </p>
-                                <p className="text-red-600 font-semibold">
-                                  This action cannot be undone.
-                                </p>
-                              </div>
-                              <DialogFooter>
-                                <Button
-                                  onClick={() => {
-                                    handleDeleteFolder(
-                                      c.course_id,
-                                      f.folder_id
-                                    );
-                                    setDeleteFolderId(null); // close after deleting
-                                  }}
-                                  className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
+                          <div>
+                            <Dialog
+                              open={deleteFolderId === f.folder_id}
+                              onOpenChange={(open) =>
+                                setDeleteFolderId(open ? f.folder_id : null)
+                              }
+                            >
+                              <DialogTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
-                              </DialogFooter>
-                            </DialogContent>
-                          </Dialog>
+                              </DialogTrigger>
+                              <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                                <DialogHeader>
+                                  <DialogTitle className="font-semibold">
+                                    Delete Folder
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <p>
+                                    Are you sure you want to delete the folder
+                                    <strong> {f.folder_label}</strong>?
+                                  </p>
+                                  <p className="text-red-600 font-semibold">
+                                    This action cannot be undone.
+                                  </p>
+                                </div>
+                                <DialogFooter>
+                                  <Button
+                                    onClick={() => {
+                                      handleDeleteFolder(
+                                        c.course_id,
+                                        f.folder_id
+                                      );
+                                      setDeleteFolderId(null); // close after deleting
+                                    }}
+                                    className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </Button>
+                                </DialogFooter>
+                              </DialogContent>
+                            </Dialog>
+
+                            <Dialog
+                              open={addFileFolderId === f.folder_id}
+                              onOpenChange={(open) =>
+                                setAddFileFolderId(open ? f.folder_id : null)
+                              }
+                            >
+                              <DialogTrigger asChild>
+                                <Button size="icon" variant="ghost">
+                                  <Plus className="h-4 w-4 mr-2" />
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                                <DialogHeader>
+                                  <DialogTitle>
+                                    Add File to “{f.folder_label}”
+                                  </DialogTitle>
+                                </DialogHeader>
+                                <Card>
+                                  <CardHeader>
+                                    <CardTitle>Upload a File</CardTitle>
+                                    <CardDescription>
+                                      Select a file to upload and click the
+                                      submit button.
+                                    </CardDescription>
+                                  </CardHeader>
+                                  <CardContent>
+                                    <form
+                                      onSubmit={(e) =>
+                                        handleUploadSubmit(e, f.folder_id)
+                                      }
+                                      className="space-y-4"
+                                    >
+                                      <div className="flex items-center justify-center w-full">
+                                        <label
+                                          htmlFor="dropzone-file"
+                                          className="flex flex-col items-center justify-center w-full h-64 border-2  rounded-lg cursor-pointer bg-[var(--color-purdue-brown)] hover:opacity-90 text-[var(--color-purdue-black)]"
+                                        >
+                                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                                            <Upload className="w-10 h-10 text-[var(--color-purdue-black)]" />
+                                            <p className="mb-2 text-sm text-[var(--color-purdue-black)]">
+                                              <span className="font-semibold">
+                                                Click to upload
+                                              </span>{" "}
+                                              or drag and drop
+                                            </p>
+                                            <p className="text-xs text-[var(--color-purdue-black)]">
+                                              PDF (MAX. 100 MB)
+                                            </p>
+                                          </div>
+                                          <input
+                                            id="dropzone-file"
+                                            type="file"
+                                            className="hidden"
+                                            onChange={handleFileChange}
+                                          />
+                                        </label>
+                                      </div>
+                                      {selectedFile && (
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="font-medium">
+                                              {selectedFile.name}
+                                            </p>
+                                            <p className="text-sm text-muted-foreground">
+                                              {(
+                                                selectedFile.size / 100
+                                              ).toFixed(2)}{" "}
+                                              MB
+                                            </p>
+                                          </div>
+                                          <Button
+                                            className="bg-[var(--color-purdue-brown)] hover:opacity-90 text-[var(--color-purdue-black)]"
+                                            type="submit"
+                                          >
+                                            Upload
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </form>
+                                  </CardContent>
+                                </Card>
+                                {/*}
+                                <form
+                                  onSubmit={(e) =>
+                                    handleUploadSubmit(e, f.folder_id)
+                                  }
+                                  className="space-y-4"
+                                >
+                                  <Input
+                                    type="file"
+                                    accept="*"
+                                    onChange={handleFileChange}
+                                    className="block w-full"
+                                  />
+                                  {selectedFile && (
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p>{selectedFile.name}</p>
+                                        <p className="text-sm">
+                                          {(selectedFile.size / 1024).toFixed(
+                                            1
+                                          )}{" "}
+                                          KB
+                                        </p>
+                                      </div>
+                                      <Button type="submit">Upload</Button>
+                                    </div>
+                                  )}
+                                </form>
+                                */}
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </li>
                       ))
                     ) : (
