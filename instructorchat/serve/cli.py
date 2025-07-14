@@ -9,7 +9,7 @@ import os
 import traceback
 from openai import AsyncStream
 from openai.types.chat import ChatCompletionChunk
-from dotenv import load_dotenv()
+from dotenv import load_dotenv
 import trio
 
 from instructorchat.serve.inference import ChatIO, chat_loop
