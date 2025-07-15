@@ -352,7 +352,7 @@ export default function AdminDashboard() {
                                       <div className="flex items-center justify-center w-full">
                                         <label
                                           htmlFor="dropzone-file"
-                                          className="flex flex-col items-center justify-center w-full h-64 border-2  rounded-lg cursor-pointer bg-[var(--color-purdue-brown)] hover:opacity-90 text-[var(--color-purdue-black)]"
+                                          className="flex flex-col items-center justify-center w-full h-64 border-2 rounded-lg cursor-pointer bg-[var(--color-purdue-brown)] hover:opacity-90 text-[var(--color-purdue-black)]"
                                         >
                                           <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                             <Upload className="w-10 h-10 text-[var(--color-purdue-black)]" />
@@ -398,35 +398,6 @@ export default function AdminDashboard() {
                                     </form>
                                   </CardContent>
                                 </Card>
-                                {/*}
-                                <form
-                                  onSubmit={(e) =>
-                                    handleUploadSubmit(e, f.folder_id)
-                                  }
-                                  className="space-y-4"
-                                >
-                                  <Input
-                                    type="file"
-                                    accept="*"
-                                    onChange={handleFileChange}
-                                    className="block w-full"
-                                  />
-                                  {selectedFile && (
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <p>{selectedFile.name}</p>
-                                        <p className="text-sm">
-                                          {(selectedFile.size / 1024).toFixed(
-                                            1
-                                          )}{" "}
-                                          KB
-                                        </p>
-                                      </div>
-                                      <Button type="submit">Upload</Button>
-                                    </div>
-                                  )}
-                                </form>
-                                */}
                               </DialogContent>
                             </Dialog>
                           </div>
