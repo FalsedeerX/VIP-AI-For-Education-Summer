@@ -165,7 +165,7 @@ Sample Response:
 
 ```txt
 true
-```txt
+```
 
 #### /users/delete
 
@@ -498,7 +498,7 @@ Sample Response:
 "created_at": "2025-07-11T10:23:00.000000"
 }
 ]
-```txt
+```
 
 #### /chats/delete/{chat_id}
 
@@ -537,7 +537,7 @@ Authentication is disabled on this endpoint due to cross-origin cookie issues.
 
 ## Running Tests
 
-Important notes:
+Important notes:  
 Runs out of order  
 Requires backend to ve running  
 Needs cookie to be set "secure=False" In user_services.py
