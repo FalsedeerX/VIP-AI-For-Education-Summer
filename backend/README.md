@@ -61,7 +61,7 @@ backend/
    - DB_USER=yourdbuser
    - DB_PASSWD=yourdbpass
 
-4. Run the Server  
+4. Run the Server
    ```txt
    python backend.py
    ```
@@ -472,6 +472,7 @@ Sample Request Body:
 "chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d",
 "folder_id": 12
 }
+
 ```txt
 
 Sample Response:
@@ -536,8 +537,15 @@ Authentication is disabled on this endpoint due to cross-origin cookie issues.
 
 ## Running Tests
 
-pytest DatabaseAgent/test_database_agent.py  
+Important notes:
+Runs out of order  
+Requires backend to ve running  
+Needs cookie to be set "secure=False" In user_services.py
+
+```txt
+pytest DatabaseAgent/test_database_agent.py
 pytest -q
+```
 
 ---
 
