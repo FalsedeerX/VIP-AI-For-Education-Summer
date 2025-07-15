@@ -163,7 +163,7 @@ Sample Request Body:
 
 Sample Response:
 
-````txt
+```txt
 true
 ```txt
 
@@ -177,7 +177,7 @@ Sample Request Body:
 {
     "user_id": 6
 }
-````
+```
 
 Sample Response:
 
@@ -467,7 +467,7 @@ Behavior: Organize a chat into a folder. Verifies ownership of both chat and fol
 
 Sample Request Body:
 
-````txt
+```txt
 {
 "chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d",
 "folder_id": 12
@@ -478,7 +478,7 @@ Sample Request Body:
 Sample Response:
 ```txt
 true
-````
+```
 
 #### /chats/{chat_id}
 
@@ -490,7 +490,7 @@ None
 
 Sample Response:
 
-````txt
+```txt
 [
 {
 "user_id": 9,
@@ -511,7 +511,7 @@ None
 Sample Response:
 ```txt
 true
-````
+```
 
 #### /chats/owner/{chat_id}
 
