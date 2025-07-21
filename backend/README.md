@@ -61,7 +61,7 @@ backend/
    - DB_USER=yourdbuser
    - DB_PASSWD=yourdbpass
 
-4. Run the Server  
+4. Run the Server
    ```txt
    python backend.py
    ```
@@ -163,9 +163,9 @@ Sample Request Body:
 
 Sample Response:
 
-````txt
-true
 ```txt
+true
+```
 
 #### /users/delete
 
@@ -177,7 +177,7 @@ Sample Request Body:
 {
     "user_id": 6
 }
-````
+```
 
 Sample Response:
 
@@ -467,17 +467,18 @@ Behavior: Organize a chat into a folder. Verifies ownership of both chat and fol
 
 Sample Request Body:
 
-````txt
+```txt
 {
 "chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d",
 "folder_id": 12
 }
+
 ```txt
 
 Sample Response:
 ```txt
 true
-````
+```
 
 #### /chats/{chat_id}
 
@@ -489,7 +490,7 @@ None
 
 Sample Response:
 
-````txt
+```txt
 [
 {
 "user_id": 9,
@@ -497,7 +498,7 @@ Sample Response:
 "created_at": "2025-07-11T10:23:00.000000"
 }
 ]
-```txt
+```
 
 #### /chats/delete/{chat_id}
 
@@ -510,7 +511,7 @@ None
 Sample Response:
 ```txt
 true
-````
+```
 
 #### /chats/owner/{chat_id}
 
@@ -536,8 +537,15 @@ Authentication is disabled on this endpoint due to cross-origin cookie issues.
 
 ## Running Tests
 
-pytest DatabaseAgent/test_database_agent.py  
+Important notes:  
+Runs out of order  
+Requires backend to ve running  
+Needs cookie to be set "secure=False" In user_services.py
+
+```txt
+pytest DatabaseAgent/test_database_agent.py
 pytest -q
+```
 
 ---
 
