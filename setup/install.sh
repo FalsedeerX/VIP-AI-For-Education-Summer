@@ -108,6 +108,23 @@ install_dependencies() {
 }
 
 
+setup_postgresql() {
+	local distro="$1"
+
+	# manually initialize postgresql if on Arch Linux
+	if [[ "$distro" == "arch" ]]; then
+		if [[ ! -d /var/lib/postgres/data ]]; then
+		echo "[+] Initializing PostgreSQL's base cluster......"
+		sudo -iu postgres initdb -D /var/lib/postgres/data
+		fi
+	fi
+
+	# enable the postgresql service on the system
+	echo "[+] Starting and enabling postgreSQL daemon on system......"
+	sudo systemctl enable --now postgresql
+}
+
+
 main() {
 	show_banner
 
@@ -118,6 +135,12 @@ main() {
 	# install the required dependencies
 	install_dependencies $distro
 	echo
+
+	# configure postgresql after installation
+	setup_postgresql()
+	echo
+
+	# configure valkey after installation
 }
 
 
