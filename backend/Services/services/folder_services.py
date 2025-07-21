@@ -73,24 +73,15 @@ class FolderRouter:
 		if not status: raise HTTPException(404, "Target folder couldn't be found.")
 		return True
 	
-	async def upload_file(self,
-		*,
-		folder_id: int = Form(...),
-		file: UploadFile = File(...),
-		request: Request,
-		response: Response,
-	) -> bool:
+
+	async def upload_file(self, *, folder_id: int = Form(...), file: UploadFile = File(...), request: Request, response: Response) -> bool:
 		""" Upload a file to a folder """
 		# check if the user is logged in
 		if not request.state.token:
 			raise HTTPException(status_code=401, detail="User not logged in.")
 
 		# verify the session token
-		if not request.app.state.session.verify_token(
-			request.state.user_id,
-			request.state.ip_address,
-			UUID(request.state.token),
-		):
+		if not request.app.state.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
 			response.delete_cookie("purduegpt-token")
 			raise HTTPException(status_code=401, detail="Malformed session token.")
 
