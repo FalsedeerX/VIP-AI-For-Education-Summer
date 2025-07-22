@@ -168,9 +168,26 @@ get_valkey_config() {
 
 setup_valkey() {	
 	local config="$1" 
+	local setting_key="notify-keyspace-events"
+	local setting_value="Ex"
 
-	# modify the valkey to listen for key expiration
-	echo
+	# check if the configuration is already satisfied
+	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]${setting_value}[[:space:]]*$" "$config"; then
+		echo "[+] Valkey configuration is already setup properly. Skipping expiration callback setup."
+		sudo systemctl enable --now valkey
+		return 0
+	else
+		echo "[-] Valkey's configuration not satisfy, modification proceeding......"
+	fi
+
+	# replace the previous configuration or append the new setting at the end of file
+	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]+" "$config"; then
+		echo "[-] Previous configuration of key $setting_key detected in file $config"
+		#sed -iE "s/"
+	else
+		echo "[-] Appending key $setting_key 's configuration to file $config"
+		
+	fi
 
 	# daemon reload
 }
@@ -189,19 +206,30 @@ main() {
 	fi
 
 	# install the required dependencies
-	#install_dependencies $distro
-	#echo
+	install_dependencies "$distro"
+	echo
 
 	# configure postgresql after installation
-	#setup_postgresql $distro
-	#echo
+	# setup_postgresql "$distro"
+	echo
 
 	# configure valkey after installation
-	config=$(get_valkey_config)
-	echo "$config"
+	valkey_config=$(get_valkey_config)
+	#setup_valkey "$valkey_config"
+	setup_valkey "valkey.conf"
+	echo
 
-	# configure  
-	#echo
+	# create user + database schema import
+	echo "[+] Auto setting up the database schemas and table......"
+	echo
+
+	# dependencies donwload for backend
+	echo "[+] Auto setting up backend's environment......"
+	cd ../backend
+
+	# dependencies download for frontend
+	echo "[+] Auto setting up frontend's envrionemnt......"
+	cd ../my-frontend
 }
 
 
