@@ -1,8 +1,8 @@
 from uuid import UUID
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
-from fastapi import APIRouter, HTTPException, Request, Response
-from services.schemas.folder import FolderContent, NewFolder, FolderOrganize, FolderInfo, ChatOut
+from fastapi import APIRouter, HTTPException, Request, Response, Form, File, UploadFile
+from services.schemas.folder import NewFolder, FolderOrganize, FolderInfo, ChatOut
 from typing import List
 
 
@@ -17,6 +17,7 @@ class FolderRouter:
 		self.router.post("/create", status_code=201, response_model=int)(self.create_folder)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_folder)
 		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_folder)
+		self.router.post("/upload", status_code=200, response_model=bool)(self.upload_file)
 
 
 	async def get_folder(self, payload: FolderInfo, request: Request, response: Response) -> List[ChatOut]:
@@ -71,4 +72,23 @@ class FolderRouter:
 		status = await self.db.organize_folder(payload.folder_id, payload.course_id)
 		if not status: raise HTTPException(404, "Target folder couldn't be found.")
 		return True
+	
+
+	async def upload_file(self, *, folder_id: int = Form(...), file: UploadFile = File(...), request: Request, response: Response) -> bool:
+		""" Upload a file to a folder """
+		# check if the user is logged in
+		if not request.state.token:
+			raise HTTPException(status_code=401, detail="User not logged in.")
+
+		# verify the session token
+		if not request.app.state.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
+			response.delete_cookie("purduegpt-token")
+			raise HTTPException(status_code=401, detail="Malformed session token.")
+
+		# now you have file.filename, file.content_type, and you can async .read() it:
+		contents = await file.read()
+		# … stream `contents` over your websocket or save it …
+		return True
+
+	
 

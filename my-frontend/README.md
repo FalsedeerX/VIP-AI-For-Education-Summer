@@ -129,10 +129,13 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
   every user sees when they login. For admins it renders the Admin Dashboard, for normal users it renders a combination of the sidebar component and the messaging screen.
 
 - **Admin Dashboard**
+  This page is more in the style of a component that is then rendered by the main page.tsx. It features a way for teachers to create courses, add folder, add files and delete them as well.
 
 - **Sidebar**
+  This component is rendered to display the courses that a user has joined, and under all the folders is the chats a user has created and the the option to start a new one. Collapsible from the side.
 
-- **Chat Screene**
+- **Chat Screen**
+  Thic screen displays the message conversation between the user and the AI, it feature autmatic scrolling, dynamic sizing and onerror can restart the websocket connection. Rendered under ChatPage, and accessed it's HTTP adress includes the UUID chat_id.
 
 ---
 

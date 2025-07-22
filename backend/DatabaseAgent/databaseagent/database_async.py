@@ -180,6 +180,26 @@ class DatabaseAgent:
             rows = await cur.fetchall()
         return rows if rows else []
 
+    async def get_chat_owner(self, chat_id: str) -> Optional[int]:
+        """Fetch the owner ID for a specific chat."""
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return None  # Invalid UUID format
+
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute("SELECT id FROM chats WHERE id = %s;", (uid,))
+            if not await cur.fetchone():
+                return None  # Chat doesn't exist
+            
+            await cur.execute(
+                "SELECT user_id WHERE chat_id = %s;",
+                (uid,)
+            )
+            rows = await cur.fetchall()
+        return rows[0]["user_id"] if rows else None
+
 
     async def create_chat(self, user_id: int, title: str) -> str:
         """Create a new chat and return its UUID string."""

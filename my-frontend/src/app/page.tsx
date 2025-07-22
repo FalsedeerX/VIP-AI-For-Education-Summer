@@ -8,10 +8,11 @@ import { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import MainScreen from "@/app/mainscreen";
 import AdminDashboard from "./admindashboard";
-import Sidebar2 from "@/components/ui/sidebar-2";
+import Sidebar from "@/components/ui/sidebar";
 
 export default function Home() {
   const { name, loading, admin } = useAuth();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   if (loading) {
     return null;
@@ -26,13 +27,11 @@ export default function Home() {
     );
   }
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-
   if (name) {
     // User is logged in, show main screen
     return (
       <div className="flex flex-row flex-1 min-h-0 overflow-hidden bg-[var(--background)]">
-        <Sidebar2
+        <Sidebar
           isDrawerOpen={isDrawerOpen}
           setIsDrawerOpen={setIsDrawerOpen}
         />
@@ -51,8 +50,8 @@ export default function Home() {
         </h2>
 
         <Image
-          src="/purdue_boilermakers_logo_mascot_2023_sportslogosnet-2378.png"
-          alt="PurdueGPT Logo"
+          src="/PurduePete.png"
+          alt="Purdue Pete"
           width={150}
           height={150}
           className="mx-auto mb-4"

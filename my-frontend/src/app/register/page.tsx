@@ -182,8 +182,8 @@ export default function RegisterPage() {
         <div className="mt-8 flex justify-center">
           <Image
             //className="dark:invert"
-            src="/purdue_boilermakers_logo_mascot_2023_sportslogosnet-2378.png"
-            alt="Next.js logo"
+            src="/PurduePete.png"
+            alt="Purdue Pete"
             width={180}
             height={38}
             priority

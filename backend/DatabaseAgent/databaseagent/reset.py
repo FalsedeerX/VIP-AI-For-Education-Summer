@@ -12,7 +12,7 @@ def dump_every_table():
     db_passwd = os.getenv("DB_PASSWD")
 
     conn = psycopg.connect(
-        f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}"
+        f"postgresql://{db_user}:{db_passwd}@{db_host}:{db_port}/{db_name}", autocommit=True
     )
 
     with conn.cursor() as cur:

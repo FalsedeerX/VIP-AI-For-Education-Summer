@@ -10,24 +10,22 @@ This is the backend service for AI For Education, a chat-based application that 
 backend/
 ├── DatabaseAgent/
 │   ├── database_async.py    # Async PostgreSQL connection & methods
-│   ├── database_v2.py       # Alternate or refactored database logic
 │   ├── reset.py             # Script to clear/truncate tables and to view current db
 │   └── test_database_agent.py
 ├── services/
 │   ├── chat_services.py     # Logic for chat handling
-|   ├── course_services.py   # Course creation, deletion and retrieval
+│   ├── course_services.py   # Course creation, deletion and retrieval
 │   ├── folder_services.py   # Folder creation, update, linking
-│   └── user_services.py     # User auth, registration, validation
-├── schemas/
-│   ├── chat.py
-│   ├── course.py
-│   ├── folder.py
-│   └── user.py
+│   ├── user_services.py     # User auth, registration, validation
+│   ├── websocket.py
+│   │   ├── chat.py
+│   │   ├── course.py
+│   │   ├── folder.py
+│   │   └── user.py
 ├── SessionManager/
 │   └── session.py           # Session-based data management
 ├── Utils/
 │   ├── mods/
-│   │   ├── __init__.py
 │   │   └── hd.py            # HexDump module for connection debugging.
 │   └── echo_server.py
 ├── backend.py               # FastAPI app entry point
@@ -64,7 +62,9 @@ backend/
    - DB_PASSWD=yourdbpass
 
 4. Run the Server
-   ???
+   ```txt
+   python backend.py
+   ```
 
 ---
 
@@ -74,7 +74,7 @@ Refer to the SQL definitions in the `/schemas` section above for how to initiali
 
 - **users** — stores secure user accounts
 
-- **courses** — allows chats/folders to be organized by course
+- **courses** — allows chats and folders to be organized by course
 
 - **folders** — user defined containers for chat threads
 
@@ -107,83 +107,73 @@ this system supports multi-session tracking, secure IP validation, and idle clea
 
 ### UserRouter
 
-#### `/users/me`
+#### /users/me
 
-Action: `GET`  
+Action: GET
+Behavior: Returns the currently authenticated user’s ID, username, and admin status.
 
-Behavior: **Receive current username and the corresponding user ID.**  
-
-Sample Request Body:  
-
+Sample Request Body:
 None
 
-Sample Response:  
+Sample Response:
 
-```json
+```txt
 {
     "id": 6,
-    "username": "chen5292"
+    "username": "chen5292",
+    "admin": false
 }
 ```
 
----
+#### /users/auth
 
-#### `/users/auth`
+Action: POST
+Behavior: Verify user credentials and assign a session token via cookie.
 
-Action: 'POST'
+Sample Request Body:
 
-Behavior: **Verify user credential, if succeed a session token will be assigned.**
-
-Sample Request Body:  
-
-```json
+```txt
 {
     "username": "chen5292",
     "password": "apple123"
 }
 ```
 
-Sample Response:  
+Sample Response:
 
-```json
+```txt
 true
 ```
 
----
+#### /users/register
 
-#### `/users/register`
+Action: POST
+Behavior: Register a new user with a username, email, and password.
 
-Action: `POST`
+Sample Request Body:
 
-Behavior: **Register a new user in the database.**
-
-Sample Request Body:  
-
-```json
+```txt
 {
-	"username": "chen5292",
+    "username": "chen5292",
     "email": "chen5292@purdue.edu",
-    "password": "apple123"
+    "password": "apple123",
+    "is_admin": false
 }
 ```
 
 Sample Response:
 
-```json
+```txt
 true
 ```
 
----
+#### /users/delete
 
-#### `/users/delete`
-
-Action: `DELETE`
-
-Behavior: **Delete a user from the database, along with the chat history and folders.**
+Action: DELETE
+Behavior: Delete a user from the database (requires session verification).
 
 Sample Request Body:
-
-```json
+```txt
 {
     "user_id": 6
 }
@@ -191,315 +181,375 @@ Sample Request Body:
 
 Sample Response:
 
-```raw
+```txt
 true
 ```
 
----
+#### /users/logout
 
-### ChatRouter
-
-#### `/chats/create`
-
-Action: `POST`  
-
-Behavior: **Create a new chat for the current logged in user,  Returns newly created chat-id.**  
+Action: POST
+Behavior: Logout the user by invalidating the session token and removing the cookie.
 
 Sample Request Body:
-
-```json
-{
-    "title": "How to prepare for exam ?"
-}
-```
-
-Sample Response:
-
-```json
-"da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
-```
-
----
-
-#### `/chats/organize`
-
-Action: `POST`
-
-Behavior: **Organize a chat into a folder by `folder_id`. Will verify if the current token owner owns the specified chat and folder.**  
-
-Sample Request Body:  
-
-```json
-{
-    "folder_id": 12,
-    "chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
-}
-```
-
-Sample Response:
-
-```json
-true
-```
-
----
-
-#### `/chats/<chat_id>`
-
-Action: `GET`  
-
-Behavior: **Retrieve all messages associated with a specific chat.**
-
-Sample Request Body:  
-
 None
 
 Sample Response:
 
-```json
+```txt
+true
+```
+
+#### /users/joincourse
+
+Action: POST
+Behavior: Add a course to the current user’s list using the course code.
+
+Sample Request Body:
+
+```txt
+{
+    "course_code": "CS180"
+}
+```
+
+Sample Response:
+
+```txt
+true
+```
+
+#### /users/deletecourse
+
+Action: POST
+Behavior: Remove a course from the current user’s course list.
+
+Sample Request Body:
+
+```txt
+{
+    "course_code": "CS180"
+}
+```
+
+Sample Response:
+
+```txt
+true
+```
+
+#### /users/getcourses
+
+Action: GET
+Behavior: Retrieve the list of course codes the current user is enrolled in.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
 [
     {
-        "user_id": 9,
-        "message": "How to prepare for calulas exam 1 ?",
-        "created_at": "2025-06-25T11:39:17.479368"
+        "course_code": "CS180"
     },
     {
-        "user_id": 9,
-        "message": "What are some important formulas which I should know ?",
-        "created_at": "2025-06-25T11:39:56.731342"
-    },
-    {
-        "user_id": 9,
-        "message": "Is the exam open book ?",
-        "created_at": "2025-06-25T11:40:07.081901"
+        "course_code": "ECE301"
     }
 ]
 ```
 
----
+### FolderRouter
 
-#### `/chats/<chat-id>`
+#### /folders
 
-Action: `PUT`
-
-Behavior: **Append a new message to the specified chat log.**
-
-Sample Request Body:  
-
-```json
-{
-    "message": "Is the exam open book ?"
-}
-```
-
-Sample Response Body:
-
-```json
-true
-```
-
----
-
-#### `/chats/<chat-id>`
-
-Action: `DELETE`
-
-Behavior: **Delete a specified chat and the associated chat messages.**
+Action: POST
+Behavior: Retrieve a list of chats inside a specific folder by folder_id.
 
 Sample Request Body:
 
-None
-
-Sample Response:
-
-```json
-true
-```
-
----
-
-### FolderRouter
-
-#### `/folders`
-
-Action: `GET`
-
-Behavior: **Get a list of chats which is organized in the specified folder.**  
-
-Sample Request Body:  
-
-```json
+```txt
 {
     "folder_id": 12
 }
 ```
 
-Sample Response:  
+Sample Response:
 
-```json
-{
-    "How to prepare for exam ?": "4e61c2bb-7da0-4b0f-9e4c-cdb3498dc2f3",
-    "Homework 2 Questions": "35ff37f5-1c2b-44f0-a3ad-c561072a45c2",
-    "Exam Preparation Tips": "5ed48f9a-7df4-46dc-91ba-357dae9aa0d5",
-    "Important Formulas for Calculus": "95d33a97-6871-49d8-89d2-700d5c2c9a2e"
-}
+```txt
+[
+    {
+        "chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d",
+        "title": "Exam Review"
+    }
+]
 ```
 
----
+#### /folders/create
 
-#### `/folders/create`
-
-Action: `POST`
-
-Behavior: **Create a folder of a specified course for the current logged in user. Return newly created folder ID upon success.**
-
-Sample Request Body:  
-
-```json
-{
-    "folder_name": "Calculus Exam 1",
-    "course_id": 1
-}
-```
-
-Sample Response:  
-
-```json
-12
-```
-
----
-
-#### `/folders/organize`
-
-Action: `POST`
-
-Behavior: **Organize a folder into a course by `course_id`. Will verify whether the current user owns the specified folder.**
-
-Sample Request Body:  
-
-```json
-{
-    "folder_id": 12,
-    "course_id": 1
-}
-```
-
-Sample Response:  
-
-```json
-true
-```
-
----
-
-#### `/folders/delete`
-
-Action: `DELETE`
-
-Behavior: **Delete a folder and the associated chats and messages.**
-
-Sample Request Body:  
-
-```json
-{
-    "folder_id": 3
-}
-```
-
-Sample Response:  
-
-```json
-true
-```
-
----
-
-### CourseRouter
-
-#### `courses/`
-
-Action: `GET`
-
-Behavior: **Retrieve a list of `folders id` and the corresponding course title which the current user owns.**  
-
-Sample Request Body:  
-
-None
-
-Sample Response:  
-
-```json
-{
-    "Signals and Systems": [
-        14,
-        13
-    ],
-    "Object Oriented Programming with C++": [
-        16,
-        15
-    ],
-    "Probabilistic Methods": [
-        17
-    ]
-}
-```
-
----
-
-#### `courses/create`
-
-Action: `POST`
-
-Behavior: **Create a new course in the database.**  
-
-Sample Request Body:  
-
-```json
-{
-    "course_code": "ECE36200",
-    "course_title": "Microprocessor Systems and Interfacing"
-}
-```
-
-Sample Response:  
-
-```json
-true
-```
-
----
-
-#### `courses/delete`
-
-Action: `DELETE`
-
-Behavior: **Delete a course and the associated folders, chats and messages.**
+Action: POST
+Behavior: Create a folder within a course (admin only). Returns newly created folder ID.
 
 Sample Request Body:
 
-```json
+```txt
 {
-    "course_id": 2    
+    "folder_name": "Finals Prep",
+    "course_id": 3
 }
 ```
 
 Sample Response:
 
-```json
+```txt
+12
+```
+
+#### /folders/delete
+
+Action: DELETE
+Behavior: Delete a folder and associated chats. Requires session verification.
+
+Sample Request Body:
+
+```txt
+{
+    "folder_id": 12
+}
+```
+
+Sample Response:
+
+```txt
 true
 ```
 
----
+#### /folders/organize
+
+Action: POST
+Behavior: Organize a folder into a course using course_id.
+
+Sample Request Body:
+
+```txt
+{
+    "folder_id": 12,
+    "course_id": 3
+}
+```
+
+Sample Response:
+
+```txt
+true
+```
+
+### CourseRouter
+
+#### /courses
+
+Action: GET
+Behavior: Retrieve courses and folder IDs for the current user.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
+{
+    "CS180": [12, 13],
+    "ECE301": [15]
+}
+```
+
+#### /courses/create
+
+Action: POST
+Behavior: Create a new course with course code and title. Returns course ID.
+
+Sample Request Body:
+
+```txt
+{
+    "course_code": "PHYS241",
+    "course_title": "Electricity and Magnetism"
+}
+```
+
+Sample Response:
+
+```txt
+7
+```
+
+#### /courses/delete
+
+Action: DELETE
+Behavior: Delete a course and all related folders and chats.
+
+Sample Request Body:
+
+```txt
+{
+    "course_id": 7
+}
+```
+
+Sample Response:
+
+```txt
+true
+```
+
+#### /courses/get
+
+Action: POST
+Behavior: Retrieve all folders associated with a specific course.
+
+Sample Request Body:
+
+```txt
+{
+    "course_id": 7
+}
+```
+
+Sample Response:
+
+```txt
+[
+    {
+        "chat_id": "1e4d8bfc-7eb1-42fc-ae0f-1c982ea10926",
+        "title": "Midterm Topics"
+    }
+]
+```
+
+### ChatRouter
+
+#### /chats/create
+
+Action: POST
+Behavior: Create a new chat for the current logged in user. Returns the newly created chat ID.
+
+Sample Request Body:
+
+```txt
+{
+"title": "Preparing for midterm"
+}
+```
+
+Sample Response:
+
+```txt
+"27b540c7-3e47-4c3c-b28f-b3c33b45b4f3"
+```
+
+#### /chats/random
+
+Action: GET
+Behavior: Retrieve a random chat ID belonging to the current user.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
+"da22bd2a-a110-49ed-bc65-c18bc9ca8d8d"
+```
+
+#### /chats/organize
+
+Action: POST
+Behavior: Organize a chat into a folder. Verifies ownership of both chat and folder.
+
+Sample Request Body:
+
+```txt
+{
+"chat_id": "da22bd2a-a110-49ed-bc65-c18bc9ca8d8d",
+"folder_id": 12
+}
+
+```txt
+
+Sample Response:
+```txt
+true
+```
+
+#### /chats/{chat_id}
+
+Action: GET
+Behavior: Retrieve all messages associated with a specific chat.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
+[
+{
+"user_id": 9,
+"message": "What topics are covered in the exam?",
+"created_at": "2025-07-11T10:23:00.000000"
+}
+]
+```
+
+#### /chats/delete/{chat_id}
+
+Action: DELETE
+Behavior: Delete a specific chat, after verifying user owns it.
+
+Sample Request Body:
+None
+
+Sample Response:
+```txt
+true
+```
+
+#### /chats/owner/{chat_id}
+
+Action: GET
+Behavior: Return the owner_id of the specified chat.
+
+Sample Request Body:
+None
+
+Sample Response:
+
+```txt
+{
+"owner_id": 6
+}
+```
+
+#### /chats/relay/{chat_id}
+
+Action: WebSocket
+Behavior: Relay real-time user messages and AI-generated responses via a WebSocket stream.
+Authentication is disabled on this endpoint due to cross-origin cookie issues.
 
 ## Running Tests
 
-pytest DatabaseAgent/test_database_agent.py  
+Important notes:  
+Runs out of order  
+Requires backend to ve running  
+Needs cookie to be set "secure=False" In user_services.py
+
+```txt
+pytest DatabaseAgent/test_database_agent.py
 pytest -q
+```
 
 ---
 
 ## Authors
 
-Shrey Agarwal – Backend Developer  
-Yu-Kuang Chen – Backend Developer
+Shrey Agarwal  
+Yu-Kuang Chen

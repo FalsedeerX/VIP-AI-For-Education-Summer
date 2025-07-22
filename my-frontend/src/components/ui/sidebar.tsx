@@ -40,7 +40,7 @@ interface Chat {
   title: string;
 }
 
-export default function Sidebar2({
+export default function Sidebar({
   isDrawerOpen,
   setIsDrawerOpen,
 }: {
@@ -61,18 +61,10 @@ export default function Sidebar2({
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showAddCourse, setShowAddCourse] = useState(false);
+  const [showDeleteCourse, setShowDeleteCourse] = useState(false);
   const [newCourseCode, setNewCourseCode] = useState("");
   const [showAddChat, setShowAddChat] = useState(false);
   const [newChatName, setNewChatName] = useState("");
-
-  // Redirect if not authenticated
-  /*
-  if (loading) return null;
-  if (!userId) {
-    router.replace("/login");
-    return null;
-  }
-  */
 
   // Fetch courses
   const loadCourses = useCallback(async () => {
@@ -182,10 +174,7 @@ export default function Sidebar2({
 
   // login guard
   if (loading) return null;
-  if (!userId) {
-    router.replace("/login");
-    return null;
-  }
+
   return (
     <aside
       className={`
@@ -281,11 +270,6 @@ export default function Sidebar2({
 
                   {selectedCourse === course.course_id && (
                     <ul className="pl-4 space-y-2">
-                      {/* <Separator
-                      className="my-2 text-[var(--color-purdue-black)]"
-                      style={{ height: "2px" }}
-                    />
-                    */}
                       {/* Folders for selected course */}
                       {(foldersByCourse[course.course_id] || []).map(
                         (folder) => (
@@ -306,40 +290,39 @@ export default function Sidebar2({
                             {selectedCourse === course.course_id &&
                               selectedFolder == folder.folder_id && (
                                 <ul className="pl-4 space-y-2 pt-2">
-                                  {/* <Separator
-                                className="my-2 text-[var(--color-purdue-black)]"
-                                style={{ height: "2px" }}
-                              /> */}
                                   {(chatsByFolder[folder.folder_id] || []).map(
                                     (chat) => (
-                                      <li key={chat.chat_id}>
+                                      <li
+                                        key={chat.chat_id}
+                                        className="flex items-center justify-between"
+                                      >
                                         <Button
                                           onClick={() =>
                                             router.push(`/chat/${chat.chat_id}`)
                                           }
-                                          className="relative w-full p-2 flex items-center rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
+                                          className="relative w-full p-2 flex-1 items-center rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
                                         >
-                                          {/* 1) Centered icon + title */}
+                                          {/* 1) Centered icon + title 
                                           <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-                                            <MessageSquare className="mr-2 h-4 w-4" />
-                                            <span>{chat.title}</span>
-                                          </div>
+                                          */}
+                                          <MessageSquare className="mr-2 h-4 w-4" />
+                                          <span>{chat.title}</span>
+                                          {/*</Button></div>*/}
+                                        </Button>
 
-                                          {/* 2) Trash icon at far right */}
-                                          <Button
-                                            asChild
-                                            size="icon"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteChat(chat.chat_id);
-                                            }}
-                                            className=" ml-auto bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] "
-                                          >
-                                            <Trash2
-                                              className="h-4 w-4"
-                                              strokeWidth={2.5}
-                                            />
-                                          </Button>
+                                        {/* 2) Trash icon at far right */}
+                                        <Button
+                                          size="icon"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteChat(chat.chat_id);
+                                          }}
+                                          className="ml-auto bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] "
+                                        >
+                                          <Trash2
+                                            className="h-4 w-4"
+                                            strokeWidth={2.5}
+                                          />
                                         </Button>
                                       </li>
                                     )
