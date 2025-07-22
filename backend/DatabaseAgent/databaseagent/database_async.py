@@ -347,17 +347,45 @@ class DatabaseAgent:
 
 
     async def delete_course(self, course_id: int) -> bool:
-        """ Delete a course and all object which is referencing it. """
+        """
+        Delete a course, all its folders, and any chat_folder_links for those folders.
+        Returns True if the course existed (and was deleted), False otherwise.
+        """
         conn = await get_connection()
+
         async with conn.cursor() as cur:
+            # 1) get all folder IDs for this course
             await cur.execute(
-                    "DELETE FROM courses WHERE id = %s",
-                    (course_id,)
+                "SELECT id FROM folders WHERE course_id = %s",
+                (course_id,)
+            )
+            rows = await cur.fetchall()
+            folder_ids = [r[0] for r in rows]
+
+            # if no folders, folder_ids is just an empty list — that's fine
+            if folder_ids:
+                # 2) delete all chat-folder-links for any of those folders
+                await cur.execute(
+                    "DELETE FROM chat_folder_link WHERE folder_id = ANY(%s)",
+                    (folder_ids,)
                 )
-            rows = cur.rowcount
+                # (optional) link_deletes = cur.rowcount
+
+            # 3) delete the folders themselves
+            await cur.execute(
+                "DELETE FROM folders WHERE course_id = %s",
+                (course_id,)
+            )
+
+            # 4) delete the course
+            await cur.execute(
+                "DELETE FROM courses WHERE id = %s",
+                (course_id,)
+            )
+            course_deleted = cur.rowcount
 
         await conn.commit()
-        return rows > 0
+        return course_deleted > 0
 
 
     async def create_course(self, course_code: str, course_title: str|None = None) -> int:
