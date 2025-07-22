@@ -15,6 +15,7 @@ show_banner() {
 	echo "It is also designed to support **Debian-based distributions**, but package compatibility is not guaranteed."
 	echo "======================================================================"
 	echo
+	return 0
 }
 
 
@@ -24,8 +25,7 @@ detect_os() {
 		source /etc/os-release
 		DISTRO=$ID
 	else
-		echo "[-] Unabled to detect OS. /etc/os-release file not found."
-		exit 1
+		return 1
 	fi
 
 	# linux distribution check
@@ -37,6 +37,7 @@ detect_os() {
 
 	# return the distro
 	echo "$DISTRO"
+	return 0
 }
 
 
@@ -67,6 +68,7 @@ get_package_name() {
 			echo "$cmd"
 			;;
 	esac
+	return 0
 }
 
 
@@ -85,6 +87,7 @@ install_if_missing() {
 	else
 		echo "[+] Dependency '$cmd' is present on system. Skipping installation."
 	fi
+	return 0
 }
 
 
@@ -105,6 +108,7 @@ install_dependencies() {
 	for dependency in "${dependencies[@]}"; do
 		install_if_missing "$dependency" "$distro"
 	done
+	return 0
 }
 
 
@@ -122,6 +126,53 @@ setup_postgresql() {
 	# enable the postgresql service on the system
 	echo "[+] Starting and enabling postgreSQL daemon on system......"
 	sudo systemctl enable --now postgresql
+	return 0
+}
+
+
+get_valkey_config() {
+	# start the valkey daemon
+	sudo systemctl start valkey
+
+	# query on the service default configuration
+	local exec_info=$(sudo systemctl show -p ExecStart valkey)
+	local exec_args=$(echo "$exec_info" | sed -n "s/^ExecStart=.*argv\[]=\([^;]*\) ;.*$/\1/p")
+	for arg in $exec_args; do
+		if [[ "$arg" == *.conf && -f "$arg" ]]; then
+			echo "$arg"
+			sudo systemctl stop valkey
+			return 0
+		fi
+	done
+
+	# check the configuration in the default locations
+	local default_paths=(
+        "/etc/valkey/valkey.conf"
+        "/etc/redis/valkey.conf"
+        "/usr/local/etc/valkey.conf"
+    )
+    for path in "${default_paths[@]}"; do
+        if [[ -f "$path" ]]; then
+            echo "$path"
+            sudo systemctl stop valkey
+            return 0
+        fi
+    done
+
+    # If not found, stop the service and signal failure
+    sudo systemctl stop valkey
+    echo "[-] Valkey configuration file not found."
+    return 1
+}
+
+
+setup_valkey() {	
+	local config="$1" 
+
+	# modify the valkey to listen for key expiration
+	echo
+
+	# daemon reload
 }
 
 
@@ -130,17 +181,27 @@ main() {
 
 	# detect the host operating system
 	local distro=$(detect_os)
-	echo "[+] Detected supported Linux distribution: '$distro', installation proceeding......"
+	if [[ $? -ne 0 ]]; then
+		echo "[-] Unable to detect host's Linux distribution, installation aborting......"
+		exit 1
+	else
+		echo "[+] Detected supported Linux distribution: '$distro', installation proceeding......"
+	fi
 
 	# install the required dependencies
-	install_dependencies $distro
-	echo
+	#install_dependencies $distro
+	#echo
 
 	# configure postgresql after installation
-	setup_postgresql()
-	echo
+	#setup_postgresql $distro
+	#echo
 
 	# configure valkey after installation
+	config=$(get_valkey_config)
+	echo "$config"
+
+	# configure  
+	#echo
 }
 
 
