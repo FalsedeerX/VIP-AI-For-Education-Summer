@@ -220,46 +220,48 @@ export default function AdminDashboard() {
                   <span className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
                     {c.title}
                   </span>
-                  <Dialog
-                    open={deleteCourseId === c.course_id}
-                    onOpenChange={(open) =>
-                      setDeleteCourseId(open ? c.course_id : null)
-                    }
-                  >
-                    <DialogTrigger asChild>
-                      <Button size="icon" variant="ghost">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
-                      <DialogHeader>
-                        <DialogTitle className="font-semibold">
-                          Delete Course
-                        </DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <p>
-                          Are you sure you want to delete the course
-                          <strong> {c.title}</strong>?
-                        </p>
-                        <p className="text-red-600 font-semibold">
-                          This action cannot be undone.
-                        </p>
-                      </div>
-                      <DialogFooter>
-                        <Button
-                          onClick={() => {
-                            handleDeleteCourse(c.course_id);
-                            setDeleteCourseId(null); // close after deleting
-                          }}
-                          className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Delete
+                  <div className="ml-auto flex items-center">
+                    <Dialog
+                      open={deleteCourseId === c.course_id}
+                      onOpenChange={(open) =>
+                        setDeleteCourseId(open ? c.course_id : null)
+                      }
+                    >
+                      <DialogTrigger asChild>
+                        <Button size="icon" variant="ghost">
+                          <Trash2 className="h-4 w-4" />
                         </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+                      </DialogTrigger>
+                      <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                        <DialogHeader>
+                          <DialogTitle className="font-semibold">
+                            Delete Course
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <p>
+                            Are you sure you want to delete the course
+                            <strong> {c.title}</strong>?
+                          </p>
+                          <p className="text-red-600 font-semibold">
+                            This action cannot be undone.
+                          </p>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            onClick={() => {
+                              handleDeleteCourse(c.course_id);
+                              setDeleteCourseId(null); // close after deleting
+                            }}
+                            className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
                 </AccordionTrigger>
                 <AccordionContent className="space-y-4">
                   <ul className="space-y-2">

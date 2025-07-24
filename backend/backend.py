@@ -50,7 +50,7 @@ app.include_router(course_router.router)
 
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=["http://localhost:3000"],
+  allow_origins=["http://localhost:3000", "http://purduegpt.local"],
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
