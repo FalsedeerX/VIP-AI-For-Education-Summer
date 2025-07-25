@@ -64,6 +64,7 @@ export default function Sidebar({
   const [showDeleteCourse, setShowDeleteCourse] = useState(false);
   const [newCourseCode, setNewCourseCode] = useState("");
   const [showAddChat, setShowAddChat] = useState(false);
+  const [showDeleteChat, setShowDeleteChat] = useState(false);
   const [newChatName, setNewChatName] = useState("");
 
   // Fetch courses
@@ -163,7 +164,6 @@ export default function Sidebar({
   };
 
   const handleDeleteChat = async (chatId: string) => {
-    if (!confirm("Really delete this chat?")) return;
     try {
       await deleteJson<boolean>(`/chats/delete/${chatId}`, {}, true);
       loadChats(selectedFolder!);
@@ -188,22 +188,220 @@ export default function Sidebar({
       {/* trigger and content all in here, no `fixed` */}
       <div className="flex items-center justify-between p-4">
         <button onClick={() => setIsDrawerOpen(!isDrawerOpen)}>
-          {isDrawerOpen ? <PanelLeftClose /> : <PanelLeftOpen />}
+          {isDrawerOpen ? (
+            <PanelLeftClose className="text-[var(--color-purdue-black)]" />
+          ) : (
+            <PanelLeftOpen className="text-[var(--color-purdue-black)]" />
+          )}
         </button>
       </div>
       {isDrawerOpen && (
-        <nav className="p-4 overflow-y-auto space-y-4">
-          {/* Drawer */}
-
-          <div className="flex items-center justify-between pb-4 bg-[var(--color-purdue-brown)]">
+        <nav className="p-4 overflow-y-auto space-y-2">
+          <div className="flex items-center justify-center pb-1 bg-[var(--color-purdue-brown)]">
             <h5
               id="drawer-navigation-label"
-              className="text-[var(--color-purdue-black)] uppercase text-xl font-bold tracking-wider"
+              className="text-[var(--color-purdue-black)] uppercase text-xl font-bold tracking-wider text-center"
             >
               Menu
             </h5>
           </div>
+          <Separator
+            className="my-4 text-[var(--color-purdue-black)]"
+            style={{ height: "4px" }}
+          />
+          {/* Course List Header */}
+          <div className="flex items-center justify-between ">
+            <h2 className="text-[var(--color-purdue-black)] uppercase text-lg font-bold tracking-wider">
+              Courses
+            </h2>
+          </div>
 
+          {/* Course List */}
+          <div className="mt-1 overflow-y-auto">
+            <ul className="space-y-2 font-medium">
+              {courses.map((course) => (
+                <Fragment key={course.course_id}>
+                  <Button
+                    onClick={() => handleSelectCourse(course.course_id)}
+                    className={
+                      "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
+                      (selectedCourse === course.course_id ? "" : "")
+                    }
+                  >
+                    <BookA className="mr-2 h-4 w-4" />
+                    <span className="truncate">{course.title}</span>
+                  </Button>
+
+                  {selectedCourse === course.course_id && (
+                    <ul className="pl-4 space-y-2">
+                      {/* Folders for selected course */}
+                      {foldersByCourse[course.course_id] &&
+                      foldersByCourse[course.course_id].length > 0
+                        ? foldersByCourse[course.course_id].map((folder) => (
+                            <li key={folder.folder_id}>
+                              <Button
+                                onClick={() =>
+                                  handleSelectFolder(folder.folder_id)
+                                }
+                                className={
+                                  "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
+                                  (selectedFolder === folder.folder_id
+                                    ? ""
+                                    : "")
+                                }
+                              >
+                                <Folder className="mr-2 h-4 w-4" />
+                                <span className="truncate">
+                                  {folder.folder_label}
+                                </span>
+                              </Button>
+                              {/* Chats for selected folder */}
+                              {selectedCourse === course.course_id &&
+                                selectedFolder == folder.folder_id && (
+                                  <ul className="pl-4 space-y-2 pt-2">
+                                    {(
+                                      chatsByFolder[folder.folder_id] || []
+                                    ).map((chat) => (
+                                      <li
+                                        key={chat.chat_id}
+                                        className="flex items-center w-full overflow-hidden"
+                                      >
+                                        <Button
+                                          onClick={() =>
+                                            router.push(`/chat/${chat.chat_id}`)
+                                          }
+                                          className="flex-1 min-w-0 p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md flex items-center"
+                                        >
+                                          <MessageSquare className="mr-2 h-4 w-4 flex-shrink-0" />
+                                          <span className="truncate">
+                                            {chat.title}
+                                          </span>
+                                        </Button>
+                                        <Dialog
+                                          open={showDeleteChat}
+                                          onOpenChange={setShowDeleteChat}
+                                        >
+                                          <DialogTrigger asChild>
+                                            <Button
+                                              size="icon"
+                                              onClick={(e) => {
+                                                setShowDeleteChat(true);
+                                              }}
+                                              className="ml-1 bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] flex-shrink-0"
+                                            >
+                                              <Trash2
+                                                className="h-4 w-4"
+                                                strokeWidth={2.5}
+                                              />
+                                            </Button>
+                                          </DialogTrigger>
+                                          <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                                            <DialogHeader>
+                                              <DialogTitle>
+                                                Delete Chat
+                                              </DialogTitle>
+                                            </DialogHeader>
+
+                                            <div className="space-y-4">
+                                              <p>
+                                                Are you sure you want to delete
+                                                the chat
+                                                <strong> {chat.title}</strong>?
+                                              </p>
+                                              <p className="text-red-600 font-semibold">
+                                                This action cannot be undone.
+                                              </p>
+                                            </div>
+
+                                            <DialogFooter>
+                                              <Button
+                                                onClick={async () => {
+                                                  await handleDeleteChat(
+                                                    chat.chat_id
+                                                  );
+                                                  setShowDeleteChat(false); // close dialog after deletion
+                                                }}
+                                                className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                                              >
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                Delete
+                                              </Button>
+                                            </DialogFooter>
+                                          </DialogContent>
+                                        </Dialog>
+                                      </li>
+                                    ))}
+                                    <li>
+                                      <div>
+                                        <Dialog
+                                          open={showAddChat}
+                                          onOpenChange={setShowAddChat}
+                                        >
+                                          <DialogTrigger asChild>
+                                            <Button
+                                              onClick={() =>
+                                                setShowAddChat(true)
+                                              }
+                                              className="w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
+                                            >
+                                              <Plus className="mr-2 h-4 w-4" />
+                                              New Chat
+                                            </Button>
+                                          </DialogTrigger>
+
+                                          <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
+                                            <DialogHeader>
+                                              <DialogTitle>
+                                                Start a New Chat
+                                              </DialogTitle>
+                                            </DialogHeader>
+
+                                            <div className="space-y-4">
+                                              <Input
+                                                placeholder="Chat Name"
+                                                value={newChatName}
+                                                onChange={(e) =>
+                                                  setNewChatName(e.target.value)
+                                                }
+                                              />
+                                            </div>
+
+                                            <DialogFooter>
+                                              <Button
+                                                onClick={async () => {
+                                                  await handleNewChat();
+                                                  setShowAddChat(false); // close dialog after creation
+                                                  setNewChatName(""); // clear input for next time
+                                                }}
+                                                className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
+                                              >
+                                                <FolderPlus className="mr-2 h-4 w-4" />
+                                                Create
+                                              </Button>
+                                            </DialogFooter>
+                                          </DialogContent>
+                                        </Dialog>
+                                      </div>
+                                    </li>
+                                  </ul>
+                                )}
+                            </li>
+                          ))
+                        : selectedCourse === course.course_id && (
+                            <li className="pl-3 py-1 text-sm text-[var(--color-purdue-black)] italic opacity-90">
+                              No folders added.
+                            </li>
+                          )}
+                    </ul>
+                  )}
+                </Fragment>
+              ))}
+            </ul>
+          </div>
+          <Separator
+            className="my-4 text-[var(--color-purdue-black)]"
+            style={{ height: "4px" }}
+          />
           <div>
             <Dialog open={showAddCourse} onOpenChange={setShowAddCourse}>
               <DialogTrigger asChild>
@@ -239,154 +437,6 @@ export default function Sidebar({
                 </DialogFooter>
               </DialogContent>
             </Dialog>
-          </div>
-
-          <Separator
-            className="my-4 text-[var(--color-purdue-black)]"
-            style={{ height: "4px" }}
-          />
-          {/* Course List Header */}
-          <div className="flex items-center justify-between ">
-            <h2 className="text-[var(--color-purdue-black)] uppercase text-lg font-bold tracking-wider">
-              Courses
-            </h2>
-          </div>
-
-          {/* Course List */}
-          <div className="py-4 overflow-y-auto">
-            <ul className="space-y-2 font-medium">
-              {courses.map((course) => (
-                <Fragment key={course.course_id}>
-                  <Button
-                    onClick={() => handleSelectCourse(course.course_id)}
-                    className={
-                      "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
-                      (selectedCourse === course.course_id ? "" : "")
-                    }
-                  >
-                    <BookA className="mr-2 h-4 w-4" />
-                    {course.title}
-                  </Button>
-
-                  {selectedCourse === course.course_id && (
-                    <ul className="pl-4 space-y-2">
-                      {/* Folders for selected course */}
-                      {(foldersByCourse[course.course_id] || []).map(
-                        (folder) => (
-                          <li key={folder.folder_id}>
-                            <Button
-                              onClick={() =>
-                                handleSelectFolder(folder.folder_id)
-                              }
-                              className={
-                                "w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md" +
-                                (selectedFolder === folder.folder_id ? "" : "")
-                              }
-                            >
-                              <Folder className="mr-2 h-4 w-4" />
-                              {folder.folder_label}
-                            </Button>
-                            {/* Chats for selected folder */}
-                            {selectedCourse === course.course_id &&
-                              selectedFolder == folder.folder_id && (
-                                <ul className="pl-4 space-y-2 pt-2">
-                                  {(chatsByFolder[folder.folder_id] || []).map(
-                                    (chat) => (
-                                      <li
-                                        key={chat.chat_id}
-                                        className="flex items-center justify-between"
-                                      >
-                                        <Button
-                                          onClick={() =>
-                                            router.push(`/chat/${chat.chat_id}`)
-                                          }
-                                          className="relative w-full p-2 flex-1 items-center rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
-                                        >
-                                          {/* 1) Centered icon + title 
-                                          <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 flex items-center pointer-events-none">
-                                          */}
-                                          <MessageSquare className="mr-2 h-4 w-4" />
-                                          <span>{chat.title}</span>
-                                          {/*</Button></div>*/}
-                                        </Button>
-
-                                        {/* 2) Trash icon at far right */}
-                                        <Button
-                                          size="icon"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteChat(chat.chat_id);
-                                          }}
-                                          className="ml-auto bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] "
-                                        >
-                                          <Trash2
-                                            className="h-4 w-4"
-                                            strokeWidth={2.5}
-                                          />
-                                        </Button>
-                                      </li>
-                                    )
-                                  )}
-                                  <li>
-                                    <div>
-                                      <Dialog
-                                        open={showAddChat}
-                                        onOpenChange={setShowAddChat}
-                                      >
-                                        <DialogTrigger asChild>
-                                          <Button
-                                            onClick={() => setShowAddChat(true)}
-                                            className="w-full flex items-center p-2 rounded-lg bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold text-md"
-                                          >
-                                            <Plus className="mr-2 h-4 w-4" />
-                                            New Chat
-                                          </Button>
-                                        </DialogTrigger>
-
-                                        <DialogContent className="bg-[var(--color-purdue-gold)] text-[var(--color-purdue-black)]">
-                                          <DialogHeader>
-                                            <DialogTitle>
-                                              Start a New Chat
-                                            </DialogTitle>
-                                          </DialogHeader>
-
-                                          <div className="space-y-4">
-                                            <Input
-                                              placeholder="Chat Name"
-                                              value={newChatName}
-                                              onChange={(e) =>
-                                                setNewChatName(e.target.value)
-                                              }
-                                            />
-                                          </div>
-
-                                          <DialogFooter>
-                                            <Button
-                                              onClick={async () => {
-                                                await handleNewChat();
-                                                setShowAddChat(false); // close dialog after creation
-                                                setNewChatName(""); // clear input for next time
-                                              }}
-                                              className="w-full bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] font-semibold"
-                                            >
-                                              <FolderPlus className="mr-2 h-4 w-4" />
-                                              Create
-                                            </Button>
-                                          </DialogFooter>
-                                        </DialogContent>
-                                      </Dialog>
-                                    </div>
-                                  </li>
-                                </ul>
-                              )}
-                          </li>
-                        )
-                      )}
-                    </ul>
-                  )}
-                </Fragment>
-              ))}
-            </ul>
           </div>
         </nav>
       )}
