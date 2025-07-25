@@ -199,6 +199,43 @@ setup_valkey() {
 }
 
 
+setup_backend() {
+	local original_dir="$(pwd)"
+
+	echo "[+] Auto setting up the backend dependencies......"
+	cd ../backend || {
+		echo "[-] Failed to change directory into the frontend folder !"
+		return 1
+	}
+
+	if [[ -d .venv ]]; then
+		echo "[+] Virtual envrionment directory .venv detected, skipping dependencies installation."
+		cd "$original_dir"
+		return 0
+	fi
+
+	echo "[+] Creating and activating virtual environment......"
+	python -m venv .venv
+	source .venv/bin/activate
+
+	echo "[+] Installing required dependencies......"
+	pip install -r requirements.txt
+	pip install -e DatabaseAgent
+	pip install -e SessionManager
+	pip install -e Service
+	deactivate
+
+	echo "[+] Backend setup completed."
+	cd "$original_dir"
+	return 0
+}
+
+
+setup_frontend() {
+
+}
+
+
 main() {
 	show_banner
 
