@@ -130,6 +130,49 @@ setup_postgresql() {
 }
 
 
+create_postgres_role() {
+	local db_user="$1"
+	local db_pass="$2"
+
+	echo "[+] Creating role $db_user......"
+	sudo -iu postgres psql <<SQL
+DO \$\$
+BEGIN
+	IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$db_user') THEN
+		EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '$db_user', '$db_pass');
+	END IF;
+END;
+\$\$;
+SQL
+	return 0
+}
+
+
+create_postgres_database() {
+	local db_name="$1"
+	local db_owner="$2"
+
+	echo "[+] Creating database $db_name......"
+}
+
+
+create_postgres_table() {
+	echo
+}
+
+
+provision_postgresql() {
+	echo "[+] Setting up PostgreSQL environment and importing structure... "
+	read -rp "[+] Enter a name for database: " db_name
+	read -rp "[+] Enter a name for database user: " db_user
+	read -rsp "[+] Create a password for $db_user: " db_pass
+	echo
+
+	# create the user in the base cluster
+	create_postgres_role "$db_user" "$db_pass" 
+}
+
+
 get_valkey_config() {
 	# start the valkey daemon
 	sudo systemctl start valkey
@@ -268,6 +311,10 @@ main() {
 
 	# configure postgresql after installation
 	setup_postgresql "$distro"
+	echo
+
+	# auto setup db, user, tables in postgres
+	provision_postgresql
 	echo
 
 	# configure valkey after installation
