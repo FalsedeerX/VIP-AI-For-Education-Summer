@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
+
 show_banner() {
 	echo "########################"
 	echo "# Purdue GPT Installer #"
@@ -148,11 +149,18 @@ SQL
 }
 
 
-create_postgres_database() {
+create_postgres_db() {
 	local db_name="$1"
 	local db_owner="$2"
 
 	echo "[+] Creating database $db_name......"
+  	if sudo -iu postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$db_name'" | grep -q 1; then
+    	echo "[*] Database '$db_name' already exists. Skipping re-creation."
+		return 0
+  	else
+    	sudo -iu postgres psql -c "CREATE DATABASE \"$db_name\" OWNER \"$db_owner\";"
+  	fi
+	return 0
 }
 
 
@@ -170,6 +178,9 @@ provision_postgresql() {
 
 	# create the user in the base cluster
 	create_postgres_role "$db_user" "$db_pass" 
+
+	# create database and assign user as owner
+	create_postgres_db "$db_name" "$db_user"
 }
 
 
