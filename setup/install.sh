@@ -204,7 +204,7 @@ setup_backend() {
 
 	echo "[+] Auto setting up the backend dependencies......"
 	cd ../backend || {
-		echo "[-] Failed to change directory into the frontend folder !"
+		echo "[-] Failed to change directory into the backend folder !"
 		return 1
 	}
 
@@ -232,7 +232,21 @@ setup_backend() {
 
 
 setup_frontend() {
+	local original_dir=$(pwd)
 
+	echo "[+] Auto setting up the frontend dependencies......"
+	cd ../my-frontend || {
+		echo "[-] Failed to change directory into the frontend folder !"
+		return 1
+	}
+
+	echo "[+] Installing required dependencies......"
+	npm install
+
+	echo
+	echo "[+] Frontend setup completed."
+	cd "$original_dir"
+	return 0
 }
 
 
@@ -267,11 +281,15 @@ main() {
 
 	# dependencies donwload for backend
 	echo "[+] Auto setting up backend's environment......"
-	cd ../backend
+	setup_backend
+	echo
 
 	# dependencies download for frontend
 	echo "[+] Auto setting up frontend's envrionemnt......"
-	cd ../my-frontend
+	setup_frontend
+	echo
+
+	return 0
 }
 
 
