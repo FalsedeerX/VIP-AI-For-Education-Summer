@@ -117,7 +117,7 @@ setup_postgresql() {
 
 	# manually initialize postgresql if on Arch Linux
 	if [[ "$distro" == "arch" ]]; then
-		if [[ ! -d /var/lib/postgres/data ]]; then
+		if ! sudo test -d /var/lib/postgres/data; then
 		echo "[+] Initializing PostgreSQL's base cluster......"
 		sudo -iu postgres initdb -D /var/lib/postgres/data
 		fi
@@ -174,6 +174,7 @@ setup_valkey() {
 	# check if the configuration is already satisfied
 	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]${setting_value}[[:space:]]*$" "$config"; then
 		echo "[+] Valkey configuration is already setup properly. Skipping expiration callback setup."
+		echo "[+] Starting and enabling Valkey daemon on system......"
 		sudo systemctl enable --now valkey
 		return 0
 	else
@@ -183,13 +184,18 @@ setup_valkey() {
 	# replace the previous configuration or append the new setting at the end of file
 	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]+" "$config"; then
 		echo "[-] Previous configuration of key $setting_key detected in file $config"
-		#sed -iE "s/"
+		sudo sed -iE "s|^[[:space:]]*${setting_key}[[:space:]]\+.*$|${setting_key} ${setting_value}|" "$config"
 	else
 		echo "[-] Appending key $setting_key 's configuration to file $config"
-		
+		echo "${setting_key} ${setting_value}" | sudo tee -a "$config" > /dev/null
 	fi
+	echo "[+] Valkey configuration completed."
 
 	# daemon reload
+	echo "[+] Starting and enabling Valkey daemon on system......"
+	sudo systemctl enable valkey
+	sudo systemctl restart valkey
+	return 0
 }
 
 
@@ -210,13 +216,12 @@ main() {
 	echo
 
 	# configure postgresql after installation
-	# setup_postgresql "$distro"
+	setup_postgresql "$distro"
 	echo
 
 	# configure valkey after installation
 	valkey_config=$(get_valkey_config)
-	#setup_valkey "$valkey_config"
-	setup_valkey "valkey.conf"
+	setup_valkey "$valkey_config"
 	echo
 
 	# create user + database schema import
