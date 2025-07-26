@@ -9,6 +9,7 @@ import os
 import traceback
 from openai import AsyncStream
 from openai.types.chat import ChatCompletionChunk
+from dotenv import load_dotenv
 import trio
 
 from instructorchat.serve.inference import ChatIO, chat_loop
@@ -52,6 +53,7 @@ class SimpleChatIO(ChatIO):
 
 
 async def main():
+    load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)

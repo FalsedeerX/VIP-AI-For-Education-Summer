@@ -3,6 +3,7 @@ import argparse
 import trio
 from trio_websocket import serve_websocket, ConnectionClosed, WebSocketRequest
 from typing import Final
+from dotenv import load_dotenv
 import traceback
 import json
 
@@ -89,6 +90,7 @@ async def main() -> None:
     await serve_websocket(handle_websocket, HOST, PORT, ssl_context=None)
 
 if __name__ == "__main__":
+    load_dotenv()
     parser = argparse.ArgumentParser()
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
