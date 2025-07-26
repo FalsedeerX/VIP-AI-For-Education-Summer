@@ -164,8 +164,21 @@ create_postgres_db() {
 }
 
 
-create_postgres_table() {
-	echo
+create_postgres_tables() {
+	local db_user="$1"
+	local db_pass="$2"
+	local db_name="$3"
+
+	echo "[+] Importing table definition from schema.psql......"
+	if [[ ! -f schema.psql ]]; then
+		echo "[-] Table definition isn't located in the expected directory: $(pwd)"
+		return 1
+	fi
+
+	# import and setup the table definition
+	PGPASSWORD="$db_pass" psql -U "$db_user" -d "$db_name" -f schema.psql
+	echo "[+] Schema import complete."
+	return 0
 }
 
 
@@ -181,6 +194,9 @@ provision_postgresql() {
 
 	# create database and assign user as owner
 	create_postgres_db "$db_name" "$db_user"
+
+	# import the table schema from dump
+	create_postgres_tables "$db_user" "$db_pass" "$db_name"
 }
 
 
