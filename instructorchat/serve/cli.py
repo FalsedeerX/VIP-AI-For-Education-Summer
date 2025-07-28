@@ -58,6 +58,8 @@ async def main():
     parser.add_argument("--api-key", type=str, help="OpenAI API key")
     parser.add_argument("--temperature", type=float, default=0.7)
     parser.add_argument("--folder", type=str, default=None)
+    parser.add_argument("--model", type=str, default="gpt-4o-mini")
+    parser.add_argument("--base-url", type=str, default=None)
     args = parser.parse_args()
 
     # Use API key from environment variable if not provided
@@ -69,7 +71,8 @@ async def main():
     try:
         # Same thing as await but has to be implemented this way because I need to use yield for evaluations
         async for _ in chat_loop(
-            model_path="gpt-4o-mini",
+            model_path=args.model,
+            base_url=args.base_url,
             temperature=args.temperature,
             chatio=chatio,
             api_key=api_key,
