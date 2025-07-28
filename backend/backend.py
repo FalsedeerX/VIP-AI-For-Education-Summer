@@ -8,11 +8,18 @@ from services.course_services import CourseRouter
 from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import ValkeyConfig, SessionManager
 from fastapi.middleware.cors import CORSMiddleware
+import os
+import redis
+from urllib.parse import urlparse
 
 
 # pass in configuration
 app = FastAPI()
-valkey_config = ValkeyConfig("localhost", 6379)
+
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")  # default fallback for local dev
+parsed_url = urlparse(redis_url)
+
+valkey_config = ValkeyConfig(parsed_url.hostname, parsed_url.port, password=parsed_url.password)
 session_manager = SessionManager(valkey_config)
 database_broker = DatabaseAgent()
 
