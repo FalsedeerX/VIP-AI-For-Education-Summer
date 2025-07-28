@@ -69,7 +69,7 @@ async def return_conversation(data: Dict, websocket = None) -> Dict:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
 
-    convo = global_conv.get_messages()
+    convo = await global_conv.get_messages()
 
     if websocket:
         await websocket.send_message(json.dumps({"conversation": convo, "status": "success"}))
