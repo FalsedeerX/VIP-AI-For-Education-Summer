@@ -4,7 +4,7 @@
 
 ## Overview
 
-This WebSocket server implements an action-based dispatch mechanism for handling different types of requests.  
+This WebSocket server implements an action-based dispatch mechanism for handling different types of requests.
 The server supports four main actions: returning conversation history, storing documents, generating answers to questions with real-time streaming, and ping for connectivity testing.
 
 ---
@@ -44,7 +44,7 @@ Retrieves the current conversation history.
       "content": "user message content"
     },
     {
-      "role": "assistant", 
+      "role": "assistant",
       "content": "assistant response content"
     }
   ],
@@ -90,7 +90,9 @@ Generates an answer to a question with real-time streaming output using context 
   "action": "generate_answer",
   "data": {
     "question": "What is Python?",
-    "folder": "optional_folder_path"
+    "folder": "optional_folder_path",
+    "model": "optional_model",
+    "base_url": "optional_base_url"
   }
 }
 ```
@@ -218,7 +220,7 @@ const ws = new WebSocket('ws://localhost:6666');
 
 ws.onmessage = function(event) {
     const data = JSON.parse(event.data);
-    
+
     if (data.type === 'stream_chunk') {
         // Handle streaming chunk
         console.log('Chunk:', data.content);
@@ -314,4 +316,4 @@ instructorchat/serve/
 ├── cli.py            # Command-line interface
 ├── test_client.py    # WebSocket test client
 └── README.md         # This documentation
-``` 
+```

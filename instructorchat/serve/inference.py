@@ -171,7 +171,7 @@ async def generate_answer_action(data: Dict, websocket=None):
         }
 
         # Generate streaming response
-        stream = await LLM_generate_stream(gen_params)
+        stream = await LLM_generate_stream(gen_params, model=data.get("model", "gpt-4o-mini"), base_url=data.get("base_url"))
 
         if stream is None:
             if websocket:
