@@ -279,7 +279,7 @@ async def chat_loop(
 
         # Handle commands
         if inp == "return conv":
-            print(conv.get_messages())
+            print(await conv.get_messages())
             continue
 
         if inp.startswith("store "):
