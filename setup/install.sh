@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
+
 show_banner() {
 	echo "########################"
 	echo "# Purdue GPT Installer #"
@@ -117,7 +118,7 @@ setup_postgresql() {
 
 	# manually initialize postgresql if on Arch Linux
 	if [[ "$distro" == "arch" ]]; then
-		if [[ ! -d /var/lib/postgres/data ]]; then
+		if ! sudo test -d /var/lib/postgres/data; then
 		echo "[+] Initializing PostgreSQL's base cluster......"
 		sudo -iu postgres initdb -D /var/lib/postgres/data
 		fi
@@ -127,6 +128,75 @@ setup_postgresql() {
 	echo "[+] Starting and enabling postgreSQL daemon on system......"
 	sudo systemctl enable --now postgresql
 	return 0
+}
+
+
+create_postgres_role() {
+	local db_user="$1"
+	local db_pass="$2"
+
+	echo "[+] Creating role $db_user......"
+	sudo -iu postgres psql <<SQL
+DO \$\$
+BEGIN
+	IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$db_user') THEN
+		EXECUTE format('CREATE ROLE %I LOGIN PASSWORD %L', '$db_user', '$db_pass');
+	END IF;
+END;
+\$\$;
+SQL
+	return 0
+}
+
+
+create_postgres_db() {
+	local db_name="$1"
+	local db_owner="$2"
+
+	echo "[+] Creating database $db_name......"
+  	if sudo -iu postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$db_name'" | grep -q 1; then
+    	echo "[*] Database '$db_name' already exists. Skipping re-creation."
+		return 0
+  	else
+    	sudo -iu postgres psql -c "CREATE DATABASE \"$db_name\" OWNER \"$db_owner\";"
+  	fi
+	return 0
+}
+
+
+create_postgres_tables() {
+	local db_user="$1"
+	local db_pass="$2"
+	local db_name="$3"
+
+	echo "[+] Importing table definition from schema.psql......"
+	if [[ ! -f schema.psql ]]; then
+		echo "[-] Table definition isn't located in the expected directory: $(pwd)"
+		return 1
+	fi
+
+	# import and setup the table definition
+	PGPASSWORD="$db_pass" psql -U "$db_user" -d "$db_name" -f schema.psql
+	echo "[+] Schema import complete."
+	return 0
+}
+
+
+provision_postgresql() {
+	echo "[+] Setting up PostgreSQL environment and importing structure... "
+	read -rp "[+] Enter a name for database: " db_name
+	read -rp "[+] Enter a name for database user: " db_user
+	read -rsp "[+] Create a password for $db_user: " db_pass
+	echo
+
+	# create the user in the base cluster
+	create_postgres_role "$db_user" "$db_pass" 
+
+	# create database and assign user as owner
+	create_postgres_db "$db_name" "$db_user"
+
+	# import the table schema from dump
+	create_postgres_tables "$db_user" "$db_pass" "$db_name"
 }
 
 
@@ -174,6 +244,7 @@ setup_valkey() {
 	# check if the configuration is already satisfied
 	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]${setting_value}[[:space:]]*$" "$config"; then
 		echo "[+] Valkey configuration is already setup properly. Skipping expiration callback setup."
+		echo "[+] Starting and enabling Valkey daemon on system......"
 		sudo systemctl enable --now valkey
 		return 0
 	else
@@ -183,13 +254,69 @@ setup_valkey() {
 	# replace the previous configuration or append the new setting at the end of file
 	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]+" "$config"; then
 		echo "[-] Previous configuration of key $setting_key detected in file $config"
-		#sed -iE "s/"
+		sudo sed -iE "s|^[[:space:]]*${setting_key}[[:space:]]\+.*$|${setting_key} ${setting_value}|" "$config"
 	else
 		echo "[-] Appending key $setting_key 's configuration to file $config"
-		
+		echo "${setting_key} ${setting_value}" | sudo tee -a "$config" > /dev/null
 	fi
+	echo "[+] Valkey configuration completed."
 
 	# daemon reload
+	echo "[+] Starting and enabling Valkey daemon on system......"
+	sudo systemctl enable valkey
+	sudo systemctl restart valkey
+	return 0
+}
+
+
+setup_backend() {
+	local original_dir="$(pwd)"
+
+	echo "[+] Auto setting up the backend dependencies......"
+	cd ../backend || {
+		echo "[-] Failed to change directory into the backend folder !"
+		return 1
+	}
+
+	if [[ -d .venv ]]; then
+		echo "[+] Virtual envrionment directory .venv detected, skipping dependencies installation."
+		cd "$original_dir"
+		return 0
+	fi
+
+	echo "[+] Creating and activating virtual environment......"
+	python -m venv .venv
+	source .venv/bin/activate
+
+	echo "[+] Installing required dependencies......"
+	pip install -r requirements.txt
+	pip install -e DatabaseAgent
+	pip install -e SessionManager
+	pip install -e Service
+	deactivate
+
+	echo "[+] Backend setup completed."
+	cd "$original_dir"
+	return 0
+}
+
+
+setup_frontend() {
+	local original_dir=$(pwd)
+
+	echo "[+] Auto setting up the frontend dependencies......"
+	cd ../my-frontend || {
+		echo "[-] Failed to change directory into the frontend folder !"
+		return 1
+	}
+
+	echo "[+] Installing required dependencies......"
+	npm install
+
+	echo
+	echo "[+] Frontend setup completed."
+	cd "$original_dir"
+	return 0
 }
 
 
@@ -210,13 +337,16 @@ main() {
 	echo
 
 	# configure postgresql after installation
-	# setup_postgresql "$distro"
+	setup_postgresql "$distro"
+	echo
+
+	# auto setup db, user, tables in postgres
+	provision_postgresql
 	echo
 
 	# configure valkey after installation
 	valkey_config=$(get_valkey_config)
-	#setup_valkey "$valkey_config"
-	setup_valkey "valkey.conf"
+	setup_valkey "$valkey_config"
 	echo
 
 	# create user + database schema import
@@ -225,11 +355,15 @@ main() {
 
 	# dependencies donwload for backend
 	echo "[+] Auto setting up backend's environment......"
-	cd ../backend
+	setup_backend
+	echo
 
 	# dependencies download for frontend
 	echo "[+] Auto setting up frontend's envrionemnt......"
-	cd ../my-frontend
+	setup_frontend
+	echo
+
+	return 0
 }
 
 
