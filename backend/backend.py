@@ -19,7 +19,12 @@ app = FastAPI()
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")  # default fallback for local dev
 parsed_url = urlparse(redis_url)
 
-valkey_config = ValkeyConfig(parsed_url.hostname, parsed_url.port, parsed_url.password)
+valkey_config = ValkeyConfig(
+    db_host=parsed_url.hostname,
+    db_port=parsed_url.port,
+    db_user=parsed_url.username,
+    db_pass=parsed_url.password
+)
 session_manager = SessionManager(valkey_config)
 database_broker = DatabaseAgent()
 
