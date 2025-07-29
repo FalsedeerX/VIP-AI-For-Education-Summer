@@ -2,10 +2,9 @@
 export const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "/api";
 
-
 export async function postJson<T>(
   path: string,
-  body: any,
+  body: unknown,
   includeCreds = false
 ): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -18,7 +17,8 @@ export async function postJson<T>(
     const errText = await res.text();
     throw new Error(errText || res.statusText);
   }
-  return res.json();
+  const data = await res.json();
+  return data as T;
 }
 
 export async function getJson<T>(
@@ -33,21 +33,18 @@ export async function getJson<T>(
     const errText = await res.text();
     throw new Error(errText || res.statusText);
   }
-  return res.json();
+  const data = await res.json();
+  return data as T;
 }
 
 export async function deleteJson<T>(
   path: string,
-  body: any,
+  body: unknown,
   includeCreds = false
 ): Promise<T> {
-  const headers: Record<string,string> = {
-    "Content-Type": "application/json",
-  };
-
   const options: RequestInit = {
     method: "DELETE",
-    headers,
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   };
 
@@ -58,12 +55,11 @@ export async function deleteJson<T>(
   const res = await fetch(`${API_BASE}${path}`, options);
 
   if (!res.ok) {
-    // try to see the actual validation errors:
     const text = await res.text();
     console.error("Delete failed:", text);
     throw new Error(text || res.statusText);
   }
 
-  return res.json();
+  const data = await res.json();
+  return data as T;
 }
-

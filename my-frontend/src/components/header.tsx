@@ -3,22 +3,20 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export function Header() {
   const { name, logout } = useAuth();
   const router = useRouter();
-  const [error, setError] = useState<string | null>(null);
 
   async function handleLogout(e: React.FormEvent) {
     e.preventDefault();
     try {
       logout();
       router.push("/login");
-    } catch (err: any) {
-      setError(err.message || "Logout failed");
+    } catch (err: unknown) {
+      console.error("Logout error", err);
     }
   }
 

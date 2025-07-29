@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
   Card,
   CardHeader,
@@ -43,15 +42,6 @@ interface Folder {
 export default function AdminDashboard() {
   const { userId, admin, loading } = useAuth();
   const router = useRouter();
-
-  // Guard
-  if (loading) return null;
-  if (!userId || !admin) {
-    router.replace("/login");
-    return null;
-  }
-
-  // State
   const [courses, setCourses] = useState<Course[]>([]);
   const [openCourseId, setOpenCourseId] = useState<string | undefined>(
     undefined
@@ -97,6 +87,13 @@ export default function AdminDashboard() {
   useEffect(() => {
     loadCourses();
   }, [loadCourses]);
+
+  // Guard
+  if (loading) return null;
+  if (!userId || !admin) {
+    router.replace("/login");
+    return null;
+  }
 
   // Accordion change: fetch folders when opening
   const handleAccordionChange = (value: string) => {
