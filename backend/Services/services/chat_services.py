@@ -1,3 +1,5 @@
+import json
+import websockets
 from uuid import UUID
 from http.cookies import SimpleCookie
 from sessionmanager.session import SessionManager
@@ -6,7 +8,8 @@ from fastapi import APIRouter, WebSocket, HTTPException, Request, Response, WebS
 from services.schemas.chat import NewChat, ChatMessages, ChatOrganize, ChatOwner
 
 class ChatRouter:
-	def __init__(self, database: DatabaseAgent, session: SessionManager):
+	def __init__(self, database: DatabaseAgent, session: SessionManager, chatbot_url: str):
+		self.chatbot_url = chatbot_url
 		self.router = APIRouter(prefix="/chats", tags=["chats"])
 		self.session = session
 		self.db = database
@@ -64,6 +67,7 @@ class ChatRouter:
 		if chat_history is None: raise HTTPException(404, "Invalid id or chat does not exist.")
 		return chat_history
 
+
 	async def get_chat_owner(self, chat_id: str, request: Request, response: Response) -> ChatOwner:
 		""" Receive the chat owner in a dictionary """
 		# check if the user is logged in 
@@ -87,24 +91,32 @@ class ChatRouter:
 
 		try:
 			while True:
-				# receive the message from user
+				# send the question to chatbot
 				question = await websocket.receive_text()
-				print("Received:", question)
+				async with websockets.connect(self.chatbot_url) as upstream:
+					request = {
+						"action": "generate_answer",
+						"data": {
+						"question": question,
+						"folder": "default"
+					}
+				}
+				await upstream.send(json.dumps(request))
 
-				# mimic the response from AI
-				answer = "AI Model Echo: " + question
-				await websocket.send_text(answer)
+				# receive response from chatbot
+				async for message in upstream:
+					try:
+						msg = json.loads(message)
+						mtype = msg.get("type")
+						if mtype == "stream_chunk":
+							await websocket.send_text(msg.get("content", ""))
+						else:
+							break
+					except:
+						break
 
-				# log user's message into database
-				# status = await self.db.log_chat(chat_id, request.state.user_id, question)
-				# if not status: raise HTTPException(404, "Cannot add message to chat")
-				
-				# log AI's response into database
-				# status = await self.db.log_chat(chat_id, -1, answer)
-				# if not status: raise HTTPException(404, "Cannot add message to chat")
-
-		except WebSocketDisconnect:
-			return
+		except:
+			await websocket.close()
 
 
 	async def delete_chat(self, chat_id: str, request: Request, response: Response) -> bool:

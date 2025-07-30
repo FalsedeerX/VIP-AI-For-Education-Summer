@@ -113,6 +113,17 @@ install_dependencies() {
 }
 
 
+setup_local_nameserver() {
+	echo
+}
+
+
+setup_nginx() {
+	""""""
+	echo
+}
+
+
 setup_postgresql() {
 	local distro="$1"
 

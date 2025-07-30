@@ -9,6 +9,8 @@ from databaseagent.database_async import DatabaseAgent
 from sessionmanager.session import ValkeyConfig, SessionManager
 from fastapi.middleware.cors import CORSMiddleware
 
+# chatbot WS url
+CHATBOT_WS_URL = "ws://localhost:6666/ws"
 
 # pass in configuration
 app = FastAPI()
@@ -18,7 +20,7 @@ database_broker = DatabaseAgent()
 
 # initialize the router
 user_router = UserRouter(database_broker, session_manager)
-chat_router = ChatRouter(database_broker, session_manager)
+chat_router = ChatRouter(database_broker, session_manager, CHATBOT_WS_URL)
 folder_router = FolderRouter(database_broker, session_manager)
 course_router = CourseRouter(database_broker, session_manager)
 
