@@ -69,7 +69,7 @@ async def return_conversation(data: Dict, websocket = None) -> Dict:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
 
-    convo = global_conv.get_messages()
+    convo = await global_conv.get_messages()
 
     if websocket:
         await websocket.send_message(json.dumps({"conversation": convo, "status": "success"}))
@@ -171,7 +171,7 @@ async def generate_answer_action(data: Dict, websocket=None):
         }
 
         # Generate streaming response
-        stream = await LLM_generate_stream(gen_params)
+        stream = await LLM_generate_stream(gen_params, model=data.get("model", "gpt-4o-mini"), base_url=data.get("base_url"))
 
         if stream is None:
             if websocket:
@@ -217,13 +217,13 @@ async def generate_answer_action(data: Dict, websocket=None):
         return {"error": error_msg, "status": "error"}
 
 
-async def LLM_generate_stream(params: Dict):
+async def LLM_generate_stream(params: Dict, base_url: Optional[str] = None, model: str = "gpt-4o-mini"):
     """Stream response using OpenAI API."""
     try:
-        client = openai.AsyncOpenAI(api_key=global_api_key)
+        client = openai.AsyncOpenAI(api_key=global_api_key, base_url=base_url)
 
         response = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=params["messages"],
             temperature=params["temperature"],
             stream=True,
@@ -246,7 +246,8 @@ async def chat_loop(
     chatio: ChatIO,  # chatio is a chosen I/O handlings, while ChatIO (abstract) defines how every type of I/O handlings should look like.
     api_key: Optional[str] = None,
     evaluation_test_cases: Optional[List[Dict[str, Any]]] = None,
-    folder: Optional[str] = None
+    folder: Optional[str] = None,
+    base_url: Optional[str] = None
 ):
     """Main chat loop."""
     # Set API key
@@ -278,7 +279,7 @@ async def chat_loop(
 
         # Handle commands
         if inp == "return conv":
-            print(conv.get_messages())
+            print(await conv.get_messages())
             continue
 
         if inp.startswith("store "):
@@ -349,7 +350,7 @@ async def chat_loop(
             "temperature": temperature
         }
 
-        stream = await LLM_generate_stream(gen_params)
+        stream = await LLM_generate_stream(gen_params, model=model_path, base_url=base_url)
 
         if stream is not None:
             response = await chatio.stream_output(stream)

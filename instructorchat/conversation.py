@@ -81,6 +81,7 @@ class Conversation:
         # self.name = "gpt4_mini"
         self.system_message = "You are a helpful AI assistant."
         self.messages: List[Message] = []
+        self.title: Optional[str] = None
 
     def set_system_message(self, system_message: str):
         """Set the system message."""
@@ -101,6 +102,33 @@ class Conversation:
             messages.append(message.to_openai_message())
 
         return messages
+
+    async def generate_title(self, api_key: str) -> str:
+        """Generate a concise conversation title based on the first Q&A pair."""
+        if self.title:
+            return self.title
+        if len(self.messages) < 2:
+            raise ValueError("Need at least one user message and one assistant message to generate a title.")
+        # Extract text from first user and assistant messages
+        user_text = "".join(content for ctype, content in self.messages[0].content if ctype == ContentType.TEXT)
+        assistant_text = "".join(content for ctype, content in self.messages[1].content if ctype == ContentType.TEXT)
+        prompt = (
+            f"Create a concise title for this conversation session. "
+            f"User asked: '{user_text}'. Assistant replied: '{assistant_text}'."
+        )
+        client = openai.AsyncOpenAI(api_key=api_key)
+        response = await client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an assistant that crafts conversation titles."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=20,
+            temperature=0.0
+        )
+        title_text = response.choices[0].message.content.strip().strip('"')
+        self.title = title_text
+        return self.title
 
     async def get_messages(self): 
         """
