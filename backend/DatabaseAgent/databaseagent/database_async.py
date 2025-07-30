@@ -1,0 +1,538 @@
+# database_async.py
+import os
+import uuid
+import psycopg
+import asyncio
+from dotenv import load_dotenv
+from psycopg.rows import dict_row
+from argon2 import PasswordHasher
+from psycopg import AsyncConnection
+from typing import Any, Dict, List, Optional
+from argon2.exceptions import VerifyMismatchError
+
+load_dotenv()
+_conn: AsyncConnection | None = None
+
+
+async def get_connection() -> AsyncConnection:
+    global _conn
+    if _conn is None:
+        _conn = await AsyncConnection.connect(
+            f"postgresql://{os.getenv('DB_USER')}:{os.getenv('DB_PASSWD')}@"
+            f"{os.getenv('DB_HOST')}:{os.getenv('DB_PORT')}/{os.getenv('DB_NAME')}"
+        )
+        await _conn.execute("SET search_path TO chatbot;")
+    return _conn
+
+
+class DatabaseAgent:
+    def __init__(self):
+        self.hasher = PasswordHasher()
+
+
+    async def register_user(self, username: str, email: str, password: str, is_admin: bool) -> bool:
+        """Create a new user entry."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE username = %s OR email = %s);",
+                (username, email)
+            )
+            if (await cur.fetchone())[0]:
+                return False
+            await cur.execute(
+                "INSERT INTO users (username, email, password, is_admin) VALUES (%s, %s, %s, %s);",
+                 (username, email, self.hasher.hash(password), is_admin)
+            )
+        await conn.commit()
+        return True
+
+
+    async def is_admin(self, user_id: int) -> bool:
+        """ Determine whether a user have admin access. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT is_admin FROM users WHERE id = %s;", 
+                (user_id,)
+            )
+            row = await cur.fetchone()
+        return row[0] if row else False
+
+
+    async def get_user_id(self, username: str) -> Optional[int]:
+        """Fetch user ID by username."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT id FROM users WHERE username = %s;", (username,))
+            row = await cur.fetchone()
+        return row[0] if row else None
+
+
+    async def get_username(self, user_id: str) -> Optional[str]:
+        """Fetch user username by id."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT username FROM users WHERE id = %s;", (user_id,))
+            row = await cur.fetchone()
+        return row[0] if row else None
+
+
+    async def delete_user(self, user_id: int) -> bool:
+        """Delete user by user ID."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "DELETE FROM users WHERE id = %s RETURNING id;",
+                (user_id,)
+            )
+            result = await cur.fetchone()
+
+        if result is None:
+            return False
+
+        await conn.commit()
+        return True
+
+
+    async def verify_user(self, username: str, password: str) -> bool:
+        """Validate a user's password."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute("SELECT password FROM users WHERE username = %s;", (username,))
+            row = await cur.fetchone()
+            if not row:
+                return False
+            hashed = row[0]
+        try:
+            self.hasher.verify(hashed, password)
+            return True
+        except VerifyMismatchError:
+            return False
+
+
+    async def get_chats(self, folder_id: int) -> list[dict]:
+        """ Get a list of chat IDs of a speicifc folder_id. 
+            Return type: <chat-title, chat-id> """
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT c.id, c.title 
+                  FROM chat_folder_link AS l
+                  JOIN chats AS c ON c.id = l.chat_id
+                 WHERE l.folder_id = %s
+                """,
+                (folder_id,)
+            )
+            return await cur.fetchall()
+
+
+    async def get_random_chat(self, user_id: int) -> str|None:
+        """ Get a random chat owned by a certain user. """
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id FROM chats WHERE user_id = %s
+                ORDER BY random() LIMIT 1
+                """,
+                (user_id,)
+            )
+            row = await cur.fetchone()
+            return str(row["id"]) if row else None
+
+
+    async def organize_chat(self, chat_id: str, folder_id: int) -> bool:
+        """ Link a chat UUID to a folder label."""
+        # Validate UUID
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return False
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO chat_folder_link (chat_id, folder_id) VALUES (%s, %s);",
+                (uid, folder_id)
+            )
+        await conn.commit()
+        return True
+
+
+    async def get_chat_history(self, chat_id: str) -> Optional[List[Dict[str, Any]]]:
+        """Fetch messages for a chat ordered by timestamp."""
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return None  # Invalid UUID format
+
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute("SELECT id FROM chats WHERE id = %s;", (uid,))
+            if not await cur.fetchone():
+                return None  # Chat doesn't exist
+            
+            await cur.execute(
+                "SELECT user_id, message, created_at FROM chat_messages WHERE chat_id = %s ORDER BY created_at;",
+                (uid,)
+            )
+            rows = await cur.fetchall()
+        return rows if rows else []
+
+    async def get_chat_owner(self, chat_id: str) -> Optional[int]:
+        """Fetch the owner ID for a specific chat."""
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return None  # Invalid UUID format
+
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute("SELECT id FROM chats WHERE id = %s;", (uid,))
+            if not await cur.fetchone():
+                return None  # Chat doesn't exist
+            
+            await cur.execute(
+                "SELECT user_id WHERE chat_id = %s;",
+                (uid,)
+            )
+            rows = await cur.fetchall()
+        return rows[0]["user_id"] if rows else None
+
+
+    async def create_chat(self, user_id: int, title: str) -> str:
+        """Create a new chat and return its UUID string."""
+        uid = uuid.uuid4()
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO chats (id, user_id, title) VALUES (%s, %s, %s);",
+                (uid, user_id, title)
+            )
+        await conn.commit()
+        return str(uid)
+
+
+    async def get_chat_owner(self, chat_id: str) -> int:
+        """ Get the owner of a specific chat. Returns -1 if chat_id DNE. """
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return -1
+
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT user_id FROM chats WHERE id = %s;",
+                (uid,)
+            )
+            row = await cur.fetchone()
+        
+        if row: return row[0]
+        else: return -1
+
+
+    async def get_folder_owner(self, folder_id: int) -> int:
+        """ Get the owner of a specific folder. Returns -1 if folder_id DNE. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT user_id FROM folders WHERE id = %s;",
+                (folder_id,)
+            )
+            row = await cur.fetchone()
+        
+        if row: return row[0]
+        else: return -1
+
+
+    async def log_chat(self, chat_id: str, sender: int, message: str) -> bool:
+        """Append a message to a chat."""
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return False
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO chat_messages (user_id, chat_id, message) VALUES (%s, %s, %s);",
+                (sender, uid, message)
+            )
+        await conn.commit()
+        return True
+
+
+    async def delete_chat(self, chat_id: str) -> bool:
+        """Delete a chat and related data."""
+        try:
+            uid = uuid.UUID(chat_id)
+        except ValueError:
+            return False
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "DELETE FROM chat_folder_link WHERE chat_id = %s;",
+                (uid,)
+            )
+            await cur.execute(
+                "DELETE FROM chat_messages WHERE chat_id = %s;",
+                (uid,)
+            )
+            await cur.execute(
+                "DELETE FROM chats WHERE id = %s RETURNING id;",
+                (uid,)
+            )
+            deleted = await cur.fetchone()
+        if not deleted:
+            return False
+        await conn.commit()
+        return True
+
+
+    async def create_folder(self, name: str, course_id: int, user_id: int) -> int:
+        """Create a new folder for a user; return the new folder's id."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "INSERT INTO folders (label, course_id, user_id) VALUES (%s, %s, %s) RETURNING id;",
+                (name, course_id, user_id)
+            )
+            row = await cur.fetchone()
+        await conn.commit()
+        return row[0] if row else -1
+
+
+    async def delete_folder(self, folder_id: int) -> bool:
+        """ Delete a folder and its links for a user. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            # remove the chat contained inside the folder
+            await cur.execute(
+                    """ DELETE FROM chats
+                        WHERE id IN (
+                            SELECT chat_id FROM chat_folder_link WHERE folder_id = %s
+                        );""",
+                    (folder_id,)
+                )
+
+            # remove the actual folder
+            await cur.execute(
+                    "DELETE FROM folders WHERE id = %s RETURNING id;",
+                    (folder_id,)
+                )
+            deleted = await cur.fetchone()
+
+        if not deleted: return False
+        await conn.commit()
+        return True
+
+
+    async def get_courses(self, user_id: int) -> dict[str, list[int]]:
+        """ Return a dictonary of course id and the folder id in each entry.
+            <course-name>: [folder_ids] """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """SELECT c.title, f.id FROM folders AS f
+                   JOIN courses AS c ON f.course_id = c.id WHERE f.user_id = %s;""", 
+                (user_id,)
+            )
+            rows = await cur.fetchall()
+
+        result = {}
+        for course_title, folder_id in rows:
+            result.setdefault(course_title, []).append(folder_id)
+        return result
+
+
+    async def delete_course(self, course_id: int) -> bool:
+        """
+        Delete a course, all its folders, and any chat_folder_links for those folders.
+        Returns True if the course existed (and was deleted), False otherwise.
+        """
+        conn = await get_connection()
+
+        async with conn.cursor() as cur:
+            # 1) get all folder IDs for this course
+            await cur.execute(
+                "SELECT id FROM folders WHERE course_id = %s",
+                (course_id,)
+            )
+            rows = await cur.fetchall()
+            folder_ids = [r[0] for r in rows]
+
+            # if no folders, folder_ids is just an empty list — that's fine
+            if folder_ids:
+                # 2) delete all chat-folder-links for any of those folders
+                await cur.execute(
+                    "DELETE FROM chat_folder_link WHERE folder_id = ANY(%s)",
+                    (folder_ids,)
+                )
+                # (optional) link_deletes = cur.rowcount
+
+            # 3) delete the folders themselves
+            await cur.execute(
+                "DELETE FROM folders WHERE course_id = %s",
+                (course_id,)
+            )
+
+            # 4) delete the course
+            await cur.execute(
+                "DELETE FROM courses WHERE id = %s",
+                (course_id,)
+            )
+            course_deleted = cur.rowcount
+
+        await conn.commit()
+        return course_deleted > 0
+
+
+    async def create_course(self, course_code: str, course_title: str|None = None) -> int:
+        """ Create a new course entry. On failure returns -1 """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            if course_title:
+                await cur.execute(
+                        "INSERT INTO courses (code, title) VALUES (%s, %s) RETURNING id;",
+                        (course_code, course_title)
+                    )
+            else:
+                await cur.execute(
+                        "INSERT INTO courses (code) VALUES (%s) RETURNING ID;",
+                        (course_code,)
+                    )
+
+            row = await cur.fetchone()
+        
+        await conn.commit()
+        return row[0] if row else -1
+
+
+    async def organize_folder(self, folder_id: int, course_id: int) -> bool:
+        """Update folder's course_id only if course exists and folder is valid."""
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            # check whether the coruse exist
+            await cur.execute(
+                    "SELECT 1 FROM courses WHERE id = %s;", 
+                    (course_id,)
+                )
+            if not await cur.fetchone(): return False
+
+            # update folder
+            await cur.execute(
+                    "UPDATE folders SET course_id = %s WHERE id = %s RETURNING id; ", 
+                    (course_id, folder_id)
+                )
+            status = await cur.fetchone()
+
+        await conn.commit()
+        return status is not None
+    
+
+    async def add_course(self, user_id: int, course_code: str) -> bool:
+        """ Add a course to a user's list of courses. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id FROM courses WHERE code = %s;", 
+                (course_code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return False
+            course_id = row[0]
+
+            await cur.execute(
+                """
+                UPDATE users
+                   SET course_ids = array_append(course_ids, %s)
+                 WHERE id = %s;
+                """,
+                (course_id, user_id)
+            )
+        await conn.commit()
+        return True
+  
+
+    async def delete_user_course(self, user_id: int, course_code: str) -> bool:
+        """ Remove a course from a user's list of courses. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT id FROM courses WHERE code = %s;", 
+                (course_code,)
+            )
+            row = await cur.fetchone()
+            if not row:
+                return False
+            course_id = row[0]
+
+            await cur.execute(
+                """
+                UPDATE users
+                   SET course_ids = array_remove(course_ids, %s)
+                 WHERE id = %s;
+                """,
+                (course_id, user_id)
+            )
+        await conn.commit()
+        return True
+ 
+
+    async def get_user_courses(self, user_id: int) -> List[Dict[str, Any]]:
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT c.id   AS course_id,
+                    c.title
+                FROM courses AS c
+                JOIN users   AS u
+                    ON c.id = ANY(u.course_ids)
+                WHERE u.id = %s;
+                """,
+                (user_id,)
+            )
+            return await cur.fetchall()
+
+
+    async def get_folders_for_course(self, course_id: int) -> List[Dict[str, Any]]:
+        conn = await get_connection()
+        async with conn.cursor(row_factory=dict_row) as cur:
+            await cur.execute(
+                """
+                SELECT id AS folder_id, label AS folder_label
+                FROM folders
+                WHERE course_id = %s
+                """,
+                (course_id,)
+            )
+            return await cur.fetchall()
+
+
+    async def get_admin(self, user_id: int) -> bool:
+        """ Check if the user is an admin. """
+        conn = await get_connection()
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "SELECT is_admin FROM users WHERE id = %s;", 
+                (user_id,)
+            )
+            row = await cur.fetchone()
+        return row[0] if row else False
+
+
+
+
+if __name__ == "__main__":
+    agent = DatabaseAgent()
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "Hi there!"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "Hello! How can I help you today?"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "What's the weather like today?"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "It's sunny and 75°F in your area."))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "Nice. Can you remind me to study at 8 PM?"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "Reminder set for 8 PM: 'Study session.'"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", 9, "Thanks!"))
+    asyncio.run(agent.log_chat("ae0c03f4-7707-4d0d-b1b6-3160a024f260", -1, "You're welcome"))
