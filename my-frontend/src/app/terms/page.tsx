@@ -1,7 +1,4 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import Link from "next/link";
 
 export default function TermsPage() {
   return (
@@ -15,9 +12,10 @@ export default function TermsPage() {
         <section className="mb-6">
           <h2 className="text-xl font-semibold mb-2">1. Acceptance of Terms</h2>
           <p>
-            By accessing or using this website (the "Service"), you agree to be
-            bound by these Terms and Conditions. If you do not agree with any
-            part of these terms, you must stop using the Service immediately.
+            By accessing or using this website (the &quot;Service&quot;), you
+            agree to be bound by these Terms and Conditions. If you do not agree
+            with any part of these terms, you must stop using the Service
+            immediately.
           </p>
         </section>
 
@@ -25,8 +23,8 @@ export default function TermsPage() {
           <h2 className="text-xl font-semibold mb-2">2. Changes to Terms</h2>
           <p>
             We reserve the right to modify these Terms at any time. We will
-            notify you by updating the "Last updated" date at the top of this
-            page. Your continued use of the Service after such changes
+            notify you by updating the &quot;Last updated&quot; date at the top
+            of this page. Your continued use of the Service after such changes
             constitutes acceptance of the new Terms.
           </p>
         </section>

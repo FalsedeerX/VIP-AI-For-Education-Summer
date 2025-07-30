@@ -21,7 +21,7 @@ class ValkeyConfig:
 class SessionManager:
 	def __init__(self, config: ValkeyConfig):
 		self.db = redis.Redis(host=config.db_host, port=config.db_port, db=config.db_index, 
-							  username=config.db_user, password=config.db_pass, decode_responses=True)
+							  username=config.db_user, password=config.db_pass, decode_responses=True, ssl=True)
 		self.config = config
 		self.db.ping()
 

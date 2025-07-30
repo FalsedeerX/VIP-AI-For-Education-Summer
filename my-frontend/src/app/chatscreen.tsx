@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useRef, useCallback } from "react";
-import { getJson, postJson } from "@/lib/api";
+import { getJson } from "@/lib/api";
 import TextareaAutosize from "react-textarea-autosize";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -94,7 +94,7 @@ export default function ChatScreen({ chatId }: { chatId: string }) {
     return () => {
       socketRef.current?.close();
     };
-  }, [chatId]);
+  }, [chatId, router]);
 
   const handleSend = useCallback(() => {
     if (!input.trim() || !isConnected || !userInfo) return;

@@ -48,9 +48,8 @@ export default function Sidebar({
   setIsDrawerOpen: (open: boolean) => void;
 }) {
   const router = useRouter();
-  const { userId, loading } = useAuth();
+  const { loading } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [foldersByCourse, setFoldersByCourse] = useState<{
     [key: number]: Folder[];
   }>({});
@@ -59,9 +58,7 @@ export default function Sidebar({
   );
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
-  const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [showAddCourse, setShowAddCourse] = useState(false);
-  const [showDeleteCourse, setShowDeleteCourse] = useState(false);
   const [newCourseCode, setNewCourseCode] = useState("");
   const [showAddChat, setShowAddChat] = useState(false);
   const [showDeleteChat, setShowDeleteChat] = useState(false);
@@ -284,7 +281,7 @@ export default function Sidebar({
                                           <DialogTrigger asChild>
                                             <Button
                                               size="icon"
-                                              onClick={(e) => {
+                                              onClick={() => {
                                                 setShowDeleteChat(true);
                                               }}
                                               className="ml-1 bg-[var(--color-purdue-black)] hover:opacity-90 text-[var(--color-purdue-gold)] flex-shrink-0"
