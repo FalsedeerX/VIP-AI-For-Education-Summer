@@ -64,7 +64,7 @@ app.include_router(course_router.router)
 
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=["http://localhost:3000", "http://purduegpt.local"],
+  allow_origins=["http://localhost:3000", "https://vip-ai-for-education-summer.vercel.app"],
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
