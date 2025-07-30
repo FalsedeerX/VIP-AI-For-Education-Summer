@@ -111,7 +111,7 @@ class DatabaseAgent:
             return False
 
 
-    async def get_chats(self, folder_id: int) -> list[dict]:
+    async def get_chats(self, folder_id: int, user_id: int) -> list[dict]:
         """ Get a list of chat IDs of a speicifc folder_id. 
             Return type: <chat-title, chat-id> """
         conn = await get_connection()
@@ -121,9 +121,9 @@ class DatabaseAgent:
                 SELECT c.id, c.title 
                   FROM chat_folder_link AS l
                   JOIN chats AS c ON c.id = l.chat_id
-                 WHERE l.folder_id = %s
+                 WHERE l.folder_id = %s AND c.user_id = %s
                 """,
-                (folder_id,)
+                (folder_id, user_id)
             )
             return await cur.fetchall()
 

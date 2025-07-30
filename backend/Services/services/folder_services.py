@@ -30,7 +30,7 @@ class FolderRouter:
 			response.delete_cookie("purduegpt-token")
 			raise HTTPException(401, "Malformed session token.")
 		
-		rows = await self.db.get_chats(payload.folder_id)
+		rows = await self.db.get_chats(payload.folder_id, request.state.user_id)
 		return [ChatOut(chat_id=r["id"], title=r["title"]) for r in rows]
 
 
