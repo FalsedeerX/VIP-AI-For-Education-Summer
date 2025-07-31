@@ -1,5 +1,5 @@
 from enum import IntEnum, auto
-from typing import List, Tuple, Literal
+from typing import List, Tuple, Literal, Optional
 from PIL import Image
 from openai.types.chat import ChatCompletionMessageParam, ChatCompletionContentPartParam
 import math
@@ -41,6 +41,12 @@ class Message:
     def add_image(self, image: Image.Image) -> 'Message':
         self.content.append((ContentType.IMAGE, image_to_base64(image)))
         return self
+
+    def to_dict(self):
+        return {
+            "role": self.role,
+            "content": [{"type": ctype.name, "value": value} for ctype, value in self.content],
+        }
 
     def to_openai_message(self) -> ChatCompletionMessageParam:
         openai_content: List[ChatCompletionContentPartParam] = []

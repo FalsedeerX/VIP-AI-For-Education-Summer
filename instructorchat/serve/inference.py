@@ -68,8 +68,8 @@ async def return_conversation(data: Dict, websocket = None) -> Dict:
         if websocket:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
-
-    convo = await global_conv.get_messages()
+    
+    convo = [message.to_dict() for message in await global_conv.get_messages()]
 
     if websocket:
         await websocket.send_message(json.dumps({"conversation": convo, "status": "success"}))
@@ -328,16 +328,16 @@ async def chat_loop(
 
         for i, context in enumerate(contexts):
             message.add_text("<context>\n")
-
-            message.add_text(f"Title: {context["title"]}\n")
+            message.add_text(f"Title: {context['title']}\n")
 
             if context["image_dir"] is not None and context["image_dir"] not in images:
-                images[context["image_dir"]] = i  # Mark this context as containing an image
+                images[context["image_dir"]] = i
 
                 message.add_image(Image.open(context["image_dir"]))
                 message.add_text("\nText parsed from image:\n")
 
-            message.add_text(f"{context["text"]}\n</context>\n")
+
+            message.add_text(f"{context['text']}\n</context>\n")
 
         # Add messages to conversation
         conv.append_message(message)

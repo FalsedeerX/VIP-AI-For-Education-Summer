@@ -64,6 +64,7 @@ async def send_streaming_action(websocket, action: str, data: Dict[str, Any] = N
             elif response_data.get("type") == "stream_complete":
                 print(f"\n\n[STREAM COMPLETE] Total chunks received: {chunk_count}")
                 print(f"[CONTEXTS] {len(response_data.get('contexts', []))} contexts found")
+                print(f"[CONTEXTS] {response_data.get('contexts', [])}")
                 break
             elif response_data.get("status") == "error":
                 print(f"\n[ERROR] {response_data.get('error', 'Unknown error')}")
@@ -79,6 +80,7 @@ async def send_streaming_action(websocket, action: str, data: Dict[str, Any] = N
 async def test_websocket_server():
     """Test the WebSocket server with various actions."""
     uri = "ws://localhost:6666"
+    #uri = "wss://<ngrok ip address>.ngrok-free.app/" #for exposing the server to the internet
     
     try:
         async with websockets.connect(uri) as websocket:
@@ -91,18 +93,22 @@ async def test_websocket_server():
             # Test 2: Generate an answer (streaming)
             print("\n=== Test 2: Generate Answer (Streaming) ===")
             await send_streaming_action(websocket, "generate_answer", {
-                "question": "Say hello in one sentence"
+                "question": "Who is donald trump?"
             })
             
+            print("\n=== Test 3: Generate Answer (Streaming) ===")
+            await send_streaming_action(websocket, "generate_answer", {
+                "question": "Who is his wife?"
+            })
             # # Test 5: Generate another answer (streaming)
             # print("\n=== Test 5: Generate Another Answer (Streaming) ===")f
             # await send_streaming_action(websocket, "generate_answer", {
             #     "question": "Explain machine learning in simple terms"
             # })
             
-            # # Test 6: Return conversation again (should now have both Q&As)
-            # print("\n=== Test 6: Return Conversation (After Q&As) ===")
-            # await send_action(websocket, "return_conversation")
+            # Test 6: Return conversation again (should now have both Q&As)
+            print("\n=== Test 6: Return Conversation (After Q&As) ===")
+            await send_action(websocket, "return_conversation")
             
             # # Test 7: Test invalid action
             # print("\n=== Test 7: Invalid Action ===")

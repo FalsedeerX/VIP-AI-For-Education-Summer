@@ -35,6 +35,7 @@ async def handle_websocket(request: WebSocketRequest):
     """Handle WebSocket connections with action-based dispatch."""
     ws = await request.accept()
     print("New WebSocket connection established")
+    print("================================================")
 
     try:
         while True:
@@ -46,12 +47,12 @@ async def handle_websocket(request: WebSocketRequest):
                 action = payload.get("action")
                 data = payload.get("data", {})
 
-                # Handle streaming actions (they manage their own messaging)
+                # Handle streaming actions 
                 if action in STREAMING_ACTIONS:
                     await STREAMING_ACTIONS[action](data, websocket=ws)
                     continue
 
-                # Handle regular actions
+                # Handle not mentioned actions
                 if action not in ACTION_DISPATCH:
                     await ws.send_message(json.dumps({
                         "error": f"Unknown action: {action}",
@@ -59,7 +60,7 @@ async def handle_websocket(request: WebSocketRequest):
                     }))
                     continue
 
-                # Call the corresponding function for regular actions
+                # Call non-streaming actions
                 result = await ACTION_DISPATCH[action](data, websocket=ws)
 
                 # Only send result if the function didn't already send a message
