@@ -109,19 +109,31 @@ install_dependencies() {
 	for dependency in "${dependencies[@]}"; do
 		install_if_missing "$dependency" "$distro"
 	done
+
+	# manually install the venv package for debian
+	if [[ ! "$distro" = "arch" ]]; then
+		sudo apt-get install -y python3-venv
+	fi
+
 	return 0
 }
 
 
-setup_local_nameserver() {
-	echo
+setup_postgres_auth() {
+    local hba_file
+    hba_file=$(find /etc/postgresql/ -type f -path "*/main/pg_hba.conf" | head -n1)
+
+    if [[ ! -f "$hba_file" ]]; then
+        echo "[-] Could not locate pg_hba.conf"
+        return 1
+    fi
+
+    echo "[+] Located pg_hba.conf at $hba_file"
+    echo "[+] Replacing 'peer' authentication with 'md5'..."
+    sudo sed -i 's/^\(local[[:space:]]\+all[[:space:]]\+all[[:space:]]\+\)peer/\1md5/' "$hba_file"
+    sudo systemctl restart postgresql
 }
 
-
-setup_nginx() {
-	""""""
-	echo
-}
 
 
 setup_postgresql() {
@@ -133,6 +145,11 @@ setup_postgresql() {
 		echo "[+] Initializing PostgreSQL's base cluster......"
 		sudo -iu postgres initdb -D /var/lib/postgres/data
 		fi
+	fi
+
+	# modify authentication mode on debian
+	if [[ ! "$distro" = "arch" ]]; then
+		setup_postgres_auth
 	fi
 
 	# enable the postgresql service on the system
@@ -166,7 +183,7 @@ create_postgres_db() {
 
 	echo "[+] Creating database $db_name......"
   	if sudo -iu postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname = '$db_name'" | grep -q 1; then
-    	echo "[*] Database '$db_name' already exists. Skipping re-creation."
+    	echo "[-] Database '$db_name' already exists. Skipping re-creation."
 		return 0
   	else
     	sudo -iu postgres psql -c "CREATE DATABASE \"$db_name\" OWNER \"$db_owner\";"
@@ -211,59 +228,25 @@ provision_postgresql() {
 }
 
 
-get_valkey_config() {
-	# start the valkey daemon
-	sudo systemctl start valkey
-
-	# query on the service default configuration
-	local exec_info=$(sudo systemctl show -p ExecStart valkey)
-	local exec_args=$(echo "$exec_info" | sed -n "s/^ExecStart=.*argv\[]=\([^;]*\) ;.*$/\1/p")
-	for arg in $exec_args; do
-		if [[ "$arg" == *.conf && -f "$arg" ]]; then
-			echo "$arg"
-			sudo systemctl stop valkey
-			return 0
-		fi
-	done
-
-	# check the configuration in the default locations
-	local default_paths=(
-        "/etc/valkey/valkey.conf"
-        "/etc/redis/valkey.conf"
-        "/usr/local/etc/valkey.conf"
-    )
-    for path in "${default_paths[@]}"; do
-        if [[ -f "$path" ]]; then
-            echo "$path"
-            sudo systemctl stop valkey
-            return 0
-        fi
-    done
-
-    # If not found, stop the service and signal failure
-    sudo systemctl stop valkey
-    echo "[-] Valkey configuration file not found."
-    return 1
-}
-
-
-setup_valkey() {	
-	local config="$1" 
+setup_valkey() {
+	local distro="$1"
+	local config="$2" 
+	local service_name=$([[ "$distro" == "arch" ]] && echo "valkey" || echo "valkey-server")
 	local setting_key="notify-keyspace-events"
 	local setting_value="Ex"
 
 	# check if the configuration is already satisfied
-	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]${setting_value}[[:space:]]*$" "$config"; then
+	if sudo grep -Eq "^[[:space:]]*${setting_key}[[:space:]]${setting_value}[[:space:]]*$" "$config"; then
 		echo "[+] Valkey configuration is already setup properly. Skipping expiration callback setup."
 		echo "[+] Starting and enabling Valkey daemon on system......"
-		sudo systemctl enable --now valkey
+		sudo systemctl enable --now "$service_name"
 		return 0
 	else
 		echo "[-] Valkey's configuration not satisfy, modification proceeding......"
 	fi
 
 	# replace the previous configuration or append the new setting at the end of file
-	if grep -Eq "^[[:space:]]*${setting_key}[[:space:]]+" "$config"; then
+	if sudo grep -Eq "^[[:space:]]*${setting_key}[[:space:]]+" "$config"; then
 		echo "[-] Previous configuration of key $setting_key detected in file $config"
 		sudo sed -iE "s|^[[:space:]]*${setting_key}[[:space:]]\+.*$|${setting_key} ${setting_value}|" "$config"
 	else
@@ -274,8 +257,8 @@ setup_valkey() {
 
 	# daemon reload
 	echo "[+] Starting and enabling Valkey daemon on system......"
-	sudo systemctl enable valkey
-	sudo systemctl restart valkey
+	sudo systemctl enable "$service_name"
+	sudo systemctl restart "$service_name"
 	return 0
 }
 
@@ -296,14 +279,14 @@ setup_backend() {
 	fi
 
 	echo "[+] Creating and activating virtual environment......"
-	python -m venv .venv
+	python3 -m venv .venv
 	source .venv/bin/activate
 
 	echo "[+] Installing required dependencies......"
-	pip install -r requirements.txt
-	pip install -e DatabaseAgent
-	pip install -e SessionManager
-	pip install -e Service
+	pip3 install -r requirements.txt
+	pip3 install -e DatabaseAgent
+	pip3 install -e SessionManager
+	pip3 install -e Service
 	deactivate
 
 	echo "[+] Backend setup completed."
@@ -356,8 +339,7 @@ main() {
 	echo
 
 	# configure valkey after installation
-	valkey_config=$(get_valkey_config)
-	setup_valkey "$valkey_config"
+	setup_valkey "$distro" "/etc/valkey/valkey.conf"
 	echo
 
 	# create user + database schema import
