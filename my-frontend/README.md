@@ -10,11 +10,10 @@ A React/Next.js front-end for the AI for EDU Internship platform. Provides a res
 2. [Prerequisites](#prerequisites)
 3. [Getting Started](#getting-started)
 4. [Environment Variables](#environment-variables)
-5. [Available Scripts](#available-scripts)
-6. [Project Structure](#project-structure)
-7. [Styling & Design](#styling-design)
-8. [Important Pages and Components](#pages-components)
-9. [Authors](#authors)
+5. [Project Structure](#project-structure)
+6. [Styling & Design](#styling-design)
+7. [Important Pages and Components](#pages-components)
+8. [Authors](#authors)
 
 ---
 
