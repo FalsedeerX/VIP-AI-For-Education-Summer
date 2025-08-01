@@ -144,7 +144,7 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 
 ## Testing
 
-Three Functional Testing files, that test if the ChatPage, LoginPage and RegisterPage render correctly and work with user interaction.  
+Three Functional Testing files coded using Jest and React Testing Library, that test if the ChatPage, LoginPage and RegisterPage render correctly and work with user interaction.  
   
 To run  
 ```
