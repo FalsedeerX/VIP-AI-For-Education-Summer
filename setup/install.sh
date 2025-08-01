@@ -12,7 +12,7 @@ show_banner() {
 	echo "Setup and configuration may differ across linux distributions."
 	echo
 	echo "🔧 Compatibility:"
-	echo "This script is originally tested and verified **only on Arch Linux**."
+	echo "This script is originally tested and verified **only on Arch Linux and Debian**."
 	echo "It is also designed to support **Debian-based distributions**, but package compatibility is not guaranteed."
 	echo "======================================================================"
 	echo
