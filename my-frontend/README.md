@@ -11,8 +11,8 @@ A React/Next.js front-end for the AI for EDU Internship platform. Provides a res
 3. [Getting Started](#getting-started)
 4. [Environment Variables](#environment-variables)
 5. [Project Structure](#project-structure)
-6. [Styling & Design](#styling-design)
-7. [Important Pages and Components](#pages-components)
+6. [Important Pages and Components](#pages-components)
+7. [Testing](#testing)
 8. [Authors](#authors)
 
 ---
@@ -123,6 +123,9 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 - **terms**
   Under the terms folder, the page.tsx handles the code for terms page
 
+- **Stlyling and Design**
+  Color and Font choices can be found in globals.css, most component designs were imported from from shadcn UI library
+
 - **Main Page**
   The main page.tsx directly under the app folder handles the code for main dashboard
   every user sees when they login. For admins it renders the Admin Dashboard, for normal users it renders a combination of the sidebar component and the messaging screen.
@@ -135,3 +138,16 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 
 - **Chat Screen**
   Thic screen displays the message conversation between the user and the AI, it feature autmatic scrolling, dynamic sizing and onerror can restart the websocket connection. Rendered under ChatPage, and accessed it's HTTP adress includes the UUID chat_id.
+
+
+---
+
+## Testing
+
+Three Functional Testing files, that test if teh ChatPage, LoginPage and RegisterPage render correctly and work with user interaction.  
+  
+To run  
+```
+npm test
+```
+
