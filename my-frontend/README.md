@@ -136,9 +136,3 @@ Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL
 
 - **Chat Screen**
   Thic screen displays the message conversation between the user and the AI, it feature autmatic scrolling, dynamic sizing and onerror can restart the websocket connection. Rendered under ChatPage, and accessed it's HTTP adress includes the UUID chat_id.
-
----
-
-## Authors
-
-Developed by Shrey Agarwal and Yu-Kuang Chen

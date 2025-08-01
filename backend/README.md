@@ -546,10 +546,3 @@ Needs cookie to be set "secure=False" In user_services.py
 pytest DatabaseAgent/test_database_agent.py
 pytest -q
 ```
-
----
-
-## Authors
-
-Shrey Agarwal  
-Yu-Kuang Chen
