@@ -37,6 +37,8 @@ class UserRouter:
 		# authentication success, assign token and set cookie
 		user_id = await self.db.get_user_id(payload.username)
 		token = self.session.assign_token(user_id, request.state.ip_address)
+
+		# for local testing in http, samesite need to be set to `lax` and secure need to be `False`
 		response.set_cookie(key="purduegpt-token", value=str(token), httponly=False, samesite="none", secure=True, max_age=10800, path="/") 
 		return True
 
