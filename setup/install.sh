@@ -286,7 +286,7 @@ setup_backend() {
 	pip3 install -r requirements.txt
 	pip3 install -e DatabaseAgent
 	pip3 install -e SessionManager
-	pip3 install -e Service
+	pip3 install -e Services
 	deactivate
 
 	echo "[+] Backend setup completed."
