@@ -66,7 +66,7 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
                 # ! This is a temporary solution that doesn't include title or parsed text
                 retrieval_contexts.append(MLLMImage(ctx["image_dir"]))
             else:
-                retrieval_contexts.append(f"Title: {ctx["title"]}\n{ctx["text"]}\n\n")
+                retrieval_contexts.append(f"Title: {ctx['title']}\n{ctx['text']}\n\n")
 
         test_cases.append(MLLMTestCase(
             input=[tc["input"]],
