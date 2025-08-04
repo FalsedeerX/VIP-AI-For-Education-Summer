@@ -26,7 +26,7 @@ export default function LoginPage() {
       router.push("/");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setError(error.message);
+        setError("Login Failed");
       } else {
         setError("Invalid username or password. Please try again.");
       }
