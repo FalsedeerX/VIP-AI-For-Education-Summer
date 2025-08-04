@@ -15,6 +15,8 @@ instructorchat/retrieval/index
 
 .vector_db
 
+*.swp
+
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,sublimetext,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,sublimetext,python
 

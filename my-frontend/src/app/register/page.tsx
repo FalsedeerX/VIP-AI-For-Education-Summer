@@ -39,7 +39,7 @@ export default function RegisterPage() {
       router.push("/");
     } catch (error: unknown) {
       if (error instanceof Error) {
-        setError(error.message);
+        setError("Registration failed");
       } else {
         setError("Registration failed");
       }
