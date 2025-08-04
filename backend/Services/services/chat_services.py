@@ -97,8 +97,7 @@ class ChatRouter:
 					request = {
 						"action": "generate_answer",
 						"data": {
-						"question": question,
-						"folder": "default"
+						"question": question
 					}
 				}
 				await upstream.send(json.dumps(request))
