@@ -52,7 +52,7 @@ async def get_responses(
     return responses_file
 
 
-def run_evaluations(responses_file: str, use_cache: bool = False):
+def run_evaluations(responses_file: str, use_cache: bool = False, throttle: int = 3, max_concurrent: int = 5):
     with open(responses_file, 'r') as f:
         test_cases_from_json = json.load(f)
 
@@ -64,7 +64,7 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
         for ctx in tc["retrieval_context"]:
             if ctx["image_dir"] is not None:
                 # ! This is a temporary solution that doesn't include title or parsed text
-                retrieval_contexts.append(MLLMImage(ctx["image_dir"]))
+                retrieval_contexts.append(MLLMImage(ctx["image_dir"], local=True))
             else:
                 retrieval_contexts.append(f"Title: {ctx['title']}\n{ctx['text']}\n\n")
 
@@ -104,7 +104,7 @@ def run_evaluations(responses_file: str, use_cache: bool = False):
     test_result = evaluate(
         test_cases,
         metrics=metrics,
-        async_config=AsyncConfig(throttle_value=3, max_concurrent=5),
+        async_config=AsyncConfig(throttle_value=throttle, max_concurrent=max_concurrent),
         cache_config=CacheConfig(use_cache=use_cache),
         error_config=ErrorConfig(ignore_errors=True)
     ).test_results
@@ -162,7 +162,7 @@ def main() -> None:
     else:
         responses_file = args.input_file
 
-    run_evaluations(responses_file, use_cache=args.cache)
+    run_evaluations(responses_file, use_cache=args.cache, throttle=args.throttle, max_concurrent=args.concurrent)
 
 
 if __name__ == "__main__":
