@@ -20,7 +20,8 @@ class FolderRouter:
 		self.router.post("/create", status_code=201, response_model=int)(self.create_folder)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_folder)
 		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_folder)
-		self.router.post("/upload", status_code=200, response_model=bool)(self.upload_file)
+		#self.router.post("/upload", status_code=200, response_model=bool)(self.upload_file)
+		self.router.add_api_websocket_route("/upload/{folder_id}", self.websocket_file_upload)
 
 
 	async def get_folder(self, payload: FolderInfo, request: Request, response: Response) -> List[ChatOut]:

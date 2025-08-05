@@ -263,10 +263,12 @@ export default function AdminDashboard() {
           >
             {courses.map((c) => (
               <AccordionItem value={c.course_id.toString()} key={c.course_id}>
-                <AccordionTrigger className="flex justify-between">
-                  <span className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
-                    {c.title}
-                  </span>
+                <div className="flex justify-between items-center p-3">
+                  <AccordionTrigger className="flex items-center">
+                    <span className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
+                      {c.title}
+                    </span>
+                  </AccordionTrigger>
                   <div className="ml-auto flex items-center">
                     <Dialog
                       open={deleteCourseId === c.course_id}
@@ -309,7 +311,8 @@ export default function AdminDashboard() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                </AccordionTrigger>
+                </div>
+
                 <AccordionContent className="space-y-4">
                   <ul className="space-y-2">
                     {foldersByCourse[c.course_id]?.length ? (
@@ -418,17 +421,17 @@ export default function AdminDashboard() {
                                           <input
                                             id="dropzone-file"
                                             type="file"
-                                            className="hiddenx"
+                                            className="hidden"
                                             onChange={handleFileChange}
                                           />
                                         </label>
                                       </div>
                                       {selectedFile && (
                                         <div className="flex items-center justify-between">
-                                          <div>
-                                            <p className="font-medium">
+                                          <div className="max-w-[50%] overflow-hidden">
+                                            <span className="font-medium truncate block whitespace-nowrap">
                                               {selectedFile.name}
-                                            </p>
+                                            </span>
                                             <p className="text-sm text-muted-foreground">
                                               {(
                                                 selectedFile.size / 100
