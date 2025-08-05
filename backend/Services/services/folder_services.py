@@ -1,9 +1,12 @@
+import json
 from uuid import UUID
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
 from fastapi import APIRouter, HTTPException, Request, Response, Form, File, UploadFile
 from services.schemas.folder import NewFolder, FolderOrganize, FolderInfo, ChatOut
+from fastapi import WebSocket, WebSocketDisconnect
 from typing import List
+from http.cookies import SimpleCookie
 
 
 class FolderRouter:
@@ -90,5 +93,66 @@ class FolderRouter:
 		# … stream `contents` over your websocket or save it …
 		return True
 
-	
+	async def websocket_file_upload(self, websocket: WebSocket, folder_id: int):
+		await websocket.accept()
 
+		cookie_header = websocket.headers.get("cookie")
+		cookie = SimpleCookie()
+		cookie.load(cookie_header or "")
+		token_cookie = cookie.get("purduegpt-token")
+
+		if not token_cookie:
+			await websocket.send_text("Missing authentication token.")
+			await websocket.close()
+			return
+
+		token_str = token_cookie.value
+		token = UUID(token_str)
+
+		# --- Derive IP address manually ---
+		ip_address = websocket.client.host if websocket.client else "0.0.0.0"
+
+		# --- Get user ID from token ---
+		user_id = self.session.get_user_id_by_token(token)  # You must implement this
+
+		if not self.session.verify_token(user_id, ip_address, token):
+			await websocket.send_text("Invalid session.")
+			await websocket.close()
+			return
+
+		file_info = None
+		file_chunks = []
+
+		try:
+			while True:
+				message = await websocket.receive()
+
+				if "text" in message:
+					data = json.loads(message["text"])
+					if data["action"] == "upload_file":
+						file_info = {
+							"filename": data["filename"],
+							"content_type": data["content_type"]
+						}
+						# Validate folder ownership
+						folder_owner = await self.db.get_folder_owner(folder_id)
+						if folder_owner != user_id:
+							await websocket.send_text("Error: You do not own this folder.")
+							await websocket.close()
+							return
+
+					elif data["action"] == "upload_complete":
+						if not file_info:
+							await websocket.send_text("Error: No file metadata received.")
+							break
+						await websocket.send_text("Upload successful.")
+						break
+
+				elif "bytes" in message:
+					file_chunks.append(message["bytes"])
+
+		except WebSocketDisconnect:
+			print("WebSocket client disconnected.")
+		except Exception as e:
+			await websocket.send_text(f"Internal server error: {str(e)}")
+			await websocket.close()
