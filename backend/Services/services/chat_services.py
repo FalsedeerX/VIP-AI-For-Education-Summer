@@ -120,6 +120,13 @@ class ChatRouter:
 							print(f"Unknown message type: {mtype}")
 							break
 
+					# log the message into the database
+					user_id = await self.db.get_chat_owner(chat_id)
+					status = await self.db.log_chat(chat_id, user_id, question)
+					if not status: raise HTTPException(404, "Cannot log message to chat")
+					status = await self.db.log_chat(chat_id, -1, full_response)
+					if not status: raise HTTPException(404, "Cannot log message to chat")
+
 		except:
 			await websocket.close()
 
