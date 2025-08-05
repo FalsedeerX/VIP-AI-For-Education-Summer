@@ -217,6 +217,7 @@ export default function AdminDashboard() {
                   <span className="text-[var(--color-purdue-black)] font-semibold text-lg ml-4">
                     {c.title}
                   </span>
+                  </AccordionTrigger>
                   <div className="ml-auto flex items-center">
                     <Dialog
                       open={deleteCourseId === c.course_id}
@@ -259,7 +260,6 @@ export default function AdminDashboard() {
                       </DialogContent>
                     </Dialog>
                   </div>
-                </AccordionTrigger>
                 <AccordionContent className="space-y-4">
                   <ul className="space-y-2">
                     {foldersByCourse[c.course_id]?.length ? (
