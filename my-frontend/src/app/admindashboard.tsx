@@ -59,6 +59,15 @@ export default function AdminDashboard() {
   const [addFileFolderId, setAddFileFolderId] = useState<number | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // Handle file input change
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedFile(e.target.files[0]);
+    } else {
+      setSelectedFile(null);
+    }
+  };
+
   // Load courses
   const loadCourses = useCallback(async () => {
     try {
@@ -164,12 +173,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] ?? null;
-    setSelectedFile(file);
-  };
-
-  // Handler for upload form submit
   const handleUploadSubmit = async (
     e: React.FormEvent<HTMLFormElement>,
     folderId: number
@@ -177,20 +180,67 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!selectedFile) return;
 
-    const formData = new FormData();
-    formData.append("file", selectedFile);
-    formData.append("folder_id", folderId.toString());
+    const ws = new WebSocket(`ws://localhost:8000/folders/upload/${folderId}`);
 
-    const res = await fetch("/folders/upload", {
-      method: "POST",
-      body: formData,
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Upload failed");
+    ws.binaryType = "arraybuffer"; // Ensure we can send binary
 
-    setSelectedFile(null);
-    setAddFileFolderId(null);
-    await loadFolders(folderId);
+    ws.onopen = () => {
+      // 1. Send metadata
+      ws.send(
+        JSON.stringify({
+          action: "upload_file",
+          filename: selectedFile.name,
+          content_type: selectedFile.type,
+        })
+      );
+
+      // 2. Start streaming the file
+      const chunkSize = 4096;
+      let offset = 0;
+
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        if (event.target?.result instanceof ArrayBuffer) {
+          ws.send(event.target.result); // Send binary chunk
+          offset += chunkSize;
+
+          if (offset < selectedFile.size) {
+            readSlice(offset);
+          } else {
+            // 3. File is done — send completion
+            ws.send(JSON.stringify({ action: "upload_complete" }));
+          }
+        }
+      };
+
+      const readSlice = (o: number) => {
+        const slice = selectedFile.slice(o, o + chunkSize);
+        reader.readAsArrayBuffer(slice);
+      };
+
+      readSlice(0);
+    };
+
+    ws.onmessage = (msg) => {
+      console.log("Server:", msg.data);
+
+      if (msg.data === "Upload successful.") {
+        setSelectedFile(null);
+        setAddFileFolderId(null);
+        loadFolders(folderId);
+        ws.close();
+      }
+    };
+
+    ws.onerror = (err) => {
+      console.error("WebSocket error:", err);
+      alert("Upload failed.");
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket closed");
+    };
   };
 
   return (
@@ -375,10 +425,10 @@ export default function AdminDashboard() {
                                       </div>
                                       {selectedFile && (
                                         <div className="flex items-center justify-between">
-                                          <div>
-                                            <p className="font-medium">
+                                          <div className="max-w-[50%] overflow-hidden">
+                                            <span className="font-medium truncate block whitespace-nowrap">
                                               {selectedFile.name}
-                                            </p>
+                                            </span>
                                             <p className="text-sm text-muted-foreground">
                                               {(
                                                 selectedFile.size / 100
