@@ -15,7 +15,7 @@ from instructorchat.serve.inference import (
     ping
 )
 
-HOST: Final = "0.0.0.0"
+HOST: Final = "128.46.101.16"
 PORT: Final = 6666
 
 # Action dispatch dictionary for regular actions

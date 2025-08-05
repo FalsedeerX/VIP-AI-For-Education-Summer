@@ -13,7 +13,7 @@ import redis
 from urllib.parse import urlparse
 
 # chatbot WS url
-CHATBOT_WS_URL = "ws://localhost:6666/ws"
+CHATBOT_WS_URL = "ws://128.46.101.16:6666/ws"
 
 # pass in configuration
 app = FastAPI()
@@ -64,11 +64,11 @@ app.include_router(course_router.router)
 
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=["http://localhost:3000", "https://vip-ai-for-education-summer.vercel.app"],
+  allow_origins=["*"], #allow_origins=["http://localhost:3000", "https://vip-ai-for-education-summer.vercel.app"],
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
 )
 
 if __name__ == "__main__":
-	uvicorn.run("backend:app", host="127.0.0.1", port=8000, reload=True)
+	uvicorn.run("backend:app", host="0.0.0.0", port=8000, reload=True)
