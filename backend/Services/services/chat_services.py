@@ -97,22 +97,28 @@ class ChatRouter:
 					request = {
 						"action": "generate_answer",
 						"data": {
-						"question": question
+							"question": question
+						}
 					}
-				}
-				await upstream.send(json.dumps(request))
+					await upstream.send(json.dumps(request))
 
-				# receive response from chatbot
-				async for message in upstream:
-					try:
+					full_response = ""
+
+					# Stream responses back to frontend
+					async for message in upstream:
 						msg = json.loads(message)
 						mtype = msg.get("type")
+
 						if mtype == "stream_chunk":
-							await websocket.send_text(msg.get("content", ""))
-						else:
+							full_response += msg.get("content", "")
+						elif mtype == "stream_complete":
+							await websocket.send_text(full_response)
 							break
-					except:
-						break
+						elif mtype == "error":
+							await websocket.send_text(f"[ERROR] {msg.get('error')}")
+						else:
+							print(f"Unknown message type: {mtype}")
+							break
 
 		except:
 			await websocket.close()
