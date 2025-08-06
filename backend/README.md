@@ -60,6 +60,11 @@ backend/
    - DB_NAME=yourdbname
    - DB_USER=yourdbuser
    - DB_PASSWD=yourdbpass
+   
+   - NEXT_PUBLIC_IP=yourserverip
+   - NEXT_PUBLIC_API_BASE_URL=http://yourserverip:port
+   - MONGO_URL=yourmongodbatlasurl
+   - OPENAI_API_KEY=yourapikey
 
 4. Run the Server
    ```txt

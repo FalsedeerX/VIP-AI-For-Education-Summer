@@ -15,10 +15,8 @@ from instructorchat.serve.inference import (
     ping
 )
 
-public_ip = os.getenv("NEXT_PUBLIC_IP")
-
-HOST: Final = str(public_ip)
-PORT: Final = 6666
+HOST: Final[str] = os.getenv("NEXT_PUBLIC_IP", "localhost")
+PORT: Final[int] = 6666
 
 # Action dispatch dictionary for regular actions
 ACTION_DISPATCH = {

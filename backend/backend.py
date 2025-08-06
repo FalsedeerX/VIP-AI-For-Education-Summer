@@ -12,17 +12,14 @@ import os
 import redis
 from urllib.parse import urlparse
 
-public_ip = os.getenv("NEXT_PUBLIC_IP")
-
-# chatbot WS url
-CHATBOT_WS_URL = f"ws://{public_ip}:6666/ws"
-
 # pass in configuration
 app = FastAPI()
 
-redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")  # default fallback for local dev
-parsed_url = urlparse(redis_url)
+PUBLIC_IP = os.getenv("NEXT_PUBLIC_IP", "localhost")
+CHATBOT_WS_URL = f"ws://{PUBLIC_IP}:6666/ws"
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")  # default fallback for local dev
 
+parsed_url = urlparse(REDIS_URL)
 valkey_config = ValkeyConfig(
     db_host=parsed_url.hostname,
     db_port=parsed_url.port,
@@ -66,7 +63,7 @@ app.include_router(course_router.router)
 
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=[f"http://{public_ip}:3000"],
+  allow_origins=[f"http://{PUBLIC_IP}:3000"],
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],

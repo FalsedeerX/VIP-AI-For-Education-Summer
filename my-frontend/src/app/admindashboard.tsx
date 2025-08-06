@@ -180,7 +180,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!selectedFile) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/folders/upload/${folderId}`);
+    const ws = new WebSocket(`${process.env.NEXT_PUBLIC_BACKEND_WS}/folders/upload/${folderId}`);
 
     ws.binaryType = "arraybuffer"; // Ensure we can send binary
 
