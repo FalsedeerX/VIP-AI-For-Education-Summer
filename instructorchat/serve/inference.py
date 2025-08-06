@@ -11,7 +11,7 @@ import json
 
 from instructorchat.model.model_adapter import load_model, get_model_adapter
 from instructorchat.retrieval.search import retrieve_relevant_context
-from instructorchat.conversation import Message, Role
+from instructorchat.conversation import Conversation, Message, Role
 
 # Global conversation object for action-based dispatch
 global_conv = None
@@ -127,14 +127,16 @@ async def store_documents_action(data: Dict, websocket = None) -> Dict:
 
 async def generate_answer_action(data: Dict, websocket=None):
     """Action: Generate answer for a question with streaming output."""
-    global global_conv, global_api_key, global_temperature
+    global global_api_key, global_temperature
+    conv = Conversation()
 
-    if global_conv is None or global_api_key is None:
+    if global_api_key is None:
         if websocket:
             await websocket.send_message(json.dumps({"error": "Model not initialized", "status": "error"}))
         return {"error": "Model not initialized"}
 
     try:
+        history = data.get("history", "")
         question = data.get("question", "")
         if not question:
             if websocket:
@@ -160,10 +162,13 @@ async def generate_answer_action(data: Dict, websocket=None):
             </CONTEXT>"""
 
         # Add messages to conversation
-        global_conv.append_message(Message("user").add_text(formatted_message))
+        for chat in history:
+            if chat['user_id'] == -1: conv.append_message(Message("assistant").add_text(chat['message']))
+            else: conv.append_message(Message("user").add_text(chat['message']))
+        conv.append_message(Message("user").add_text(formatted_message))
 
         # Create the final prompt with context
-        messages = global_conv.to_openai_api_messages()
+        messages = conv.to_openai_api_messages()
 
         gen_params = {
             "messages": messages,
@@ -191,9 +196,6 @@ async def generate_answer_action(data: Dict, websocket=None):
                         "content": delta,
                         "status": "streaming"
                     }))
-
-        # Add complete response to conversation
-        global_conv.append_message(Message("assistant").add_text(full_response.strip()))
 
         # Send completion signal
         if websocket:
