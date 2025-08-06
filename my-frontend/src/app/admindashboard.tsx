@@ -180,67 +180,27 @@ export default function AdminDashboard() {
     e.preventDefault();
     if (!selectedFile) return;
 
-    const ws = new WebSocket(`ws://localhost:8000/folders/upload/${folderId}`);
+    const formData = new FormData();
+    formData.append("file_name", selectedFile.name);
+    formData.append("file", selectedFile);
+    formData.append("folder_id", folderId.toString());
 
-    ws.binaryType = "arraybuffer"; // Ensure we can send binary
+    const res = await fetch("/folders/upload", {
+      method: "POST",
+      body: formData,
+      credentials: "include",
+    });
 
-    ws.onopen = () => {
-      // 1. Send metadata
-      ws.send(
-        JSON.stringify({
-          action: "upload_file",
-          filename: selectedFile.name,
-          content_type: selectedFile.type,
-        })
-      );
-
-      // 2. Start streaming the file
-      const chunkSize = 4096;
-      let offset = 0;
-
-      const reader = new FileReader();
-
-      reader.onload = (event) => {
-        if (event.target?.result instanceof ArrayBuffer) {
-          ws.send(event.target.result); // Send binary chunk
-          offset += chunkSize;
-
-          if (offset < selectedFile.size) {
-            readSlice(offset);
-          } else {
-            // 3. File is done — send completion
-            ws.send(JSON.stringify({ action: "upload_complete" }));
-          }
-        }
-      };
-
-      const readSlice = (o: number) => {
-        const slice = selectedFile.slice(o, o + chunkSize);
-        reader.readAsArrayBuffer(slice);
-      };
-
-      readSlice(0);
-    };
-
-    ws.onmessage = (msg) => {
-      console.log("Server:", msg.data);
-
-      if (msg.data === "Upload successful.") {
-        setSelectedFile(null);
-        setAddFileFolderId(null);
-        loadFolders(folderId);
-        ws.close();
-      }
-    };
-
-    ws.onerror = (err) => {
-      console.error("WebSocket error:", err);
+    if (res.ok) {
+      const data = await res.json();
+      console.log("Upload successful:", data);
+      setSelectedFile(null);
+      setAddFileFolderId(null);
+      loadFolders(folderId);
+    } else {
+      console.error("Upload failed");
       alert("Upload failed.");
-    };
-
-    ws.onclose = () => {
-      console.log("WebSocket closed");
-    };
+    }
   };
 
   return (

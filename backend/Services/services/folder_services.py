@@ -2,7 +2,7 @@ import json
 from uuid import UUID
 from sessionmanager.session import SessionManager
 from databaseagent.database_async import DatabaseAgent
-from fastapi import APIRouter, HTTPException, Request, Response, Form, File, UploadFile
+from fastapi import APIRouter, HTTPException, Request, Response, Form, File, UploadFile, websockets
 from services.schemas.folder import NewFolder, FolderOrganize, FolderInfo, ChatOut
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List
@@ -10,18 +10,18 @@ from http.cookies import SimpleCookie
 
 
 class FolderRouter:
-	def __init__(self, database: DatabaseAgent, session: SessionManager):
+	def __init__(self, database: DatabaseAgent, session: SessionManager, chatbot_url: str):
 		self.router = APIRouter(prefix="/folders", tags=["folders"])
 		self.session = session
 		self.db = database
+		self.chatbot_url = chatbot_url
 
 		# register the endpoints
 		self.router.post("", status_code=200, response_model=List[ChatOut])(self.get_folder)
 		self.router.post("/create", status_code=201, response_model=int)(self.create_folder)
 		self.router.delete("/delete", status_code=200, response_model=bool)(self.delete_folder)
 		self.router.post("/organize", status_code=200, response_model=bool)(self.organize_folder)
-		#self.router.post("/upload", status_code=200, response_model=bool)(self.upload_file)
-		self.router.add_api_websocket_route("/upload/{folder_id}", self.websocket_file_upload)
+		self.router.add_api_websocket_route("/upload", self.websocket_file_upload)
 
 
 	async def get_folder(self, payload: FolderInfo, request: Request, response: Response) -> List[ChatOut]:
@@ -78,82 +78,36 @@ class FolderRouter:
 		return True
 	
 
-	async def upload_file(self, *, folder_id: int = Form(...), file: UploadFile = File(...), request: Request, response: Response) -> bool:
-		""" Upload a file to a folder """
-		# check if the user is logged in
+	async def upload_file(self, request: Request, response: Response, file: UploadFile = File(...), folder_id: int = Form(...), file_name: str = Form(...),) -> dict:
+		user_id = request.state.user_id
+
 		if not request.state.token:
 			raise HTTPException(status_code=401, detail="User not logged in.")
-
-		# verify the session token
+		
 		if not request.app.state.session.verify_token(request.state.user_id, request.state.ip_address, UUID(request.state.token)):
 			response.delete_cookie("purduegpt-token")
 			raise HTTPException(status_code=401, detail="Malformed session token.")
 
-		# now you have file.filename, file.content_type, and you can async .read() it:
-		contents = await file.read()
-		# … stream `contents` over your websocket or save it …
-		return True
-
-	async def websocket_file_upload(self, websocket: WebSocket, folder_id: int):
-		await websocket.accept()
-
-		cookie_header = websocket.headers.get("cookie")
-		cookie = SimpleCookie()
-		cookie.load(cookie_header or "")
-		token_cookie = cookie.get("purduegpt-token")
-
-		if not token_cookie:
-			await websocket.send_text("Missing authentication token.")
-			await websocket.close()
-			return
-
-		token_str = token_cookie.value
-		token = UUID(token_str)
-
-		# --- Derive IP address manually ---
-		ip_address = websocket.client.host if websocket.client else "0.0.0.0"
-
-		# --- Get user ID from token ---
-		user_id = self.session.get_user_id_by_token(token)  # You must implement this
-
-		if not self.session.verify_token(user_id, ip_address, token):
-			await websocket.send_text("Invalid session.")
-			await websocket.close()
-			return
-
-		file_info = None
-		file_chunks = []
+		try:
+			pdf_text = await file.read()
+			if not pdf_text:
+				raise HTTPException(status_code=400, detail="Empty file uploaded.")
+		except Exception as e:
+			raise HTTPException(status_code=400, detail=f"Failed to parse PDF")
 
 		try:
-			while True:
-				message = await websocket.receive()
-
-				if "text" in message:
-					data = json.loads(message["text"])
-					if data["action"] == "upload_file":
-						file_info = {
-							"filename": data["filename"],
-							"content_type": data["content_type"]
-						}
-						# Validate folder ownership
-						folder_owner = await self.db.get_folder_owner(folder_id)
-						if folder_owner != user_id:
-							await websocket.send_text("Error: You do not own this folder.")
-							await websocket.close()
-							return
-
-					elif data["action"] == "upload_complete":
-						if not file_info:
-							await websocket.send_text("Error: No file metadata received.")
-							break
-						await websocket.send_text("Upload successful.")
-						break
-
-				elif "bytes" in message:
-					file_chunks.append(message["bytes"])
-
-		except WebSocketDisconnect:
-			print("WebSocket client disconnected.")
+			async with websockets.connect(self.chatbot_url) as upstream:
+				await upstream.send(json.dumps({
+					"action": "upload_context",
+					"data": {
+						"folder": f"folder_{folder_id}",
+						"file_name": file_name,
+						"text": pdf_text,
+						"user_id": user_id
+					}
+				}))
+				# No response expected
 		except Exception as e:
-			await websocket.send_text(f"Internal server error: {str(e)}")
-			await websocket.close()
+			raise HTTPException(500, f"Failed to send context to chatbot")
+
+		return {"message": "File uploaded and sent to chatbot as context."}
