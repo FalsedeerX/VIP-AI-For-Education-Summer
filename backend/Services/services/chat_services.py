@@ -91,24 +91,17 @@ class ChatRouter:
 
 		try:
 			while True:
-				# send the question to chatbot
 				chat_history = await self.db.get_chat_history(chat_id)
-				async with websockets.connect(self.chatbot_url) as upstream:
-					request = {
-						"action": "generate_answer",
-						"data": {
-							"question": json.dumps(chat_history)
-						}
-					}
-					await upstream.send(json.dumps(request))
+				for d in chat_history: d.pop("created_at")
 
-
+				# send the question to chatbot
 				question = await websocket.receive_text()
 				async with websockets.connect(self.chatbot_url) as upstream:
 					request = {
 						"action": "generate_answer",
 						"data": {
-							"question": question
+							"question": question,
+							"history": chat_history
 						}
 					}
 					await upstream.send(json.dumps(request))

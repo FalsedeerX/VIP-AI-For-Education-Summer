@@ -47,7 +47,10 @@ npm run dev
 
 ## Environment Variables
 
-Create and .env.local file at the project route with '''NEXT_PUBLIC_API_BASE_URL=(Address where the server runs)'''
+Create and .env.local file at the project route with:
+
+- NEXT_PUBLIC_BACKEND_WS=(ws:// websocket)
+- NEXT_PUBLIC_API_BASE_URL=(Address where the server runs)
 
 ---
 
