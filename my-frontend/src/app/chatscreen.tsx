@@ -76,7 +76,7 @@ export default function ChatScreen({ chatId }: { chatId: string }) {
         console.error("Fetch error", err);
       }
 
-      socket = new WebSocket(`ws://128.46.101.16:8000/chats/relay/${chatId}`);
+      socket = new WebSocket(`${process.env.NEXT_PUBLIC_BACKEND_WS}/chats/relay/${chatId}`);
       socket.onopen = () => setIsConnected(true);
       socket.onclose = () => setIsConnected(false);
       socket.onerror = (e) => console.error("WebSocket error", e);

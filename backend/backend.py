@@ -12,8 +12,10 @@ import os
 import redis
 from urllib.parse import urlparse
 
+public_ip = os.getenv("NEXT_PUBLIC_IP")
+
 # chatbot WS url
-CHATBOT_WS_URL = "ws://128.46.101.16:6666/ws"
+CHATBOT_WS_URL = f"ws://{public_ip}:6666/ws"
 
 # pass in configuration
 app = FastAPI()
@@ -64,7 +66,7 @@ app.include_router(course_router.router)
 
 app.add_middleware(
   CORSMiddleware,
-  allow_origins=["*"], #allow_origins=["http://localhost:3000", "https://vip-ai-for-education-summer.vercel.app"],
+  allow_origins=[f"http://{public_ip}:3000"],
   allow_credentials=True,
   allow_methods=["*"],
   allow_headers=["*"],
