@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Request, Response, Form, File, Upl
 from services.schemas.folder import NewFolder, FolderOrganize, FolderInfo, ChatOut
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import List
+import base64
 from http.cookies import SimpleCookie
 
 
@@ -89,11 +90,14 @@ class FolderRouter:
 			raise HTTPException(status_code=401, detail="Malformed session token.")
 
 		try:
-			pdf_text = await file.read()
-			if not pdf_text:
+			pdf_bytes = await file.read()
+			if not pdf_bytes:
 				raise HTTPException(status_code=400, detail="Empty file uploaded.")
 		except Exception as e:
 			raise HTTPException(status_code=400, detail=f"Failed to parse PDF")
+
+		encoded_base64_bytes = base64.b64encode(pdf_bytes)
+		pdf_text = encoded_base64_bytes.decode('utf-8')
 
 		try:
 			async with websockets.connect(self.chatbot_url) as upstream:
